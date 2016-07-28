@@ -75,6 +75,8 @@ config.interval =
 	chatRoomSync = 2.0, --聊天同步
 }
 
+config.skipGuid = true;
+
 
 
 -- 暗红 #FF240102

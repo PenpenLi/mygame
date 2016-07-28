@@ -196,7 +196,9 @@ end
 function cityMap:onEnter()
 	-- 进入新手指引
 	--===============================
-	--player.guide.run()
+	if not config.skipGuid then
+		player.guide.run()
+	end
 end
 
 -- onMsg
