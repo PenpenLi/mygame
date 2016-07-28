@@ -44,7 +44,7 @@ BundleArtifacts
 # Ignore files build by ndk and eclipse
 # libs/
 bin/
-obj/
+#obj/
 gen/
 assets/
 local.properties
