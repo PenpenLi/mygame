@@ -119,7 +119,7 @@ function player.heartbeat(dt)
 	if playerData.h_p_key==nil then
 		return
 	end
-	dump(playerData, "heartbeat")
+	--dump(playerData, "heartbeat")
 
 	playerData.systime = playerData.systime+dt
 	

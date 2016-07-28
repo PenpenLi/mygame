@@ -72,8 +72,8 @@ function cityMap:init()
 		minScale = minScaleY
 	end
 	minScale = minScale*1.1
-	self.mapScrollView:setMinScale(minScale)
-	self.mapScrollView:setMaxScale(minScale*3)
+	--self.mapScrollView:setMinScale(minScale)
+	--self.mapScrollView:setMaxScale(minScale*3)
 	self.mapScrollView:setBounceable(false)
 	self.mapScrollView:setZoomScale(minScale*1.5)
 	self.mapScrollView:setContentOffset(cc.p(0, 0))

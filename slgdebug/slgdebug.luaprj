@@ -1,0 +1,371 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+
+<Project Name="slgdebug.luaprj" Cmd="" Arg="" Dir="" >
+    <Filter Name="script" Directory=".\..\res\script" >
+        <LuaFile RelativePath=".\..\res\script\config.lua" />
+        <LuaFile RelativePath=".\..\res\script\game.lua" />
+        <LuaFile RelativePath=".\..\res\script\init.lua" />
+        <LuaFile RelativePath=".\..\res\script\main.lua" />
+        <LuaFile RelativePath=".\..\res\script\player.lua" />
+        <Filter Name="coco2d-x" Directory=".\..\res\script\coco2d-x" >
+            <LuaFile RelativePath=".\..\res\script\coco2d-x\AudioEngine.lua" />
+            <LuaFile RelativePath=".\..\res\script\coco2d-x\CCBReaderLoad.lua" />
+            <LuaFile RelativePath=".\..\res\script\coco2d-x\Cocos2d.lua" />
+            <LuaFile RelativePath=".\..\res\script\coco2d-x\Cocos2dConstants.lua" />
+            <LuaFile RelativePath=".\..\res\script\coco2d-x\CocoStudio.lua" />
+            <LuaFile RelativePath=".\..\res\script\coco2d-x\Deprecated.lua" />
+            <LuaFile RelativePath=".\..\res\script\coco2d-x\DeprecatedClass.lua" />
+            <LuaFile RelativePath=".\..\res\script\coco2d-x\DeprecatedEnum.lua" />
+            <LuaFile RelativePath=".\..\res\script\coco2d-x\DeprecatedOpenglEnum.lua" />
+            <LuaFile RelativePath=".\..\res\script\coco2d-x\DrawPrimitives.lua" />
+            <LuaFile RelativePath=".\..\res\script\coco2d-x\extern.lua" />
+            <LuaFile RelativePath=".\..\res\script\coco2d-x\GuiConstants.lua" />
+            <LuaFile RelativePath=".\..\res\script\coco2d-x\json.lua" />
+            <LuaFile RelativePath=".\..\res\script\coco2d-x\luaj.lua" />
+            <LuaFile RelativePath=".\..\res\script\coco2d-x\luaoc.lua" />
+            <LuaFile RelativePath=".\..\res\script\coco2d-x\Opengl.lua" />
+            <LuaFile RelativePath=".\..\res\script\coco2d-x\OpenglConstants.lua" />
+            <LuaFile RelativePath=".\..\res\script\coco2d-x\StudioConstants.lua" />
+        </Filter>
+        <Filter Name="hp" Directory=".\..\res\script\hp" >
+            <LuaFile RelativePath=".\..\res\script\hp\chatRoom.lua" />
+            <LuaFile RelativePath=".\..\res\script\hp\common.lua" />
+            <LuaFile RelativePath=".\..\res\script\hp\datetime.lua" />
+            <LuaFile RelativePath=".\..\res\script\hp\gameDataLoader.lua" />
+            <LuaFile RelativePath=".\..\res\script\hp\hp.lua" />
+            <LuaFile RelativePath=".\..\res\script\hp\httpCmd.lua" />
+            <LuaFile RelativePath=".\..\res\script\hp\lang.lua" />
+            <LuaFile RelativePath=".\..\res\script\hp\mailCenter.lua" />
+            <LuaFile RelativePath=".\..\res\script\hp\msgCenter.lua" />
+            <LuaFile RelativePath=".\..\res\script\hp\rand.lua" />
+            <LuaFile RelativePath=".\..\res\script\hp\sequenceAniHelper.lua" />
+            <LuaFile RelativePath=".\..\res\script\hp\uiHelper.lua" />
+            <LuaFile RelativePath=".\..\res\script\hp\url.lua" />
+        </Filter>
+        <Filter Name="obj" Directory=".\..\res\script\obj" >
+            <LuaFile RelativePath=".\..\res\script\obj\army.lua" />
+            <LuaFile RelativePath=".\..\res\script\obj\bookMark.lua" />
+            <LuaFile RelativePath=".\..\res\script\obj\building.lua" />
+            <LuaFile RelativePath=".\..\res\script\obj\cdBox.lua" />
+            <LuaFile RelativePath=".\..\res\script\obj\cityWall.lua" />
+            <LuaFile RelativePath=".\..\res\script\obj\hintFrameMgr.lua" />
+            <LuaFile RelativePath=".\..\res\script\obj\soldier.lua" />
+            <LuaFile RelativePath=".\..\res\script\obj\trap.lua" />
+            <Filter Name="alliance" Directory=".\..\res\script\obj\alliance" >
+                <LuaFile RelativePath=".\..\res\script\obj\alliance\alliance.lua" />
+                <LuaFile RelativePath=".\..\res\script\obj\alliance\member.lua" />
+                <LuaFile RelativePath=".\..\res\script\obj\alliance\rallyDefense.lua" />
+                <LuaFile RelativePath=".\..\res\script\obj\alliance\rallyWar.lua" />
+                <LuaFile RelativePath=".\..\res\script\obj\alliance\shop.lua" />
+                <LuaFile RelativePath=".\..\res\script\obj\alliance\targetInfo.lua" />
+                <LuaFile RelativePath=".\..\res\script\obj\alliance\unionManager.lua" />
+            </Filter>
+        </Filter>
+        <Filter Name="playerData" Directory=".\..\res\script\playerData" >
+            <LuaFile RelativePath=".\..\res\script\playerData\bufManager.lua" />
+            <LuaFile RelativePath=".\..\res\script\playerData\buildingMgr.lua" />
+            <LuaFile RelativePath=".\..\res\script\playerData\embassyMgr.lua" />
+            <LuaFile RelativePath=".\..\res\script\playerData\equipBag.lua" />
+            <LuaFile RelativePath=".\..\res\script\playerData\friendMgr.lua" />
+            <LuaFile RelativePath=".\..\res\script\playerData\guide.lua" />
+            <LuaFile RelativePath=".\..\res\script\playerData\helper.lua" />
+            <LuaFile RelativePath=".\..\res\script\playerData\hero.lua" />
+            <LuaFile RelativePath=".\..\res\script\playerData\httpCmdHelper.lua" />
+            <LuaFile RelativePath=".\..\res\script\playerData\marchMgr.lua" />
+            <LuaFile RelativePath=".\..\res\script\playerData\onlineGift.lua" />
+            <LuaFile RelativePath=".\..\res\script\playerData\prisonMgr.lua" />
+            <LuaFile RelativePath=".\..\res\script\playerData\researchMgr.lua" />
+            <LuaFile RelativePath=".\..\res\script\playerData\resourceHelpMgr.lua" />
+            <LuaFile RelativePath=".\..\res\script\playerData\vipStatus.lua" />
+        </Filter>
+        <Filter Name="scene" Directory=".\..\res\script\scene" >
+            <LuaFile RelativePath=".\..\res\script\scene\cityMap.lua" />
+            <LuaFile RelativePath=".\..\res\script\scene\kingdomMap.lua" />
+            <LuaFile RelativePath=".\..\res\script\scene\loading.lua" />
+            <LuaFile RelativePath=".\..\res\script\scene\login.lua" />
+            <LuaFile RelativePath=".\..\res\script\scene\logo.lua" />
+            <LuaFile RelativePath=".\..\res\script\scene\Scene.lua" />
+        </Filter>
+        <Filter Name="ui" Directory=".\..\res\script\ui" >
+            <LuaFile RelativePath=".\..\res\script\ui\build_upgrade.lua" />
+            <LuaFile RelativePath=".\..\res\script\ui\buildingDef.lua" />
+            <LuaFile RelativePath=".\..\res\script\ui\buildingHeader.lua" />
+            <LuaFile RelativePath=".\..\res\script\ui\buildList.lua" />
+            <LuaFile RelativePath=".\..\res\script\ui\cityInfo.lua" />
+            <LuaFile RelativePath=".\..\res\script\ui\destory.lua" />
+            <LuaFile RelativePath=".\..\res\script\ui\dungeonBuilding.lua" />
+            <LuaFile RelativePath=".\..\res\script\ui\fullScreenFrame.lua" />
+            <LuaFile RelativePath=".\..\res\script\ui\hospitalBuilding.lua" />
+            <LuaFile RelativePath=".\..\res\script\ui\hospitalSoldier.lua" />
+            <LuaFile RelativePath=".\..\res\script\ui\mainBuilding.lua" />
+            <LuaFile RelativePath=".\..\res\script\ui\mainBuildingInfo.lua" />
+            <LuaFile RelativePath=".\..\res\script\ui\mainMenu.lua" />
+            <LuaFile RelativePath=".\..\res\script\ui\productionBuilding.lua" />
+            <LuaFile RelativePath=".\..\res\script\ui\productionBuildingInfo.lua" />
+            <LuaFile RelativePath=".\..\res\script\ui\UI.lua" />
+            <Filter Name="academy" Directory=".\..\res\script\ui\academy" >
+                <LuaFile RelativePath=".\..\res\script\ui\academy\academy.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\academy\economicsTree.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\academy\fightTree.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\academy\moreInfoBox.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\academy\research.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\academy\researchInfo.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\academy\trapTree.lua" />
+            </Filter>
+            <Filter Name="altar" Directory=".\..\res\script\ui\altar" >
+                <LuaFile RelativePath=".\..\res\script\ui\altar\altar.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\altar\alterInfo.lua" />
+            </Filter>
+            <Filter Name="barrack" Directory=".\..\res\script\ui\barrack" >
+                <LuaFile RelativePath=".\..\res\script\ui\barrack\barrack.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\barrack\barrackInfo.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\barrack\soldierInfo.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\barrack\soldierTrain.lua" />
+            </Filter>
+            <Filter Name="bigMap" Directory=".\..\res\script\ui\bigMap" >
+                <LuaFile RelativePath=".\..\res\script\ui\bigMap\addBookMark.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\bigMap\allianceCity.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\bigMap\boss.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\bigMap\bossInfo.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\bigMap\emptyGround.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\bigMap\enemyCamp.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\bigMap\enemyCity.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\bigMap\enemySource.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\bigMap\myArmy.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\bigMap\myArmyCamp.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\bigMap\myCity.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\bigMap\rally.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\bigMap\search.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\bigMap\teleport.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\bigMap\tips.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\bigMap\topMenu.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\bigMap\UIbookMark.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\bigMap\UISource.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\bigMap\unionCamp.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\bigMap\unionCity.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\bigMap\unionSource.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\bigMap\warning.lua" />
+            </Filter>
+            <Filter Name="cemetery" Directory=".\..\res\script\ui\cemetery" >
+                <LuaFile RelativePath=".\..\res\script\ui\cemetery\cemetery.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\cemetery\executeHero.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\cemetery\sacrificeHero.lua" />
+            </Filter>
+            <Filter Name="chat" Directory=".\..\res\script\ui\chat" >
+                <LuaFile RelativePath=".\..\res\script\ui\chat\chatOper.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\chat\chatOperMore.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\chat\chatRoom.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\chat\chatRoom_chat.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\chat\chatRoom_invites.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\chat\chatRoom_search.lua" />
+            </Filter>
+            <Filter Name="cityMap" Directory=".\..\res\script\ui\cityMap" >
+                <LuaFile RelativePath=".\..\res\script\ui\cityMap\freeDiamond.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\cityMap\onlineGift.lua" />
+            </Filter>
+            <Filter Name="common" Directory=".\..\res\script\ui\common" >
+                <LuaFile RelativePath=".\..\res\script\ui\common\buyAndUseItemPop.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\common\cdList.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\common\goldCostConfirm.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\common\hintFrame.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\common\msgBoxRedBack.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\common\noBuildingNotice.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\common\successBox.lua" />
+            </Filter>
+            <Filter Name="embassy" Directory=".\..\res\script\ui\embassy" >
+                <LuaFile RelativePath=".\..\res\script\ui\embassy\embassy.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\embassy\embassyInfo.lua" />
+            </Filter>
+            <Filter Name="frame" Directory=".\..\res\script\ui\frame" >
+                <LuaFile RelativePath=".\..\res\script\ui\frame\popFrame.lua" />
+            </Filter>
+            <Filter Name="guide" Directory=".\..\res\script\ui\guide" >
+                <LuaFile RelativePath=".\..\res\script\ui\guide\guideDlg.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\guide\guideOper.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\guide\joinUnion.lua" />
+            </Filter>
+            <Filter Name="gymnos" Directory=".\..\res\script\ui\gymnos" >
+                <LuaFile RelativePath=".\..\res\script\ui\gymnos\gymnos.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\gymnos\gymnosInfo.lua" />
+            </Filter>
+            <Filter Name="hallOfWar" Directory=".\..\res\script\ui\hallOfWar" >
+                <LuaFile RelativePath=".\..\res\script\ui\hallOfWar\hallOFWar.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\hallOfWar\hallOFWarInfo.lua" />
+            </Filter>
+            <Filter Name="hero" Directory=".\..\res\script\ui\hero" >
+                <LuaFile RelativePath=".\..\res\script\ui\hero\allotSkillPoint.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\hero\dressEquip.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\hero\hero.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\hero\heroBoosts.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\hero\heroLevelup.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\hero\skillTree.lua" />
+            </Filter>
+            <Filter Name="hospital" Directory=".\..\res\script\ui\hospital" >
+                <LuaFile RelativePath=".\..\res\script\ui\hospital\hospital.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\hospital\hospitalInfo.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\hospital\soldierSelect.lua" />
+            </Filter>
+            <Filter Name="item" Directory=".\..\res\script\ui\item" >
+                <LuaFile RelativePath=".\..\res\script\ui\item\armySpeedItem.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\item\boxItem.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\item\commonItem.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\item\itemUsedFunc.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\item\removeGemItem.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\item\resourceItem.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\item\shopItem.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\item\speedItem.lua" />
+            </Filter>
+            <Filter Name="mail" Directory=".\..\res\script\ui\mail" >
+                <LuaFile RelativePath=".\..\res\script\ui\mail\attackBossMail.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\mail\battleDetail.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\mail\battleMail.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\mail\equipMail.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\mail\mail.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\mail\mailContent.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\mail\marchMail.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\mail\normalMail.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\mail\occupyMail.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\mail\writeMail.lua" />
+            </Filter>
+            <Filter Name="march" Directory=".\..\res\script\ui\march" >
+                <LuaFile RelativePath=".\..\res\script\ui\march\march.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\march\marchManagerUI.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\march\marchMgrBtn.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\march\marchNoHeroWarning.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\march\viewArmy.lua" />
+            </Filter>
+            <Filter Name="market" Directory=".\..\res\script\ui\market" >
+                <LuaFile RelativePath=".\..\res\script\ui\market\market.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\market\marketInfo.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\market\sourceHelp.lua" />
+            </Filter>
+            <Filter Name="msgBox" Directory=".\..\res\script\ui\msgBox" >
+                <LuaFile RelativePath=".\..\res\script\ui\msgBox\msgBox.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\msgBox\warningMsgBox.lua" />
+            </Filter>
+            <Filter Name="prison" Directory=".\..\res\script\ui\prison" >
+                <LuaFile RelativePath=".\..\res\script\ui\prison\induceHero.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\prison\killHero.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\prison\prison.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\prison\prisonInfoBox.lua" />
+            </Filter>
+            <Filter Name="quest" Directory=".\..\res\script\ui\quest" >
+                <LuaFile RelativePath=".\..\res\script\ui\quest\activateVIP.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\quest\dailyInfo.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\quest\dailyQuest.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\quest\empireQuest.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\quest\questDetail.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\quest\questMain.lua" />
+            </Filter>
+            <Filter Name="smith" Directory=".\..\res\script\ui\smith" >
+                <LuaFile RelativePath=".\..\res\script\ui\smith\combine.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\smith\craftingInfo.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\smith\equipBag.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\smith\equipDesign.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\smith\equipDesignDetail.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\smith\equipForge.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\smith\equipInfo.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\smith\gemEmbed.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\smith\gemMaterialInfo.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\smith\gemSelect.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\smith\material_gem.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\smith\smith.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\smith\smithInfo.lua" />
+            </Filter>
+            <Filter Name="storage" Directory=".\..\res\script\ui\storage" >
+                <LuaFile RelativePath=".\..\res\script\ui\storage\storage.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\storage\storeInfo.lua" />
+            </Filter>
+            <Filter Name="takeInHeroRoom" Directory=".\..\res\script\ui\takeInHeroRoom" >
+                <LuaFile RelativePath=".\..\res\script\ui\takeInHeroRoom\famousHero.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\takeInHeroRoom\famousHeroAuctionInputBox.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\takeInHeroRoom\famousHeroInfo.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\takeInHeroRoom\famousHeroList.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\takeInHeroRoom\moreInfo.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\takeInHeroRoom\noremalHero.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\takeInHeroRoom\takeInHeroRoom.lua" />
+            </Filter>
+            <Filter Name="talk" Directory=".\..\res\script\ui\talk" >
+                <LuaFile RelativePath=".\..\res\script\ui\talk\talkBtn.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\talk\talkFrame.lua" />
+            </Filter>
+            <Filter Name="union" Directory=".\..\res\script\ui\union" >
+                <LuaFile RelativePath=".\..\res\script\ui\union\unionMain.lua" />
+                <Filter Name="fight" Directory=".\..\res\script\ui\union\fight" >
+                    <LuaFile RelativePath=".\..\res\script\ui\union\fight\unionBigFight.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\fight\unionBigFightDetail.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\fight\unionBigFightNoFight.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\fight\unionFightMain.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\fight\unionSmallFight.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\fight\unionSmallFightDetail.lua" />
+                </Filter>
+                <Filter Name="invite" Directory=".\..\res\script\ui\union\invite" >
+                    <LuaFile RelativePath=".\..\res\script\ui\union\invite\joinSuccess.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\invite\unionCreate.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\invite\unionIcon.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\invite\unionInviteMember.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\invite\unionInvites.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\invite\unionJoin.lua" />
+                </Filter>
+                <Filter Name="mainFunc" Directory=".\..\res\script\ui\union\mainFunc" >
+                    <LuaFile RelativePath=".\..\res\script\ui\union\mainFunc\getUnionGift.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\mainFunc\reinforce.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\mainFunc\unionHelp.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\mainFunc\unionSourceHelp.lua" />
+                </Filter>
+                <Filter Name="manage" Directory=".\..\res\script\ui\union\manage" >
+                    <LuaFile RelativePath=".\..\res\script\ui\union\manage\authorityDetail.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\manage\authorityView.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\manage\changeColor.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\manage\changeJoinState.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\manage\changeUnionIcon.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\manage\disbandUnion.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\manage\leaveUnion.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\manage\manageAlliance.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\manage\transferLeader.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\manage\unionChangeName.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\manage\unionDesc.lua" />
+                </Filter>
+                <Filter Name="member" Directory=".\..\res\script\ui\union\member" >
+                    <LuaFile RelativePath=".\..\res\script\ui\union\member\manageFellow.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\member\memberList.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\member\memberPromote.lua" />
+                </Filter>
+                <Filter Name="shop" Directory=".\..\res\script\ui\union\shop" >
+                    <LuaFile RelativePath=".\..\res\script\ui\union\shop\itemStarred.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\shop\unionShop.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\shop\unionShopCatalog.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\shop\unionShopCatalogBuy.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\shop\unionShopCatalogBuyPop.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\shop\unionShopCatalogPop.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\shop\unionShopInfo.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\shop\unionShopMain.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\shop\unionShopPop.lua" />
+                </Filter>
+                <Filter Name="war" Directory=".\..\res\script\ui\union\war" >
+                    <LuaFile RelativePath=".\..\res\script\ui\union\war\allianceWar.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\war\rallyDefenseDetail.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\war\rallyWarDetail.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\union\war\unlockWarSlot.lua" />
+                </Filter>
+            </Filter>
+            <Filter Name="villa" Directory=".\..\res\script\ui\villa" >
+                <LuaFile RelativePath=".\..\res\script\ui\villa\villaInfo.lua" />
+            </Filter>
+            <Filter Name="vip" Directory=".\..\res\script\ui\vip" >
+                <LuaFile RelativePath=".\..\res\script\ui\vip\vip.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\vip\vipDetails.lua" />
+            </Filter>
+            <Filter Name="wall" Directory=".\..\res\script\ui\wall" >
+                <LuaFile RelativePath=".\..\res\script\ui\wall\trapInfo.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\wall\trapTrain.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\wall\wall.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\wall\wallInfo.lua" />
+            </Filter>
+            <Filter Name="watchtower" Directory=".\..\res\script\ui\watchtower" >
+                <LuaFile RelativePath=".\..\res\script\ui\watchtower\watchtower.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\watchtower\watchtowerInfo.lua" />
+            </Filter>
+        </Filter>
+    </Filter>
+</Project>
