@@ -27,7 +27,7 @@ Thumbs.db
 [Dd]ebug.win32/
 *.sbr
 *.sdf
-obj/
+#obj/
 [Rr]elease/
 [Rr]elease.win32/
 _ReSharper*/
