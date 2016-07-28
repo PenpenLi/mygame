@@ -23,7 +23,7 @@ bool AppDelegate::applicationDidFinishLaunching()
     auto director = Director::getInstance();
 	auto glview = director->getOpenGLView();
 	if(!glview) {
-		glview = GLView::createWithRect("MyGamev3011", Rect(0,0,640,960));
+		glview = GLView::createWithRect("MyGamev3011", Rect(0,0,640,1140));
 		director->setOpenGLView(glview);
 	}
 
@@ -31,7 +31,7 @@ bool AppDelegate::applicationDidFinishLaunching()
 
 	if (CC_TARGET_PLATFORM == CC_PLATFORM_WIN32)
 	{
-		glview->setFrameZoomFactor(0.8f);
+		glview->setFrameZoomFactor(0.6f);
 	}
 	
     // turn on display FPS

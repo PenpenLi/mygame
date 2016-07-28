@@ -48,6 +48,8 @@ function game.init()
 	game.scheduler:scheduleScriptFunc(heartbeat, config.interval.gameHeartbeat, false)
 	cc.SimpleAudioEngine:getInstance():setMusicVolume(0.3)
 	cc.SimpleAudioEngine:getInstance():setEffectsVolume(1.0)
+
+	game.director:setDisplayStats(false)
 	--
 	hp.init()
 	player.init()
