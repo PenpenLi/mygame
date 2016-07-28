@@ -1,0 +1,9 @@
+级别	名称	图片
+sid	name	
+sid	name	image
+INT	string	string
+5	盟主	alliance_15.png
+4	将军	alliance_14.png
+3	都尉	alliance_3.png
+2	校尉	alliance_19.png
+1	偏将	alliance_16.png

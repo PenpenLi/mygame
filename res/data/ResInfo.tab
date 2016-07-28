@@ -1,0 +1,14 @@
+资源ID	资源名称	部队图片	对应表名	代码名
+sid	name		table	code
+sid	name	image	table	code
+INT	string	string	string	string
+1	钻石	gold.png	10	gold
+2	白银	silver.png	20	silver
+3	粮草	food.png	20	food
+4	木材	wood.png	20	wood
+5	石材	rock.png	30	rock
+6	生铁	mine.png	30	mine
+7	武将经验	exp.png	30	exp
+8	赌资	material_icon.png	40	chip
+9	VIP积分	vip_icon.png	40	vip_exp
+10	战力	power.png	40	power

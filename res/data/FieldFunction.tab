@@ -1,0 +1,11 @@
+地表类型ID	地表类型	功能ID
+type	name	function
+type	name	function
+INT	string	ints
+1	水面	4
+2	山地	1|2|3|5|6|7
+3	丘陵	1|2|3|5|6|7
+4	平原	1|2|3|5|6|7
+5	森林 	1|2|3|5|6|7
+6	要塞森林	2|3|5
+7	不可占领地面	-1

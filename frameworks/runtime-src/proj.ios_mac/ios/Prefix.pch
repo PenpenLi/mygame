@@ -1,0 +1,8 @@
+//
+// Prefix header for all source files of the 'MyGamev3011' target in the 'MyGamev3011' project
+//
+
+#ifdef __OBJC__
+	#import <Foundation/Foundation.h>
+	#import <UIKit/UIKit.h>
+#endif
