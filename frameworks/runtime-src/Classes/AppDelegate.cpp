@@ -28,8 +28,12 @@ bool AppDelegate::applicationDidFinishLaunching()
 	}
 
     glview->setDesignResolutionSize(640, 960, ResolutionPolicy::FIXED_WIDTH);
-	glview->setFrameZoomFactor(0.8);
 
+	if (CC_TARGET_PLATFORM == CC_PLATFORM_WIN32)
+	{
+		glview->setFrameZoomFactor(0.8f);
+	}
+	
     // turn on display FPS
     director->setDisplayStats(true);
 
