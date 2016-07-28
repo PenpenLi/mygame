@@ -49,7 +49,8 @@ function game.init()
 	cc.SimpleAudioEngine:getInstance():setMusicVolume(0.3)
 	cc.SimpleAudioEngine:getInstance():setEffectsVolume(1.0)
 
-	game.director:setDisplayStats(false)
+	game.director:setDisplayStats(false);
+	game.director:setAnimationInterval(1/30);
 	--
 	hp.init()
 	player.init()
