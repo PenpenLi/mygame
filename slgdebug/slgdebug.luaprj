@@ -58,6 +58,7 @@
             </Filter>
             <LuaFile RelativePath=".\..\res\script\obj\cityPeople.lua" />
             <LuaFile RelativePath=".\..\res\script\obj\hintFrameMgr1.lua" />
+            <LuaFile RelativePath=".\..\res\script\obj\buildingTmp.lua" />
         </Filter>
         <Filter Name="playerData" Directory=".\..\res\script\playerData" >
             <LuaFile RelativePath=".\..\res\script\playerData\embassyMgr.lua" />
@@ -164,6 +165,7 @@
                     <LuaFile RelativePath=".\..\res\script\ui\bigMap\war\rally.lua" />
                     <LuaFile RelativePath=".\..\res\script\ui\bigMap\war\scout.lua" />
                 </Filter>
+                <LuaFile RelativePath=".\..\res\script\ui\bigMap\eliteBoss.lua" />
             </Filter>
             <Filter Name="cemetery" Directory=".\..\res\script\ui\cemetery" >
                 <LuaFile RelativePath=".\..\res\script\ui\cemetery\cemetery.lua" />
@@ -271,6 +273,7 @@
                 <LuaFile RelativePath=".\..\res\script\ui\mail\rewardsMail.lua" />
                 <LuaFile RelativePath=".\..\res\script\ui\mail\scoutMail.lua" />
                 <LuaFile RelativePath=".\..\res\script\ui\mail\unionActMail.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\mail\retreatMail.lua" />
             </Filter>
             <Filter Name="march" Directory=".\..\res\script\ui\march" >
                 <LuaFile RelativePath=".\..\res\script\ui\march\march.lua" />
@@ -318,6 +321,7 @@
                 <LuaFile RelativePath=".\..\res\script\ui\smith\material_gem.lua" />
                 <LuaFile RelativePath=".\..\res\script\ui\smith\smith.lua" />
                 <LuaFile RelativePath=".\..\res\script\ui\smith\smithInfo.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\smith\equipSubDesign.lua" />
             </Filter>
             <Filter Name="storage" Directory=".\..\res\script\ui\storage" >
                 <LuaFile RelativePath=".\..\res\script\ui\storage\storage.lua" />
@@ -332,6 +336,7 @@
                 <LuaFile RelativePath=".\..\res\script\ui\takeInHeroRoom\noremalHero.lua" />
                 <LuaFile RelativePath=".\..\res\script\ui\takeInHeroRoom\takeInHeroRoom.lua" />
                 <LuaFile RelativePath=".\..\res\script\ui\takeInHeroRoom\famousHeroListDetail.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\takeInHeroRoom\famousHeroAddAuctionInputBox.lua" />
             </Filter>
             <Filter Name="talk" Directory=".\..\res\script\ui\talk" >
                 <LuaFile RelativePath=".\..\res\script\ui\talk\talkBtn.lua" />
@@ -449,6 +454,9 @@
                     <LuaFile RelativePath=".\..\res\script\ui\activity\unionActivity\taget.lua" />
                     <LuaFile RelativePath=".\..\res\script\ui\activity\unionActivity\unionActivity.lua" />
                 </Filter>
+                <Filter Name="bossActivity" Directory=".\..\res\script\ui\activity\bossActivity" >
+                    <LuaFile RelativePath=".\..\res\script\ui\activity\bossActivity\bossActivity.lua" />
+                </Filter>
             </Filter>
             <Filter Name="battle" Directory=".\..\res\script\ui\battle" >
                 <LuaFile RelativePath=".\..\res\script\ui\battle\battle.lua" />
@@ -512,6 +520,36 @@
                 <LuaFile RelativePath=".\..\res\script\ui\world\worldSearch.lua" />
                 <LuaFile RelativePath=".\..\res\script\ui\world\worldTouchPop.lua" />
             </Filter>
+            <Filter Name="guidance" Directory=".\..\res\script\ui\guidance" >
+                <LuaFile RelativePath=".\..\res\script\ui\guidance\affairs.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\guidance\army.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\guidance\energy.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\guidance\guidance.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\guidance\kingdomAct.lua" />
+                <LuaFile RelativePath=".\..\res\script\ui\guidance\mission.lua" />
+                <Filter Name="affairsItems" Directory=".\..\res\script\ui\guidance\affairsItems" >
+                    <LuaFile RelativePath=".\..\res\script\ui\guidance\affairsItems\builderItem.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\guidance\affairsItems\maketrapItem.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\guidance\affairsItems\researchItem.lua" />
+                </Filter>
+                <Filter Name="armyItems" Directory=".\..\res\script\ui\guidance\armyItems" >
+                    <LuaFile RelativePath=".\..\res\script\ui\guidance\armyItems\hospitalItem.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\guidance\armyItems\marchItem.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\guidance\armyItems\trainsoldierItem.lua" />
+                </Filter>
+                <Filter Name="energyItems" Directory=".\..\res\script\ui\guidance\energyItems" >
+                    <LuaFile RelativePath=".\..\res\script\ui\guidance\energyItems\battleItem.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\guidance\energyItems\bossItem.lua" />
+                </Filter>
+                <Filter Name="kingdomItems" Directory=".\..\res\script\ui\guidance\kingdomItems" >
+                    <LuaFile RelativePath=".\..\res\script\ui\guidance\kingdomItems\kingactItem.lua" />
+                </Filter>
+                <Filter Name="missionItems" Directory=".\..\res\script\ui\guidance\missionItems" >
+                    <LuaFile RelativePath=".\..\res\script\ui\guidance\missionItems\localforceItem.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\guidance\missionItems\unionforceItem.lua" />
+                    <LuaFile RelativePath=".\..\res\script\ui\guidance\missionItems\vipforceItem.lua" />
+                </Filter>
+            </Filter>
         </Filter>
         <LuaFile RelativePath=".\..\res\script\gameUpdater.lua" />
         <Filter Name="dataMgr" Directory=".\..\res\script\dataMgr" >
@@ -547,6 +585,7 @@
                 <LuaFile RelativePath=".\..\res\script\dataMgr\activity\kingdomActivityMgr.lua" />
                 <LuaFile RelativePath=".\..\res\script\dataMgr\activity\soloActivityMgr.lua" />
                 <LuaFile RelativePath=".\..\res\script\dataMgr\activity\unionActivityMgr.lua" />
+                <LuaFile RelativePath=".\..\res\script\dataMgr\activity\bossActivityMgr.lua" />
             </Filter>
             <Filter Name="battle" Directory=".\..\res\script\dataMgr\battle" >
                 <LuaFile RelativePath=".\..\res\script\dataMgr\battle\fortressMgr.lua" />

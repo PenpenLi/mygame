@@ -132,6 +132,8 @@ function player.create()
 	player.signinMgr		   = loadDataMgr("dataMgr/signinMgr")
 	-- 新手奖励管理器
 	player.noviceGiftMgr	   = loadDataMgr("dataMgr/noviceGiftMgr")
+	-- 精英BOSS活动管理器
+	player.bossActivityMgr	   = loadDataMgr("dataMgr/activity/bossActivityMgr")
 	-- 府邸管理器
 	player.mansionMgr		   = loadDataMgr("dataMgr/mansionMgr/mansionMgr")
 	-- 推送配置管理
@@ -200,7 +202,7 @@ function player.synData(data_)
 	end
 
 	player.updateAlliance(data)
-	cdBox.synData(data.cd)
+	cdBox.synData(data)
 	for i, mgr in ipairs(dataMgrs) do
 		mgr.syncData(data)
 	end

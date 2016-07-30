@@ -8,7 +8,7 @@ require "ui/frame/popFrame"
 
 UI_techInfo = class("UI_techInfo", UI)
 
-local specialID = 110
+local specialID = {[110]=1,[118]=1,[119]=1,[120]=1,[121]=1,[124]=1,[125]=1,[126]=1,[127]=1,[130]=1,[131]=1,[132]=1,[133]=1}
 
 --init
 function UI_techInfo:init(sid_)
@@ -55,7 +55,7 @@ function UI_techInfo:initUI()
 	local level_ = player.researchMgr.getResearchLv(self.sid)
 	while info_ ~= nil do
 		local item_ = nil
-		if self.sid == specialID then
+		if specialID[self.sid] == 1 then
 			item_ = self.uiItem1:clone()
 		else
 			item_ = self.uiItem:clone()

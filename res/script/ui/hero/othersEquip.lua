@@ -38,7 +38,11 @@ function UI_othersEquip:init(equipInfo_)
 		local item = list:getItem(2)
 
 		item:getChildByName("Panel_content"):getChildByName("Label_name"):setString(attributeInfo.desc)
-		item:getChildByName("Panel_content"):getChildByName("Label_value"):setString("+" .. equipInfo.value1[lv] / 100 .. "%")
+		if equipInfo.value1[lv] > 0 then
+			item:getChildByName("Panel_content"):getChildByName("Label_value"):setString("+" .. equipInfo.value1[lv] / 100 .. "%")
+		else
+			item:getChildByName("Panel_content"):getChildByName("Label_value"):setString(equipInfo.value1[lv] / 100 .. "%")
+		end
 	end
 
 	if equipInfo.type2 ~= -1 then
@@ -47,7 +51,11 @@ function UI_othersEquip:init(equipInfo_)
 		list:pushBackCustomItem(item)
 
 		item:getChildByName("Panel_content"):getChildByName("Label_name"):setString(attributeInfo.desc)
-		item:getChildByName("Panel_content"):getChildByName("Label_value"):setString("+" .. equipInfo.value2[lv] / 100 .. "%")
+		if equipInfo.value2[lv] > 0 then
+			item:getChildByName("Panel_content"):getChildByName("Label_value"):setString("+" .. equipInfo.value2[lv] / 100 .. "%")
+		else
+			item:getChildByName("Panel_content"):getChildByName("Label_value"):setString(equipInfo.value2[lv] / 100 .. "%")
+		end
 	end
 
 	if equipInfo.type3 ~= -1 then
@@ -56,7 +64,11 @@ function UI_othersEquip:init(equipInfo_)
 		list:pushBackCustomItem(item)
 
 		item:getChildByName("Panel_content"):getChildByName("Label_name"):setString(attributeInfo.desc)
-		item:getChildByName("Panel_content"):getChildByName("Label_value"):setString("+" .. equipInfo.value3[lv] / 100 .. "%")
+		if equipInfo.value3[lv] > 0 then
+			item:getChildByName("Panel_content"):getChildByName("Label_value"):setString("+" .. equipInfo.value3[lv] / 100 .. "%")
+		else
+			item:getChildByName("Panel_content"):getChildByName("Label_value"):setString(equipInfo.value3[lv] / 100 .. "%")
+		end
 	end
 
 	if equipInfo.type4 ~= -1 then
@@ -65,7 +77,11 @@ function UI_othersEquip:init(equipInfo_)
 		list:pushBackCustomItem(item)
 
 		item:getChildByName("Panel_content"):getChildByName("Label_name"):setString(attributeInfo.desc)
-		item:getChildByName("Panel_content"):getChildByName("Label_value"):setString("+" .. equipInfo.value4[lv] / 100 .. "%")
+		if equipInfo.value4[lv] > 0 then
+			item:getChildByName("Panel_content"):getChildByName("Label_value"):setString("+" .. equipInfo.value4[lv] / 100 .. "%")
+		else
+			item:getChildByName("Panel_content"):getChildByName("Label_value"):setString(equipInfo.value4[lv] / 100 .. "%")
+		end
 	end
 
 	for i,v in ipairs(gemInfo) do

@@ -587,7 +587,7 @@ function UI_equipForge:init(equipMakeInfo_)
 							player.expendItem(sid, 1)
 						end
 					end
-					player.equipBag.addEquip({selectEquip.sid, data.id, data.lv+1, {0, 0, 0}})
+					player.equipBag.addEquip({selectEquip.sid, data.id, data.lv, {0, 0, 0}})
 					setforgingInfo()
 					refreshAll()
 					self.forgeFinished()

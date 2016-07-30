@@ -109,6 +109,26 @@ end
 -- 根据服务器心跳返回的数据，进行数据同步
 function equipBag.syncData(data_)
 	-- body
+
+	local equips_ = data_.equip
+	local equips_equiped_ = data_.equipN
+
+	if equips_~=nil then
+		equips = {}
+		for i, v in ipairs(equips_) do
+			local equip = Equip.new(v)
+			table.insert(equips, equip)
+		end
+	end
+
+	if equips_equiped_~=nil then
+		equips_equiped = {}
+		for i, v in ipairs(equips_equiped_) do
+			if v>0 then
+				equipBag.equipEquip(i, v)
+			end
+		end
+	end
 end
 
 -- heartbeat

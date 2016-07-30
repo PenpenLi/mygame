@@ -32,9 +32,6 @@ function UI_mail:init()
 		end
 	end
 	
-
-	
-	
 	--  
 	local function resetSelected(index)
 		for i, v in ipairs(selectedMail) do
@@ -82,9 +79,11 @@ function UI_mail:init()
 	local btnDelete = operPanel:getChildByName("ImageView_delete")
 	local btnHasRead = operPanel:getChildByName("ImageView_cancel")
 	local btnClose = operPanel:getChildByName("ImageView_close")
+	local btnClear = operPanel:getChildByName("ImageView_clear")
 	operPanel:getChildByName("Label_checkAll"):setString(hp.lang.getStrByID(9007))
 	operPanel:getChildByName("Label_delete"):setString(hp.lang.getStrByID(1848))
 	operPanel:getChildByName("Label_cancel"):setString(hp.lang.getStrByID(9012))
+	operPanel:getChildByName("Label_clear"):setString(hp.lang.getStrByID(7924))
 	local function operSetVisible( visible )
 		if visible then
 			operFrame:setVisible(true)
@@ -118,6 +117,8 @@ function UI_mail:init()
 				end
 			elseif sender==btnDelete then
 				player.mailCenter.deleteMail(self.curMailType, selectedMail)
+			elseif sender==btnClear then
+				player.mailCenter.deleteAllMails(self.curMailType)
 			elseif sender==btnHasRead then
 				selectedHasRead()
 				self.unselectAll()
@@ -130,6 +131,7 @@ function UI_mail:init()
 	end
 	btnSelectAll:addTouchEventListener(operOnTouched)
 	btnDelete:addTouchEventListener(operOnTouched)
+	btnClear:addTouchEventListener(operOnTouched)
 	btnHasRead:addTouchEventListener(operOnTouched)
 	btnClose:addTouchEventListener(operOnTouched)
 

@@ -86,9 +86,11 @@ function UI_unionInfo:initUI()
 	editBtn_:addTouchEventListener(self.onEditAnnounceTouched)
 
 	-- 权限判断
-	if player.getAlliance():haveAuthority("changeAnnounce") then
-		editBtn_:setVisible(true)
-		editBtn_:setTouchEnabled(true)
+	if self.id == player.getAlliance():getUnionID() then
+		if player.getAlliance():haveAuthority("changeAnnounce") then
+			editBtn_:setVisible(true)
+			editBtn_:setTouchEnabled(true)
+		end
 	end
 end
 

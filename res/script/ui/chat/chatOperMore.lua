@@ -59,13 +59,13 @@ function UI_chatOperMore:init(chatInfo_)
 			elseif sender==btnSendMail then
 				require("ui/mail/writeMail")
 				local ui = UI_writeMail.new(chatInfo_.srcName)
-				self:close()
-				self:addModalUI(ui)
+				self:closeAll()
+				self:addUI(ui)
 			elseif sender==btnViewPlayer then
 				require("ui/common/playerInfo")
 				local ui = UI_playerInfo.new(chatInfo_.srcId, chatInfo_.srcServerId)
-				self:close()
-				self:addModalUI(ui)
+				self:closeAll()
+				self:addUI(ui)
 			elseif sender==btnBlock then
 			elseif sender==btnCancle then
 				self:close()

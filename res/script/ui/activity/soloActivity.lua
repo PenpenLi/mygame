@@ -9,11 +9,12 @@ UI_soloActivity = class("UI_soloActivity", UI)
 local rankImage_ = {"activity_1.png","activity_2.png","activity_3.png"}
 
 local activityInfo = {
-	{name=hp.lang.getStrByID(5330)},
-	{name=hp.lang.getStrByID(5331)},
-	{name=hp.lang.getStrByID(5332)},
-	{name=hp.lang.getStrByID(5333)},
-	{name=hp.lang.getStrByID(5334)},
+	[1]={name=hp.lang.getStrByID(5330)},
+	[2]={name=hp.lang.getStrByID(5331)},
+	[3]={name=hp.lang.getStrByID(5332)},
+	[4]={name=hp.lang.getStrByID(5333)},
+	[5]={name=hp.lang.getStrByID(5334)},
+	[9]={name=hp.lang.getStrByID(5529)},
 }
 
 --init

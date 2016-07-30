@@ -120,9 +120,9 @@ end
 
 function UI_unionMain:refreshShow()
 	-- 演练在第一个
-	local item_ = self.uiFight:clone()
-	self.listView:pushBackCustomItem(item_)
-	item_:addTouchEventListener(self.onUnionFightTouched)
+	-- local item_ = self.uiFight:clone()
+	-- self.listView:pushBackCustomItem(item_)
+	-- item_:addTouchEventListener(self.onUnionFightTouched)
 	for i, v in ipairs(loadItemList) do
 		local item_ = self.uiItem:clone()
 		local content_ = item_:getChildByName("Panel_30144")
@@ -179,12 +179,16 @@ function UI_unionMain:updateInfo()
 
 	if homePageInfo_.defense > 0 then
 		self.uiDefense = self.uiRallyDefense:clone()
+		local num_ = self.uiDefense:getChildByName("Panel_30131"):getChildByName("ImageView_30146"):getChildByName("Label_30147")
+		num_:setString(homePageInfo_.defense)
 		self.uiDefense:addTouchEventListener(self.onRallyWarTouched)
 		self.listView:insertCustomItem(self.uiDefense, 0)
 	end
 
 	if homePageInfo_.war > 0 then
 		self.uiWar = self.uiRallyWar:clone()
+		local num_ = self.uiWar:getChildByName("Panel_30131"):getChildByName("ImageView_30146"):getChildByName("Label_30147")
+		num_:setString(homePageInfo_.war)
 		self.uiWar:addTouchEventListener(self.onRallyWarTouched)
 		self.listView:insertCustomItem(self.uiWar, 0)
 	end

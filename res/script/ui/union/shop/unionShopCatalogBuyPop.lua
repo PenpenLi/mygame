@@ -6,8 +6,6 @@ require "ui/frame/popFrame"
 
 UI_unionShopCatalogBuyPop = class("UI_unionShopCatalogBuyPop", UI)
 
-local starImage_ = {"alliance_69.png", "alliance_70.png"}
-
 --init
 function UI_unionShopCatalogBuyPop:init(sid_, closeCallBack_)
 	-- data
@@ -105,6 +103,7 @@ function UI_unionShopCatalogBuyPop:requestData()
 	cmdData.operation[1] = oper
 	local cmdSender = hp.httpCmdSender.new(onApplicantResponse)
 	cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+	self:showLoading(cmdSender)
 end
 
 function UI_unionShopCatalogBuyPop:updateInfo(info_)
@@ -134,7 +133,17 @@ function UI_unionShopCatalogBuyPop:updateInfo(info_)
 end
 
 function UI_unionShopCatalogBuyPop:changeFavorite()
-	self.starBtn:getChildByName("ImageView_20459"):loadTexture(config.dirUI.common..starImage_[self.starred])
+	if self.starred == 2 then
+		self.starBtn:loadTexture(config.dirUI.common.."button_blue1.png")
+		self.starBtn:setColor(cc.c3b(255, 255, 255))
+		self.starBtn:setTouchEnabled(true)
+		self.starBtn:getChildByName("Label_11"):setString(hp.lang.getStrByID(5528))
+	elseif self.starred == 1 then
+		self.starBtn:loadTexture(config.dirUI.common.."button_gray1.png")
+		self.starBtn:setColor(cc.c3b(255, 255, 255))
+		self.starBtn:setTouchEnabled(false)
+		self.starBtn:getChildByName("Label_11"):setString(hp.lang.getStrByID(5532))
+	end
 end
 
 function UI_unionShopCatalogBuyPop:changeItem(sid_)
@@ -166,6 +175,7 @@ function UI_unionShopCatalogBuyPop:initUI()
 	-- 求购
 	self.starBtn = content_:getChildByName("ImageView_20457_0")
 	self.starBtn:addTouchEventListener(self.onStarTouched)
+	self.starBtn:getChildByName("Label_11"):setString(hp.lang.getStrByID(5528))
 
 	content_:getChildByName("Label_219_0_1"):setString(hp.lang.getStrByID(1178))
 end

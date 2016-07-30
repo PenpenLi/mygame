@@ -199,7 +199,7 @@ function guide.run()
 		if cdBox.getCD(cdBox.CDTYPE.BRANCH)>0 then
 			game.curScene:removeAllModalUI()
 			game.curScene:removeAllUI()
-			game.curScene:getBuildingBySid(1009):onClicked()
+			player.buildingMgr.getBuildingObjBySid(1009):onClicked()
 		else
 			 guide.initData({guide=6001})
 		end
@@ -264,8 +264,8 @@ function guide.stepEx(steps_)
 	return false
 end
 
--- pause
--- 暂停引导
+-- finishCurStep
+-- 完成当前引导，并且暂停继续往下引导
 function guide.finishCurStep()
 	if finishFlag or guideInfo==nil then
 		return false
@@ -288,22 +288,6 @@ function guide.bind2Node(step_, ccNode_, nodeTouchedFun_)
 
 	return false
 end
-
--- bind2Node111
--- 把引导和一个节点绑定
-function guide.bind2Node111(step_, ccNode_, nodeTouchedFun_)
-	-- if finishFlag or guideInfo==nil or step_~=guideInfo.step then
-	-- 	return false
-	-- end
-
-	-- if guideUI~=nil then
-	-- 	guideUI:onBind2Node(ccNode_, nodeTouchedFun_)
-	-- 	return true
-	-- end
-
-	return false
-end
-
 
 -- bind2NodeEx
 -- 把引导和一个节点绑定, 只要当前指引步骤在steps_表中就进行绑定

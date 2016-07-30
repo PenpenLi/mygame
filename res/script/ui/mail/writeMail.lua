@@ -67,9 +67,9 @@ function UI_writeMail:init(addr_, title_, cont_, tag_)
 				return
 			end
 
-			require "ui/msgBox/msgBox"
-			local ui = UI_msgBox.new(hp.lang.getStrByID(9010), hp.lang.getStrByID(9011), hp.lang.getStrByID(1209))
-			self:addModalUI(ui)
+			-- require "ui/msgBox/msgBox"
+			-- local ui = UI_msgBox.new(hp.lang.getStrByID(9010), hp.lang.getStrByID(9011), hp.lang.getStrByID(1209))
+			-- self:addModalUI(ui)
 		end
 	end
 	local function btnOnTouched(sender, eventType)
@@ -91,6 +91,7 @@ function UI_writeMail:init(addr_, title_, cont_, tag_)
 
 				local cmdSender = hp.httpCmdSender.new(onHttpResponse)
 				cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+				self:showLoading(cmdSender, sender)
 			end
 		end
 	end

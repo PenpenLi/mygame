@@ -1,0 +1,10 @@
+BOSS ID	BOSS名称	界面显示名称	文字描述	boss类型	等级	攻击最小人数	BOSS头像	BOSS动画	BOSS攻击	BOSS防御	BOSS血量	BOSS战斗力	掉落材料ID	掉落材料权重	半径1权重	半径2权重	半径3权重	半径4权重	半径5权重	半径6权重	BOSS个数	消耗体力	礼包类型
+sid	name			type	level	countP			attack	defance	maxLife	power	propSids	propRates	radius1	radius2	radius3	radius4	radius5	radius6	countMax	bodyForce	leagueGift
+sid	name	shortName	desc	type	level	needNum	headPic	animation	attack	defance	maxLife	power	propSids	propRates	radius1	radius2	radius3	radius4	radius5	radius6	countMax	bodyForce	leagueGift
+int	string	string	string	int	int	int	string	int	int	int	int	int	ints	ints	int	int	int	int	int	int	int	int	int
+20101	南蛮(精英) Lv.1	南蛮 Lv.1	活动的精英BOSS—南蛮，20人以上集火才能对其造成伤害，击杀后参与者均有限时材料奖励！	0	1	20	nanman.png	110301	12000000	1600000	12000000	3200000	13001|13011|13021	100|100|100	0	0	0	0	200	400	29	20	8
+20102	南蛮(精英) Lv.2	南蛮 Lv.2	活动的精英BOSS—南蛮，20人以上集火才能对其造成伤害，击杀后参与者均有限时材料奖励！	0	2	20	nanman.png	110301	22500000	3000000	22500000	6000000	13002|13012|13022	100|100|100	0	0	0	100	300	100	23	30	8
+20103	南蛮(精英) Lv.3	南蛮 Lv.3	活动的精英BOSS—南蛮，20人以上集火才能对其造成伤害，击杀后参与者均有限时材料奖励！	0	3	20	nanman.png	110301	72000000	7200000	72000000	38400000	13003|13013|13023	100|100|100	0	0	200	400	0	0	20	40	8
+20104	南蛮(精英) Lv.4	南蛮 Lv.4	活动的精英BOSS—南蛮，20人以上集火才能对其造成伤害，击杀后参与者均有限时材料奖励！	0	4	20	nanman.png	110301	144000000	14400000	144000000	76800000	13004|13014|13024	100|100|100	0	200	400	200	0	0	17	50	8
+20105	南蛮(精英) Lv.5	南蛮 Lv.5	活动的精英BOSS—南蛮，20人以上集火才能对其造成伤害，击杀后参与者均有限时材料奖励！	0	5	20	nanman.png	110301	600000000	60000000	600000000	360000000	13005|13015|13025	100|100|100	0	400	100	0	0	0	5	60	8
+20106	南蛮(精英) Lv.6	南蛮 Lv.6	活动的精英BOSS—南蛮，20人以上集火才能对其造成伤害，击杀后参与者均有限时材料奖励！	0	6	20	nanman.png	110301	960000000	96000000	960000000	576000000	13006|13016|13026	100|100|100	100	0	0	0	0	0	1	70	8

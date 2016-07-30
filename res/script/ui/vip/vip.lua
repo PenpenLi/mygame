@@ -154,9 +154,13 @@ function UI_vip:init()
 	function setAttrPoint()
 		local curLv = vipStatus.getLv()
 		local curPoints = vipStatus.getPoints()
+		local nTmp = vipStatus.getStreakDay()
+		if nTmp>30 then
+			nTmp = 30
+		end
 		lvLable:setString(curLv)
 		ptLable:setString(string.format(hp.lang.getStrByID(3711), curPoints))
-		ptrLable:setString(string.format(hp.lang.getStrByID(3711), 100+vipStatus.getStreakDay()*10))
+		ptrLable:setString(string.format(hp.lang.getStrByID(3711), 100+nTmp*10))
 	end
 	setAttrTime()
 	setAttrPoint()

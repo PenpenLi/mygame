@@ -200,21 +200,9 @@ function UI_mailContent:getMailCont(mailInfo,mailType_,mailIndex)
 		end
 	elseif mailInfo.type==3 then
 		-- 采集
-		local annex = mailInfo.annex
-		content = mailInfo.content .. "\n\n"
-		content = content .. string.format("获取资源:%d\n", annex[2])
-		content = content .. string.format("获取材料:%d\n", annex[3])
-		
-		local Info = {}
-		Info.content = mailInfo.content
-		Info.resTp	= annex[1]
-		Info.resNum	= annex[2]
-		
-		Info.materials	= annex[3]
-		
 		if self.currentUi == nil then
 			require "ui/mail/marchMail.lua"
-			local uiFrame = UI_marchMail.new(Info,mailType_,mailIndex)
+			local uiFrame = UI_marchMail.new(mailInfo, mailType_, mailIndex)
 			self:addChildUI(uiFrame)
 			
 			self.currentUi = uiFrame
@@ -398,6 +386,17 @@ function UI_mailContent:getMailCont(mailInfo,mailType_,mailIndex)
 		if self.currentUi == nil then
 			require "ui/mail/unionActMail.lua"
 			local uiFrame = UI_unionActMail.new(mailInfo, mailType_, mailIndex)
+			self:addChildUI(uiFrame)
+			
+			self.currentUi = uiFrame
+		end
+	elseif mailInfo.type == 28 then
+		-- 要塞集火撤军
+		content = mailInfo.content .. "\n\n"
+
+		if self.currentUi == nil then
+			require "ui/mail/retreatMail.lua"
+			local uiFrame = UI_retreatMail.new(mailInfo, mailType_, mailIndex)
 			self:addChildUI(uiFrame)
 			
 			self.currentUi = uiFrame

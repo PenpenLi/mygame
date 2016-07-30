@@ -182,4 +182,28 @@ function buildingMgr.getBuildingByBsid(bType_, bSid_)
 	return blist[bSid_]
 end
 
+-- getBuildingObjBySid
+-- 根据sid获取已经建造对象，如果有多个建筑，返回等级最高的
+function buildingMgr.getBuildingObjBySid(sid_)
+	local bObj = nil
+
+	if game.curScene and game.curScene.mapLevel==3 then
+	-- 城内通过地图的方法获取
+		bObj = game.curScene:getBuildingBySid(sid_)
+	else
+		local building = buildingMgr.getMaxLvBuildingBySid(sid_)
+		if building then
+		-- 创建一个临时建筑对象
+			require("obj/buildingTmp")
+			bObj = BuildingTmp.new(building)
+		end
+	end
+
+	return bObj
+end
+
+
+
+
+
 return buildingMgr

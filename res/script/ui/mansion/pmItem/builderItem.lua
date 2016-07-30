@@ -73,7 +73,7 @@ local function onBtnTouch(sender, eventType)
 				local questType = questInfo.showtype
 				parent:closeAll()
 				if questType == 1 then
-					local buiding = game.curScene:getBuildingBySid(buildingId)
+					local buiding = player.buildingMgr.getBuildingObjBySid(buildingId)
 					if buiding == nil then
 						parent:closeAll()
 					else

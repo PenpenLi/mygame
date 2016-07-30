@@ -21,55 +21,70 @@ function UI_cityInfo:init()
 	-- ===============================
 	self:addCCNode(widgetRoot)
 
-
-	-- 跳动宝箱
-	--====================
 	local contPanel = widgetRoot:getChildByName("Panel_cont")
-	-- 在线礼包
-	local onlineBox = contPanel:getChildByName("Image_goldenBox")
-	local onlineBoxBg = contPanel:getChildByName("Image_goldenBox_bg")
-	local onlineBoxCD = onlineBoxBg:getChildByName("Label_text")
-	local onlineBox_px, onlineBox_py = onlineBox:getPosition()
-	local function setOnlineBoxInfo()
-		if player.onlineGift.getItemSid()<=0 then
-		-- 没有礼包
-			onlineBox:setVisible(false)
-			onlineBoxBg:setVisible(false)
-			onlineBox:setTouchEnabled(false)
-		else
-			onlineBox:setVisible(true)
-			onlineBox:setTouchEnabled(true)
-			local cd = player.onlineGift.getCD()
-			if cd<=0 then
-				onlineBoxBg:setVisible(false)
-				local jump1 = cc.JumpBy:create(1.0, cc.p(0, 0), 40*hp.uiHelper.RA_scale, 1)
-				onlineBox:runAction(cc.RepeatForever:create(jump1))
-			else
-				onlineBoxBg:setVisible(true)
-				onlineBoxCD:setString(hp.datetime.strTime(cd))
-				onlineBox:stopAllActions()
-				onlineBox:setPosition(onlineBox_px, onlineBox_py)
+
+	-- 礼物
+	--====================
+	local onlineBoxBg = contPanel:getChildByName("Image_online_bg")
+	local cdBg = onlineBoxBg:getChildByName("Image_cdBg")
+	local cdLabel = cdBg:getChildByName("Label_text")
+	local onlineBox = onlineBoxBg:getChildByName("Image_icon")
+	cdLabel:setString(hp.lang.getStrByID(3806))
+
+	-- 礼物动画
+	local function setOnlineBoxAnim()
+		if player.mansionMgr.protocolOfficerMgr.isLight() then
+			if #onlineBox:getChildren()==0 then
+				local ani = hp.sequenceAniHelper.createAnimSprite("cityMap", "ringRun", 36, 0.1)
+				ani:setPosition(32, 28)
+				onlineBox:addChild(ani)
 			end
+		else
+			onlineBox:removeAllChildren()
 		end
 	end
-	local function refreshOnlineBoxCD()
-		local cd = player.onlineGift.getCD()
-		if cd>0 then
-			onlineBoxCD:setString(hp.datetime.strTime(cd))
-		end
-	end
-	setOnlineBoxInfo()
-	self.setOnlineBoxInfo = setOnlineBoxInfo
-	self.refreshOnlineBoxCD = refreshOnlineBoxCD
+	setOnlineBoxAnim()
+	self.setOnlineBoxAnim = setOnlineBoxAnim
+
 	local function onOnlineBoxTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			require "ui/cityMap/onlineGift"
-			local ui = UI_onlineGift.new()
-			self:addModalUI(ui)
+			require "ui/mansion/giftPerson"
+			local ui = UI_giftPerson.new()
+			self:addUI(ui)
 		end
 	end
 	onlineBox:addTouchEventListener(onOnlineBoxTouched)
+
+	-- 点将
+	-- ===================
+	local getHeroBg = contPanel:getChildByName("Image_hero_bg")
+	local getHeroLabel = getHeroBg:getChildByName("Label_text")
+	local heroIcon = getHeroBg:getChildByName("Image_icon")
+	local function setGetHeroInfo()
+		if player.takeInHeroMgr.getHeroNum() > 0 then
+		-- 有名将可以招募
+			getHeroBg:setVisible(true)
+			getHeroLabel:setString(hp.lang.getStrByID(2042))
+
+			local ani = hp.sequenceAniHelper.createAnimSprite("cityMap", "ringRun", 36, 0.1)
+			ani:setPosition(32, 28)
+			heroIcon:addChild(ani)
+
+			local function onOnlineBoxTouched(sender, eventType)
+				hp.uiHelper.btnImgTouched(sender, eventType)
+				if eventType==TOUCH_EVENT_ENDED then
+					player.buildingMgr.getBuildingObjBySid(1022):onClicked()
+				end
+			end
+			heroIcon:addTouchEventListener(onOnlineBoxTouched)
+		else
+			getHeroBg:setVisible(false)
+			heroIcon:removeAllChildren()
+		end
+	end
+	setGetHeroInfo()
+	self.setGetHeroInfo = setGetHeroInfo
 
 	-- 免费钻石
 	--====================
@@ -78,18 +93,13 @@ function UI_cityInfo:init()
 	local function freeGoldPop()
 		if player.getFristLeague() == 0 then
 			freeGoldBg_:setVisible(true)
-			local diamond_ = freeGoldBg_:getChildByName("Image_freeGold")
+			local diamond_ = freeGoldBg_:getChildByName("Image_icon")
 			local label_ = freeGoldBg_:getChildByName("Label_text")
 			label_:setString(hp.lang.getStrByID(2041))
 
-			-- add animation
-			ccs.ArmatureDataManager:getInstance():addArmatureFileInfo(config.dirUI.animation.."diamond.ExportJson")
-			local amature_ = ccs.Armature:create("diamond")
-			amature_:getAnimation():play("aniDiamond")
-			local x_, y_ = diamond_:getPosition()
-			local sz_ = diamond_:getSize()
-			amature_:setPosition(sz_.width / 2, sz_.height / 2)
-			diamond_:addChild(amature_)
+			local ani = hp.sequenceAniHelper.createAnimSprite("cityMap", "ringRun", 36, 0.1)
+			ani:setPosition(44, 32)
+			freeGoldBg_:addChild(ani)
 
 			local function onOperTouched(sender, eventType)
 				hp.uiHelper.btnImgTouched(sender, eventType)
@@ -236,60 +246,112 @@ function UI_cityInfo:init()
 	self.updateBufState = updateBufState
 	updateBufState()
 
-	-- 活动进入
+	-- 活动按钮
+	--====================
 	self.activityBtn = contPanel:getChildByName("Image_61")
 	-- 默认不显示
-	if player.soloActivityMgr.getActivity() == nil then
+	if player.soloActivityMgr.getActivity() == nil and
+	    player.unionActivityMgr.getActivity() == nil and
+	    player.kingdomActivityMgr.getActivity() == nil and
+	    player.bossActivityMgr.getActivity() == nil then
 		self.activityBtn:setVisible(false)
 	end
+
 	self.activityIcon = self.activityBtn:getChildByName("Image_62")
 	self.activityTime = self.activityBtn:getChildByName("Label_18_0")
 	self.activityDesc = self.activityBtn:getChildByName("Label_18")
-	self.activityInfo = {}
-	self.activityIconUrl = {"activity_5.png", "activity_21.png", "activity_22.png"}
-	self.changeTime = 0
-	self.activity_flag = 1
-	-- 心跳
-	local function onActivityHeartBeat(dt_)
-		self.activityInfo[1] = player.soloActivityMgr.getActivity()
-		self.activityInfo[2] = player.unionActivityMgr.getActivity()
-		self.activityInfo[3] = player.kingdomActivityMgr.getActivity()
+	self.resetTime = 5
+
+	-- 设置活动动画
+	local function updateActivityInfo()
+		local activityInfo = {}
+		local activityIconUrl = {}
+		local flag = 1
+		self.activityIcon:stopAllActions()
+
+		local soloActivity = player.soloActivityMgr.getActivity()
+		local unionActivity = player.unionActivityMgr.getActivity()
+		local kingdomActivity = player.kingdomActivityMgr.getActivity()
+		local bossActivity = player.bossActivityMgr.getActivity()
 
 		local status_ = globalData.ACTIVITY_STATUS
-		local activity = self.activityInfo[self.activity_flag]
 
-		if activity and activity.status ~= status_.CLOSE then
-			-- 动画
-			if self.changeTime == 0 then
-				self.activityIcon:loadTexture(config.dirUI.common .. self.activityIconUrl[self.activity_flag])
-				local action = cc.FadeIn:create(1)
-				self.activityIcon:runAction(action)
-			elseif self.changeTime >= 4 then
-				local action = cc.FadeOut:create(0.5)
-				self.activityIcon:runAction(action)
-			end
-			-- CD
-			local cd
+		if soloActivity and soloActivity.status ~= status_.CLOSE then
+			table.insert(activityInfo, soloActivity)
+			activityIconUrl[#activityIconUrl+1] = "activity_5.png"
+		end
+
+		if unionActivity and unionActivity.status ~= status_.CLOSE then
+			table.insert(activityInfo, unionActivity)
+			activityIconUrl[#activityIconUrl+1] = "activity_21.png"
+		end
+
+		if kingdomActivity and kingdomActivity.status ~= status_.CLOSE then
+			table.insert(activityInfo, kingdomActivity)
+			activityIconUrl[#activityIconUrl+1] = "activity_22.png"
+		end
+
+		if bossActivity and bossActivity.status ~= status_.CLOSE then
+			table.insert(activityInfo, bossActivity)
+			activityIconUrl[#activityIconUrl+1] = "activity_23.png"
+		end
+		-- 活动状态全部不正确
+		if #activityInfo == 0 then
+			self.activityBtn:setVisible(false)
+			return
+		elseif not self.activityBtn:isVisible() then
+			self.activityBtn:setVisible(true)
+		end
+		local function reset()
+			local activity = activityInfo[flag]
+			-- 更换图标
+			self.activityIcon:loadTexture(config.dirUI.common .. activityIconUrl[flag])
+			-- 更换信息
 			if activity.status == status_.OPEN then
-				cd = activity.endTime - player.getServerTime()
 				self.activityDesc:setString(hp.lang.getStrByID(5354))
+
+				if activity ~= bossActivity then
+					self.time = activity.endTime - player.getServerTime()
+				else
+					local remainingTime = activity.endTime - player.getServerTime()
+					if remainingTime > player.bossActivityMgr.getTime() then
+						self.time = player.bossActivityMgr.getTime()
+						self.activityDesc:setString(hp.lang.getStrByID(11618))
+					else
+						self.time = activity.endTime - player.getServerTime()
+					end
+				end
 			else
-				cd = activity.beginTime - player.getServerTime()
 				self.activityDesc:setString(hp.lang.getStrByID(5375))
+				self.time = activity.beginTime - player.getServerTime()
 			end
-			if cd < 0 then
-				cd = 0
-			end
-			self.activityTime:setString(hp.datetime.strTime(cd))
-			-- 时间递增
-			self.changeTime = self.changeTime + dt_
-			if self.changeTime > 5 then
-				self.changeTime = 0
-				self.activity_flag = self.activity_flag % 3 + 1
+			flag = flag % (#activityInfo) + 1
+		end
+		reset()
+
+		local a1 = cc.FadeIn:create(1)
+		local a2 = cc.DelayTime:create(2)
+		local a3 = cc.FadeOut:create(1)
+		local a4 = cc.CallFunc:create(reset)
+		local a = cc.RepeatForever:create(cc.Sequence:create(a1, a2, a3, a4))
+		
+		self.activityIcon:runAction(a)
+	end
+	updateActivityInfo()
+	
+	self.updateActivityInfo = updateActivityInfo
+	-- 活动计时
+	local function onActivityHeartBeat(dt_)
+		if self.time == nil or self.time < 0 then
+			self.activityTime:setString(hp.lang.getStrByID(11183))
+			self.resetTime = self.resetTime - dt_
+			if self.resetTime <= 0 then
+				self.resetTime = 5
+				self.updateActivityInfo()
 			end
 		else
-			self.changeTime = 0
-			self.activity_flag = self.activity_flag % 3 + 1
+			self.activityTime:setString(hp.datetime.strTime(self.time))
+			self.time = self.time - dt_
 		end
 	end
 	self.onActivityHeartBeat = onActivityHeartBeat
@@ -302,25 +364,7 @@ function UI_cityInfo:init()
 			self:addUI(ui_)
 		end
 	end
-	-- 数据刷新
-	local function activityDataUpdate()
-		local activity_ = player.soloActivityMgr.getActivity()
-		if activity_ == nil then
-			return
-		end
-
-		local status_ = globalData.ACTIVITY_STATUS
-		if activity_.status == status_.OPEN then
-			-- self.activityDesc:setString(hp.lang.getStrByID(5354))
-		elseif activity_.status == status_.NOT_OPEN then
-			-- self.activityDesc:setString(hp.lang.getStrByID(5375))
-		elseif activity_.status == status_.CLOSE then
-			-- self.activityBtn:setVisible(false)
-		end
-	end
-	self.activityDataUpdate = activityDataUpdate	
 	self.activityBtn:addTouchEventListener(onActivityTouched)
-	activityDataUpdate()
 
 	-- 主界面主线任务
 	--====================
@@ -466,6 +510,11 @@ function UI_cityInfo:init()
 	promotionPos:addTouchEventListener(onPromotionTouched)
 
 	-- registMsg
+	player.getAlliance():prepareData(dirtyType.UNIONGIFT, "UI_cityInfo")
+	self:registMsg(hp.MSG.UNION_RECEIVE_GIFT)
+	self:registMsg(hp.MSG.UPGRADEGIFT_GET)
+	self:registMsg(hp.MSG.SIGN_IN)
+	self:registMsg(hp.MSG.NOVICE_GIFT)
 	self:registMsg(hp.MSG.ONLINE_GIFT)
 	self:registMsg(hp.MSG.UNION_JOIN_SUCCESS)
 	self:registMsg(hp.MSG.GUIDE_OVER)
@@ -477,7 +526,11 @@ function UI_cityInfo:init()
 	self:registMsg(hp.MSG.BUF_NOTITY)
 	self:registMsg(hp.MSG.CD_CHANGED)
 	self:registMsg(hp.MSG.SOLO_ACTIVITY)
-	self:registMsg(hp.MSG.UNION_NOTIFY)	
+	self:registMsg(hp.MSG.UNION_ACTIVITY)
+	self:registMsg(hp.MSG.KINGDOM_ACTIVITY)
+	self:registMsg(hp.MSG.UNION_NOTIFY)
+	self:registMsg(hp.MSG.FAMOUS_HERO_NUM_CHANGE)
+	self:registMsg(hp.MSG.BOSS_ACTIVITY)
 
 	-- 进行新手引导绑定
 	-- =========================================
@@ -495,8 +548,10 @@ end
 function UI_cityInfo:onMsg(msg_, paramInfo_)
 	if msg_==hp.MSG.GUIDE_STEP then
 		self.bindGuideUI(paramInfo_)
-	elseif msg_==hp.MSG.ONLINE_GIFT then
-		self.setOnlineBoxInfo()
+	elseif msg_==hp.MSG.ONLINE_GIFT or msg_== hp.MSG.UNION_RECEIVE_GIFT or
+			msg_== hp.MSG.UPGRADEGIFT_GET or msg_== hp.MSG.SIGN_IN or
+			msg_== hp.MSG.NOVICE_GIFT then
+		self.setOnlineBoxAnim()
 	elseif msg_==hp.MSG.UNION_JOIN_SUCCESS then
 		if player.getFristLeague() == 0 then
 			if self.freeGoldBg_ ~= nil then
@@ -509,6 +564,8 @@ function UI_cityInfo:onMsg(msg_, paramInfo_)
 		if paramInfo_ == dirtyType.VARIABLENUM then
 			self.updateHelpIcon()
 			self.updateFightIcon()
+		elseif paramInfo_ == dirtyType.UNIONGIFT then
+			self.setOnlineBoxAnim()
 		end
 	elseif msg_ == hp.MSG.MISSION_REFRESH then
 		if paramInfo_ == 1 then
@@ -543,24 +600,35 @@ function UI_cityInfo:onMsg(msg_, paramInfo_)
 			self.updateBufState()
 		end
 	elseif msg_ == hp.MSG.SOLO_ACTIVITY then
-		if paramInfo_.msgType == 3 then
-			-- self.activityBtn:setVisible(false)
-		elseif paramInfo_.msgType == 4 then
-			self.activityBtn:setVisible(true)
-			self.activityDesc:setString(hp.lang.getStrByID(5354))
-		elseif paramInfo_.msgType == 5 then
-			self.activityBtn:setVisible(true)
-			self.activityDataUpdate()
+		if paramInfo_.msgType == 3 or
+		   paramInfo_.msgType == 4 or
+		   paramInfo_.msgType == 5 then
+			self.updateActivityInfo()
 		end
+	elseif msg_ == hp.MSG.UNION_ACTIVITY then
+		if paramInfo_ == 1 or
+		   paramInfo_ == 5 or
+		   paramInfo_ == 6 then
+			self.updateActivityInfo()
+		 end
+	elseif msg_ == hp.MSG.KINGDOM_ACTIVITY then
+		if paramInfo_ == 1 or
+		   paramInfo_ == 3 or
+		   paramInfo_ == 4 then
+			self.updateActivityInfo()
+		 end
+	elseif msg_ == hp.MSG.BOSS_ACTIVITY then
+		self.updateActivityInfo()
 	elseif msg_ == hp.MSG.UNION_NOTIFY then
 		if paramInfo_.msgType == 2 then
 			self.updateHelpIcon()
 		end
+	elseif msg_ == hp.MSG.FAMOUS_HERO_NUM_CHANGE then
+		self.setGetHeroInfo()
 	end	
 end
 
 
 function UI_cityInfo:heartbeat(dt)
-	self.refreshOnlineBoxCD()
 	self.onActivityHeartBeat(dt)
 end

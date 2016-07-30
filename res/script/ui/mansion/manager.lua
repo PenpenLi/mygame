@@ -48,7 +48,7 @@ function UI_manager:init(building_)
 				local ui_ = UI_shopItem.new(2)
 				self:addUI(ui_)
 			elseif sender == btnEquip or sender == btnMaterial or sender == btnGem then
-				local building=game.curScene:getBuildingBySid(1011)
+				local building=player.buildingMgr.getBuildingObjBySid(1011)
 				if building == nil then
 					require "ui/common/noBuildingNotice"
 					local ui_ = UI_noBuildingNotice.new(hp.lang.getStrByID(2913), 1011, 1)

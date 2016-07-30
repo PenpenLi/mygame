@@ -45,7 +45,7 @@ end
 -- 获取表
 function checkedPMTbl.getCheckedTbl()
 	local checkedTbl = {}
-	for i=1,13 do
+	for i=1,14 do
 		local checked = hp.common.band(checkedTblNum, math.pow(2,i-1))
 		checkedTbl[i] = checked
 	end

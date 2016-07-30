@@ -65,7 +65,7 @@ local function onBtnTouch(sender, eventType)
 			if isRun then
 				parent:addUI(UI_speedItem.new(cdBox.CDTYPE.BRANCH))
 			elseif canTrain then
-				game.curScene:getBuildingBySid(1009):onClicked()
+				player.buildingMgr.getBuildingObjBySid(1009):onClicked()
 			end
 		else
 			parent:closeAll()

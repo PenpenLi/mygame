@@ -16,7 +16,6 @@ function UI_hero:init(hero_)
 	local lv = player.getLv()
 	local exp = player.getExp()
 	local lvConstInfo = nil
-	local pointCount = 0
 
 	local heroInfo = hero_.getBaseInfo()
 	local constInfo = hero_.getConstInfo()
@@ -130,6 +129,11 @@ function UI_hero:init(hero_)
 				equipNode:getChildByName("Image_gem" .. i):setVisible(false)
 			end
 		end
+		-- 限时装备隐藏宝石框
+		local equipInfo = hp.gameDataLoader.getInfoBySid("equip", equip.sid)
+		if equipInfo~=nil and equipInfo.overTime[1]>0 then
+			equipNode:getChildByName("Image_gembg1"):setVisible(false)
+		end
 	end
 
 	-- 刷新装备信息
@@ -147,7 +151,7 @@ function UI_hero:init(hero_)
 	end
 	-- 前往铁匠铺
 	local function gotoSmith()
-		local building=game.curScene:getBuildingBySid(1011)
+		local building=player.buildingMgr.getBuildingObjBySid(1011)
 		if building ~= nil then
 			building:onClicked()
 		else
@@ -255,19 +259,14 @@ function UI_hero:init(hero_)
 	btnHide:getChildByName("Label_hide"):setString(hp.lang.getStrByID(2507))
 
 	local function setSkillPointNum()
-		local pointUsed = 0
-		skillList = hero_.getSkillList()
-		for k,v in pairs(skillList) do
-			pointUsed = pointUsed+v
-		end
-		
-		if pointCount-pointUsed > 0 then
+		local pointNum = hero_.getSkillPoint()
+		if pointNum > 0 then
 			self.light:setVisible(true)
 		else
 			self.light:setVisible(false)
 		end
 		
-		btnPoint:getChildByName("Label_skillPoint"):setString(string.format(hp.lang.getStrByID(2503), pointCount-pointUsed))
+		btnPoint:getChildByName("Label_skillPoint"):setString(string.format(hp.lang.getStrByID(2503), pointNum))
 	end
 	local function reflushExp()
 		exp = player.getExp()
@@ -277,9 +276,7 @@ function UI_hero:init(hero_)
 	local function reflushLv()
 		lv = player.getLv()
 		headerFrame:getChildByName("Label_level"):setString(lv)
-		pointCount=0
 		for i,v in ipairs(game.data.heroLv) do
-			pointCount = pointCount+v.dit
 			if v.level==lv then
 				lvConstInfo = v
 				break

@@ -7,6 +7,7 @@
 -- =======================
 local questManager = {}
 local quickFinishLevel = {7,8,-1}
+local requestTag = {1,2,4}
 
 -- 本地数据
 -- =======================
@@ -15,7 +16,8 @@ local local_branchTask = {}		-- 城池任务-支线任务
 local local_finishMain = {}		-- 城池任务-主线奖励
 local local_finishBranch = {}	-- 城池任务-支线奖励
 local local_dailyTask = {}		-- 日常任务
-local local_resetTime = {}		-- 重置时间-日常任务	
+local local_resetTime = {}		-- 重置时间-日常任务
+local local_dailyRequesting = false
 
 -- 本地方法
 -- =======================
@@ -103,7 +105,7 @@ local function initDailyTask(info_)
 			end
 		end
 		hp.msgCenter.sendMsg(hp.MSG.MISSION_DAILY_REFRESH, 3)
-	end
+	end	
 end
 
 -- 支线任务初始化
@@ -304,12 +306,18 @@ local function sendHttpCmd(type_, param_, callBack_)
 				questManager.quickFinishTask(oper.task, data.id)
 			elseif type_ == 6 then
 				questManager.dailyTaskCollected(oper.task)
+			elseif type_ == 7 then
+				initDailyTask(data)
 			end
 
 			if callBack_ ~= nil then
 				callBack_()
 			end
-		end	
+		end
+
+		if type_ == 7 then
+			local_dailyRequesting = false
+		end
 	end
 
 	local cmdData={operation={}}
@@ -322,6 +330,14 @@ local function sendHttpCmd(type_, param_, callBack_)
 	local cmdSender = hp.httpCmdSender.new(onHttpResponse)
 	cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
 	return cmdSender
+end
+
+-- 请求日常任务
+local function requestDailyTask(tag_)
+	local param_ = {}
+	param_.loc = tag_
+	sendHttpCmd(7, param_)
+	local_dailyRequesting = true
 end
 
 -- =======================
@@ -338,7 +354,8 @@ function questManager.init()
 	local_finishMain = {}	-- 城池任务-主线奖励
 	local_finishBranch = {}	-- 城池任务-支线奖励
 	local_dailyTask = {}		-- 日常任务
-	local_resetTime = {}		-- 重置时间-日常任务	
+	local_resetTime = {}		-- 重置时间-日常任务
+	local_dailyRequesting = false	-- 日常任务正在请求
 end
 
 -- 任务初始化
@@ -353,6 +370,37 @@ end
 
 function questManager.heartbeat(dt_)
 	-- body
+	-- 日常任务到时请求
+
+	if local_dailyRequesting then
+		-- 请求中
+		return
+	end
+
+	local tag_ = 0
+	for i, v in ipairs(local_resetTime) do
+		if v <= player.getServerTime() then
+			-- 到期
+			if i == 1 then
+				tag_ = tag_ + requestTag[1]
+			elseif i == 2 then
+				-- 是否加入联盟
+				if player.getAlliance():getUnionID() ~= 0 then
+					tag_ = tag_ + requestTag[2]
+				end
+			elseif i == 3 then
+				-- 是否VIP
+				if player.vipStatus.isActive() then
+					tag_ = tag_ + requestTag[3]
+				end
+			end			
+		end
+	end
+
+	if tag_ > 0 then
+		-- 请求
+		requestDailyTask(tag_)
+	end
 end
 
 -- =======================

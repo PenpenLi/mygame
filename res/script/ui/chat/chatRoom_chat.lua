@@ -92,12 +92,10 @@ function UI_chatRoom_chat:init(type_, playerInfo_)
 		local chatLabel = itemCont:getChildByName("Label_text")
 		local timeLabel = itemCont:getChildByName("Label_time")
 
-		if player.getID()~=chatInfo.srcId then
-			itemCont:setTag(chatInfo.id)
-			imgHead:setTag(chatInfo.id)
-			itemCont:addTouchEventListener(onChatItemTouched)
-			imgHead:addTouchEventListener(onChatItemTouched)
-		end
+		itemCont:setTag(chatInfo.id)
+		imgHead:setTag(chatInfo.id)
+		itemCont:addTouchEventListener(onChatItemTouched)
+		imgHead:addTouchEventListener(onChatItemTouched)
 
 		--vip
 		if chatInfo.vipLv<=0 then

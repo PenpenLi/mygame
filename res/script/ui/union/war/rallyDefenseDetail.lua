@@ -174,7 +174,7 @@ function UI_rallyDefenseDetail:initCallBack()
 
 		local function onConfirm1Touched()
 			require "ui/march/march"
-			UI_march.openMarchUI(self, self.rallyInfo.friendPos, globalData.MARCH_TYPE.REINFORCE, {maxNumber=soldierNum_, armyID=0}, marchCallBack)
+			UI_march.openMarchUI(self, self.rallyInfo.friendPos, globalData.MARCH_TYPE.REINFORCE, {maxNumber=soldierNum_, armyID=0, endTime=self.rallyInfo.lastTime}, marchCallBack)
 		end
 
 		if soldierNum_ == 0 then

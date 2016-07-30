@@ -317,6 +317,5 @@ end
 function UI_mansion:onRemove()
 	self.super.onRemove(self)
 
-	game.curScene.mainMenu.recheckSelectMenu()
 	player.getAlliance():unPrepareData(dirtyType.UNIONGIFT, "UI_mansion")
 end

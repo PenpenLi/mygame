@@ -41,13 +41,28 @@ function UI_killHero:init(building_, prisonMgr_)
 	local function onFreeBtnTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			prisonMgr.freeHero(sender:getTag())
+			local rst, cmdSender = prisonMgr.freeHero(sender:getTag())
+			if rst then
+				self:showLoading(cmdSender, sender)
+			end
 		end
 	end
 	local function onKillBtnTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			prisonMgr.killHero(sender:getTag())
+			local function killHero()
+				local rst, cmdSender = prisonMgr.killHero(sender:getTag())
+				if rst then
+					self:showLoading(cmdSender, sender)
+				end
+			end
+
+			require("ui/msgBox/msgBox")
+			local etime = (3*24+17-hp.gameDataLoader.getBuildingInfoByLevel("prison", building_.build.lv, "earlierseGuillotine", 0))*3600
+			local killInfo = string.format(hp.lang.getStrByID(4018), hp.datetime.strTime(etime))
+			local killConf =  UI_msgBox.new(hp.lang.getStrByID(4017), killInfo,
+								hp.lang.getStrByID(1209), hp.lang.getStrByID(2412), killHero)
+			self:addModalUI(killConf)
 		end
 	end
 	-- 刷新英雄的操作
@@ -163,7 +178,7 @@ function UI_killHero:init(building_, prisonMgr_)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			require "ui/prison/prisonInfoBox"
-			prisonInfo = UI_prisonInfo.new(building_)
+			local prisonInfo = UI_prisonInfo.new(building_)
 			self:addModalUI(prisonInfo)
 		end
 	end

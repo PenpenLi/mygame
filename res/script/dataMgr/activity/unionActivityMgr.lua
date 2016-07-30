@@ -11,6 +11,8 @@ local unionActivityMgr = {}
 -- 私有数据
 -- ================================
 local activity
+local request_time = 60
+local request_history = true
 
 local httpCmd = {
 	ACTIVITY = 3,
@@ -133,8 +135,7 @@ function unionActivityMgr.heartbeat(dt)
 	if activity.status == UNION_ACTIVITY_STATUS.OPEN then
 		-- 活动结束
 		if activity.endTime < player.getServerTime() then
-			-- 更新数据
-			unionActivityMgr.updateHistory()
+			request_history = true
 			activity.status = UNION_ACTIVITY_STATUS.CLOSE
 			hp.msgCenter.sendMsg(hp.MSG.UNION_ACTIVITY, 6)
 		end
@@ -144,6 +145,11 @@ function unionActivityMgr.heartbeat(dt)
 			activity.status = UNION_ACTIVITY_STATUS.OPEN
 			hp.msgCenter.sendMsg(hp.MSG.UNION_ACTIVITY, 5)
 		end
+	elseif request_time <= 0 then
+		sendHttpCmd(httpCmd.ACTIVITY)
+		request_time = 60
+	else
+		request_time = request_time - dt
 	end
 end
 
@@ -157,7 +163,12 @@ end
 
 -- 刷新历史记录
 function unionActivityMgr.updateHistory(ui_)
-	sendHttpCmd(httpCmd.HISTORY, ui_)
+	if request_history then
+		request_history = false
+		sendHttpCmd(httpCmd.HISTORY, ui_)
+	else
+		hp.msgCenter.sendMsg(hp.MSG.UNION_ACTIVITY, 3)
+	end
 end
 
 -- 获取活动

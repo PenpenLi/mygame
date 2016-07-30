@@ -60,13 +60,13 @@ function UI_mainHeaderInfo:init()
 				-- 已死亡（可复活）
 				elseif state == 2 then
 					--进入墓地
-					local building=game.curScene:getBuildingBySid(1021)
+					local building=player.buildingMgr.getBuildingObjBySid(1021)
 					building:onClicked()
 				-- 已死亡（不可复活）
 				elseif state == 3 then
 					-- 前往招贤馆
 					local function gotoHeroRoom()
-						local building=game.curScene:getBuildingBySid(1022)
+						local building=player.buildingMgr.getBuildingObjBySid(1022)
 						building:onClicked()
 					end	
 					require("ui/msgBox/msgBox")
@@ -276,24 +276,10 @@ function UI_mainHeaderInfo:heartbeat(dt)
 end
 
 function UI_mainHeaderInfo:heroHeadIsLight()
-	local lv = player.getLv()
-	local pointCount = 0
-	for i,v in ipairs(game.data.heroLv) do
-		pointCount = pointCount+v.dit
-		if v.level==lv then
-			break
-		end
-	end
-
-	local pointUsed = 0
-	local skillList = player.hero.getSkillList()
-	for k,v in pairs(skillList) do
-		pointUsed = pointUsed+v
-	end
-	
 	local state=player.hero.getBaseInfo().state
+	local pointNum = player.hero.getSkillPoint()
 	
-	if (pointCount - pointUsed > 0) and state == 0 then
+	if pointNum>0 and state==0 then
 		if self.heroHeadLight == nil then
 			self.heroHeadLight = hp.uiEffect.innerGlow(self.heroHead, 1)
 		end

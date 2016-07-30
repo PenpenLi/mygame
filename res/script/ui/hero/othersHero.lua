@@ -236,7 +236,7 @@ function UI_othersHero:initUI()
 	local panel_jewelry3 = panel_adampt:getChildByName("ImageView_equip7")
 	local no_jewelry3 = panel_adampt:getChildByName("ImageView_equip7_0")
 	local lock = panel_adampt:getChildByName("ImageView_lock")
-	local baseEquipModel = widget:getChildByName("Panel_bag"):clone()
+	local baseEquipModel = widget:getChildByName("Panel_bag")
 
 	self.equipViewTbl = {}
 	table.insert(self.equipViewTbl, panel_helmet)
@@ -286,15 +286,19 @@ function UI_othersHero:initUI()
 				no_shoe:setVisible(false)
 				panel_shoe:addChild(equip_model)
 			end
-
+			
 			local bg = equip_model:getChildByName("Image_bg")
 			bg:loadTexture(string.format("%scolorframe_%d.png", config.dirUI.common, v[3]+1))
 			bg:getChildByName("Image_equip"):loadTexture(config.dirUI.equip .. v[1] .. ".png")
+			
 			local gem = bg:getChildByName("Panel_equip")
-
 			gem:getChildByName("Image_gem1"):setVisible(false)
 			gem:getChildByName("Image_gem2"):setVisible(false)
 			gem:getChildByName("Image_gem3"):setVisible(false)
+			-- 隐藏宝石框（限时装备）
+			if equip_info.overTime[1] > 0 then
+				gem:getChildByName("Image_gembg1"):setVisible(false)
+			end
 
 			for j = 1, #equip_info2 do
 				if equip_info2[j] > 0 then

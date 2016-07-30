@@ -211,14 +211,10 @@ function Scene_loading:heartbeat(dt_)
         player.flushUserDefualt()
 
         require("scene/cityMap")
-        local map = cityMap.new()
+        local map = cityMap.new(true)
         map:enter()
 
         cc.SimpleAudioEngine:getInstance():playMusic("sound/background.mp3", true)
-
-        -- 请求登录公告
-        require("ui/common/sysNotice")
-        UI_sysNotice.show()
     end
 end
 

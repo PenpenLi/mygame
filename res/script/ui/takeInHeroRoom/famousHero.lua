@@ -130,7 +130,6 @@ function UI_famousHero:init(bInfo)
 		oper.channel = 15
 		oper.type = 6
 		oper.sid = HeroSid
-		--cclog_(myAuction.sid .. "ppppppppppppppppppp")
 		oper.price = price
 		cmdData.operation[1] = oper
 		local cmdSender = hp.httpCmdSender.new(onBuyHeroHttpResponse)
@@ -207,10 +206,17 @@ function UI_famousHero:init(bInfo)
 		if eventType==TOUCH_EVENT_ENDED then
 		
 			--传送英雄tag
-			require "ui/takeInHeroRoom/famousHeroAuctionInputBox"
-			local inputbox = UI_famousHeroAuctionInputBox.new(sender:getTag())
+			if sender:getChildByName("Label_auction"):getString()==hp.lang.getStrByID(6048) then
+				require "ui/takeInHeroRoom/famousHeroAddAuctionInputBox"
+				local inputbox = UI_famousHeroAddAuctionInputBox.new(sender:getTag(),myAuction.price)
 
-			UI_famousHeroSelf:addModalUI(inputbox)
+				UI_famousHeroSelf:addModalUI(inputbox)
+			else
+				require "ui/takeInHeroRoom/famousHeroAuctionInputBox"
+				local inputbox = UI_famousHeroAuctionInputBox.new(sender:getTag())
+
+				UI_famousHeroSelf:addModalUI(inputbox)
+			end
 		end
 	end
 
@@ -251,17 +257,22 @@ function UI_famousHero:init(bInfo)
 			--所有拍卖按钮变灰 不可点击
 			local btn_auction = item:getChildByName("Panel_cont"):getChildByName("btn_auction")
 			
-			btn_auction:loadTexture(config.dirUI.common .. "button_gray.png")
-			btn_auction:setEnabled(false)
-			
-			--除此之外的 立即获取按钮变灰
+			--除此之外的 拍卖按钮 立即获取按钮变灰
 			if v[1] ~= myAuction.sid then
 				local btn_fastGet = item:getChildByName("Panel_cont"):getChildByName("btn_fastGet")
 			
 				btn_fastGet:loadTexture(config.dirUI.common .. "button_gray.png")
 				btn_fastGet:setEnabled(false)
+
+				--所有拍卖按钮变灰 不可点击
+				btn_auction:loadTexture(config.dirUI.common .. "button_gray.png")
+				btn_auction:setEnabled(false)
+			else
+				if myAuction.price > 0 then
+					--竞拍过的按钮变为加价
+					btn_auction:getChildByName("Label_auction"):setString(hp.lang.getStrByID(6048))
+				end
 			end
-			
 			
 		end
 		

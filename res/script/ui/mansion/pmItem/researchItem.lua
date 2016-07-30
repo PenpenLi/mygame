@@ -64,7 +64,7 @@ local function onBtnTouch(sender, eventType)
 			if isRun then
 				parent:addUI(UI_speedItem.new(cdBox.CDTYPE.RESEARCH))
 			else
-				game.curScene:getBuildingBySid(1007):onClicked()
+				haveAcademy:onClicked()
 			end
 		else
 			parent:closeAll()
@@ -126,7 +126,7 @@ end
 function ResearchItem.setData()
 	timeLabel:setString("")
 
-	haveAcademy = game.curScene:getBuildingBySid(1007)
+	haveAcademy = player.buildingMgr.getBuildingObjBySid(1007)
 	if haveAcademy then
 		isRun = cdBox.getCDInfo(cdBox.CDTYPE.RESEARCH).cd > 0
 		if isRun then

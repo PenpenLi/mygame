@@ -95,13 +95,48 @@ function UI_alarmMail:init(mailInfo,mailType_,mailIndex)
 		table.insert(Info.buff,buf)
 	end
 
-
+	Info.pos = {}
+	if #annex[12] > 0 then
+		Info.pos.k = annex[12][1]
+		Info.pos.x = annex[12][2]
+		Info.pos.y = annex[12][3]
+	end
 
 	--head
 	Panel_item:getChildByName("Panel_cont"):getChildByName("Label_succeed"):setString(hp.lang.getStrByID(7971))
 	
 	Panel_item:getChildByName("Panel_cont_0"):getChildByName("Label_info"):setString(hp.lang.getStrByID(7972))
+	local label_pos = Panel_item:getChildByName("Panel_cont_0"):getChildByName("Label_info_0")
+	local image_line = Panel_item:getChildByName("Panel_cont_0"):getChildByName("Image_line")
 	
+	local function goto(sender, eventType)
+		if eventType==TOUCH_EVENT_ENDED then
+			if game.curScene.mapLevel == 2 then
+				self:closeAll()
+    			game.curScene:gotoPosition(cc.p(Info.pos.x, Info.pos.y), "", Info.pos.k)
+    		else
+    			self:close()
+    			require("scene/kingdomMap")
+				local map = kingdomMap.new()
+				map:enter()
+				map:gotoPosition(cc.p(Info.pos.x, Info.pos.y), "", Info.pos.k)
+  	 		end
+		end
+	end
+
+	if Info.pos.k then
+		local posText = string.format(hp.lang.getStrByID(7718), hp.gameDataLoader.getInfoBySid("serverList", Info.pos.k).name, Info.pos.x, Info.pos.y)
+		label_pos:setString(posText)
+		label_pos:addTouchEventListener(goto)
+
+		local width = label_pos:getContentSize().width
+		local size = image_line:getSize()
+		size.width = width
+		image_line:setSize(size)
+	else
+		label_pos:setVisible(false)
+		image_line:setVisible(false)
+	end
 
 	local panelLabelCont = Panel_item:getChildByName("Panel_cont_1")
 	panelLabelCont:getChildByName("Label_tittleC"):setString(hp.lang.getStrByID(7973))
@@ -117,7 +152,7 @@ function UI_alarmMail:init(mailInfo,mailType_,mailIndex)
 
 	local panelLabelCont1 = Panel_item:getChildByName("Panel_cont_2")
 	panelLabelCont1:getChildByName("Label_tittleL"):setString(hp.lang.getStrByID(7977))
-	panelLabelCont1:getChildByName("Label_info1"):setString(hp.lang.getStrByID(6001) .. "：")
+	panelLabelCont1:getChildByName("Label_info1"):setString(hp.lang.getStrByID(7619) .. "：")
 	panelLabelCont1:getChildByName("Label_info2"):setString(hp.lang.getStrByID(5250))
 	-- panelLabelCont1:getChildByName("Label_info3"):setString(hp.lang.getStrByID(1001) .. "：")
 	-- panelLabelCont1:getChildByName("Label_info4"):setString(hp.lang.getStrByID(1002) .. "：")
@@ -270,7 +305,7 @@ function UI_alarmMail:init(mailInfo,mailType_,mailIndex)
 	end
 
 	--move down del
-	movePos1(Panel_item:getChildByName("Panel_delFrame") ,dh)
+	--movePos1(Panel_item:getChildByName("Panel_delFrame") ,dh)
 	movePos1(Panel_item:getChildByName("Panel_delCont") ,dh)
 
 	--resize item panel

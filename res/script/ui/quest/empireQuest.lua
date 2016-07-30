@@ -58,16 +58,6 @@ function UI_empireQuest:init()
 	-- register msg
 	self:registMsg(hp.MSG.MISSION_COLLECT)
 	self:registMsg(hp.MSG.MISSION_REFRESH)
-	self:registMsg(hp.MSG.GUIDE_STEP)
-
-	-- 进行新手引导绑定
-	-- ================================
-	local function bindGuideUI( step )
-		if step==4005 then
-			player.guide.bind2Node111(step, self.mainCollectBtn, self.OnCollectTouched)
-		end
-	end
-	self.bindGuideUI = bindGuideUI
 end
 
 -- 初始化UI
@@ -280,8 +270,6 @@ function UI_empireQuest:onMsg(msg_, parm_)
 		player.guide.step(4005)
 	elseif msg_ == hp.MSG.MISSION_REFRESH then
 		self:refreshTasks(parm_)
-	elseif msg_ == hp.MSG.GUIDE_STEP then
-		self.bindGuideUI(parm_)
 	end
 end
 

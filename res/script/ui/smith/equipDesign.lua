@@ -1,4 +1,5 @@
 --
+--
 -- ui/smith/equipDesign.lua
 -- 选择装备制造秘籍界面
 --===================================
@@ -24,8 +25,8 @@ function UI_equipDesign:init(callback_)
 	local function onItemTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			require("ui/smith/equipDesignDetail")
-			local ui = UI_equipDesignDetail.new(sender:getTag(),callback)
+			require("ui/smith/equipSubDesign")
+			local ui = UI_equipSubDesign.new(sender:getTag(),callback)
 			self:addUI(ui)
 		end
 	end

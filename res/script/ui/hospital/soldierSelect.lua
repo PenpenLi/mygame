@@ -8,7 +8,7 @@ require "player"
 
 UI_soldierHeal = class("UI_soldierHeal", UI)
 
-local costOffSet = 0.4
+local costOffSet = {0.1,0.2,0.4,0.8}
 local timeOffSet = 0
 local costMap = {5, 4, 6, 3, 2}
 
@@ -122,11 +122,11 @@ function UI_soldierHeal:init(type_, resource_)
 		uiTrainNum:setString(trainNum)
 
 		-- update resource cost
-		trainCost[1] = math.floor(trainNum * soldierInfo.costs[5] * costOffSet)
-		trainCost[2] = math.floor(trainNum * soldierInfo.costs[4] * costOffSet)
-		trainCost[3] = math.floor(trainNum * soldierInfo.costs[6] * costOffSet)
-		trainCost[4] = math.floor(trainNum * soldierInfo.costs[3] * costOffSet)
-		trainCost[5] = math.floor(trainNum * soldierInfo.costs[2] * costOffSet)
+		trainCost[1] = math.floor(trainNum * soldierInfo.costs[5] * costOffSet[soldierInfo.level])
+		trainCost[2] = math.floor(trainNum * soldierInfo.costs[4] * costOffSet[soldierInfo.level])
+		trainCost[3] = math.floor(trainNum * soldierInfo.costs[6] * costOffSet[soldierInfo.level])
+		trainCost[4] = math.floor(trainNum * soldierInfo.costs[3] * costOffSet[soldierInfo.level])
+		trainCost[5] = math.floor(trainNum * soldierInfo.costs[2] * costOffSet[soldierInfo.level])
 		stone:setString(self.resource[1].."/"..trainCost[1])
 		wood:setString(self.resource[2].."/"..trainCost[2])
 		iron:setString(self.resource[3].."/"..trainCost[3])
@@ -240,7 +240,7 @@ function UI_soldierHeal:CanTrainNumber(type_)
 	local soldierInfo = player.soldierManager.getArmyInfoByType(type_)
 	for i = 1, table.getn(self.resource) do
 		if soldierInfo.costs[costMap[i]] ~= 0 then
-			maxTrainNum[table.getn(maxTrainNum) + 1] = math.floor(self.resource[i]/soldierInfo.costs[costMap[i]]/costOffSet)
+			maxTrainNum[table.getn(maxTrainNum) + 1] = math.floor(self.resource[i]/soldierInfo.costs[costMap[i]]/costOffSet[soldierInfo.level])
 		end
 	end
 

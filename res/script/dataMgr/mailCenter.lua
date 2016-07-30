@@ -22,6 +22,8 @@
 -- @type=7: 取消收藏
 -- @type=8: 获取最新邮件
 -- @type=9: 获取战斗详情
+-- @type=10: 群发联盟邮件
+-- @type=11: 清空邮件
 ------------------------------------------------------------------------------------
 
 
@@ -318,6 +320,36 @@ function mailCenter.deleteMail(mailType_, indexList_)
 	loadOper.type = 6
 	loadOper.mailtype = mailType_
 	loadOper.id = deleteId
+	sendHttpMailOper(loadOper)
+
+	-- 发送未读邮件变化的消息
+	hp.msgCenter.sendMsg(hp.MSG.MAIL_CHANGED, {type=6, mailType=mailType_, num=mailBox.unreadNum})
+	if unreadChanged then
+		hp.msgCenter.sendMsg(hp.MSG.MAIL_CHANGED, {type=7})
+	end
+	hp.msgCenter.sendMsg(hp.MSG.MAIL_CHANGED, {type=5, mailType=mailType_})
+end
+
+-- deleteAllMails
+-- 删除所有邮件
+-------------------------------
+function mailCenter.deleteAllMails(mailType_)
+	local mailBox = typeMailBox[mailType_]
+	local mailQueue = mailBox.queue
+	local unreadChanged = false
+
+	if mailBox.unreadNum~=0 then
+		mailBox.unreadNum = 0
+		unreadChanged = true
+	end
+
+	mailBox.queue = {}
+	mailBox.loadFinished = true
+	
+	-- 向服务器发送删除请求
+	local loadOper = {}
+	loadOper.type = 11
+	loadOper.mailtype = mailType_
 	sendHttpMailOper(loadOper)
 
 	-- 发送未读邮件变化的消息

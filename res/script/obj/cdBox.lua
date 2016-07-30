@@ -31,6 +31,8 @@ cdBox.CDTYPE =
 	INDUCE = 15,--招降英雄
 	MARCH = 16,--行军
 	CROSS_KINGDOM = 17, --跨服
+
+	KILLHERO_BUFF = 18, --杀死英雄的BUFF
 }
 
 
@@ -57,7 +59,8 @@ local cdIconList =
 	"cd_icon_remedy.png", --14
 	"cd_icon_build.png", --15
 	"cd_icon_march.png", --16
-	"cd_icon_march.png", --17
+	"cd_icon_cross.png", --17
+	"cd_icon_killhero.png", --18
 }
 
 
@@ -97,6 +100,13 @@ function cdBox.initCD(data_)
 	cdBox.initCDInfo(cdBox.CDTYPE.BRANCH, data_.branch_cd, true)
 	cdBox.initCDInfo(cdBox.CDTYPE.TRAP, data_.trap_cd, true)
 	cdBox.initCDInfo(cdBox.CDTYPE.REMEDY, data_.branchHN, true)
+
+	cdData = data_.buff
+	if cdData~=nil and #cdData>=2 and #cdData[2]>=3 then
+	-- 同步杀武将
+		cdBox.initCDInfo(cdBox.CDTYPE.KILLHERO_BUFF, cdData[2][3], true)
+	end
+
 	cdBox.initCDHelpInfo(data_.cdh)
 end
 
@@ -181,10 +191,10 @@ function cdBox.initCDInfo(cdType_, infoData_, notMsg_)
 			cdInfo.soldier[i] = infoData_[2 + i]
 		end
 	
-	elseif cdType_==cdBox.CDTYPE.REMEDY then
-	--16---------------------------------
+	elseif cdType_==cdBox.CDTYPE.KILLHERO_BUFF then
+	--18---------------------------------
 		cdInfo.cd = infoData_[1]
-		cdInfo.total_cd = infoData_[2]
+		cdInfo.total_cd = infoData_[4]
 	end
 
 	if not notMsg_ then
@@ -193,7 +203,8 @@ function cdBox.initCDInfo(cdType_, infoData_, notMsg_)
 end
 
 -- synData
-function cdBox.synData(data_)
+function cdBox.synData(data)
+	local data_ = data.cd
 	if data_~=nil then
 		-- 未查到的，完成cd
 		for cdType, cdInfo in pairs(cdBoxData) do
@@ -208,7 +219,9 @@ function cdBox.synData(data_)
 
 				if fIndex==0 then
 				-- 未查到，cd已结束
-					cdBox.setCD(cdType, 0)
+					if cdType~=cdBox.CDTYPE.KILLHERO_BUFF then --处决武将不在其中
+						cdBox.setCD(cdType, 0)
+					end
 				end
 			end
 		end
@@ -217,6 +230,12 @@ function cdBox.synData(data_)
 		for i=1, #data_, 3 do
 			cdBox.setCD(data_[i], data_[i+1], data_[i+2])
 		end
+	end
+
+	data_ = data.buff
+	if data_~=nil and #data_>=2 and #data_[2]>=3 then
+	-- 同步杀武将
+		cdBox.initCDInfo(cdBox.CDTYPE.KILLHERO_BUFF, data_[2][3])
 	end
 end
 
@@ -306,7 +325,8 @@ function cdBox.canVisible(cdType_)
 		or cdType_==cdBox.CDTYPE.VIPTASK
 		or cdType_==cdBox.CDTYPE.REMEDY 
 		or cdType_==cdBox.CDTYPE.MARCH
-		or cdType_==cdBox.CDTYPE.CROSS_KINGDOM then
+		or cdType_==cdBox.CDTYPE.CROSS_KINGDOM
+		or cdType_==cdBox.CDTYPE.KILLHERO_BUFF then
 
 		return true
 	end

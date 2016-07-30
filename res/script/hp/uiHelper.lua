@@ -188,6 +188,8 @@ function hp.uiHelper.createEditboxCtrl(label_, editbox_, passwdFlag_)
 	editboxCtrl.onChanged = nil
 	editboxCtrl.maxLen = 0
 	editboxCtrl.defText = ""
+	editboxCtrl.tag = nil
+	editboxCtrl.onEdited = nil
 
 	-- 设置显示文本
 	function editboxCtrl.setLabelString(str)
@@ -245,6 +247,37 @@ function hp.uiHelper.createEditboxCtrl(label_, editbox_, passwdFlag_)
 			editboxCtrl.setLabelString(editboxCtrl.defText)
 		end		
 	end
+	-- 设置tag
+	function editboxCtrl.setTag(tag_)
+		editboxCtrl.tag = tag_
+	end
+	function editboxCtrl.getTag()
+		return editboxCtrl.tag
+	end
+	-- 设置输入过滤
+	function editboxCtrl.setInputMode(mode_)
+		editboxCtrl.editbox:setInputMode(mode_)
+	end
+
+	-- 设置编辑回调
+	function editboxCtrl.addEditCallBack(onEdit_)
+		editboxCtrl.onEdited = onEdit_
+	end
+
+	-- 编辑框编辑事件
+	local function editBoxTextEventHandle(strEventName, pSender)
+		if strEventName == "changed" then
+		-- 刷新显示
+			editboxCtrl.setStringForShow(editbox_:getText())
+		elseif strEventName == "ended" then
+		-- 设置内容
+			editboxCtrl.setString(editbox_:getText())
+			if editboxCtrl.onEdited ~= nil then
+				editboxCtrl.onEdited(editboxCtrl)
+			end
+		end		
+	end
+	editbox_:registerScriptEditBoxHandler(editBoxTextEventHandle)
 	return editboxCtrl
 end
 
@@ -276,18 +309,6 @@ function hp.uiHelper.labelBind2EditBox(label_, passwdFlag_)
 	end
 	label_:setTouchEnabled(true)
 	label_:addTouchEventListener(onLabelTouched)
-
-	-- 编辑框编辑事件
-	local function editBoxTextEventHandle(strEventName, pSender)
-		if strEventName == "changed" then
-		-- 刷新显示
-			editboxCtrl.setStringForShow(editBox:getText())
-		elseif strEventName == "ended" then
-		-- 设置内容
-			editboxCtrl.setString(editBox:getText())
-		end
-	end
-	editBox:registerScriptEditBoxHandler(editBoxTextEventHandle)
 
 	return editboxCtrl
 end

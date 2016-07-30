@@ -91,6 +91,8 @@ function UI_heroBoosts:initUI()
 			if value > 0 then
 				value = "+"..(value/100).."%"
 				--value = string.format("+%0.2f%%", (value/100))
+			elseif value < 0 then
+				value = (value/100).."%"
 			end
 			cloneInfo:getChildByName("Panel_text"):getChildByName("Label_name"):setString(attr.desc)
 			cloneInfo:getChildByName("Panel_text"):getChildByName("Label_value"):setString(value)
@@ -107,6 +109,8 @@ function UI_heroBoosts:initUI()
 			local value = player.hero.getAttrAddn(attr.sid)
 			if value > 0 then
 				value = "+"..(value/100).."%"
+			elseif value < 0 then
+				value = (value/100).."%"
 			end
 			cloneInfo:getChildByName("Panel_text"):getChildByName("Label_name"):setString(attr.desc)
 			cloneInfo:getChildByName("Panel_text"):getChildByName("Label_value"):setString(value)
@@ -123,6 +127,8 @@ function UI_heroBoosts:initUI()
 			local value = player.hero.getAttrAddn(attr.sid)
 			if value > 0 then
 				value = "+"..(value/100).."%"
+			elseif value < 0 then
+				value = (value/100).."%"
 			end
 			cloneInfo:getChildByName("Panel_text"):getChildByName("Label_name"):setString(attr.desc)
 			cloneInfo:getChildByName("Panel_text"):getChildByName("Label_value"):setString(value)

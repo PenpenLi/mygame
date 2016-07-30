@@ -82,6 +82,8 @@ local function onHttpResponse(status, response)
 		end
 		if data.cd~=nil then
 			decodeKillCD(data.cd, data.kill)
+		else
+			decodeKillCD({0, 0})
 		end
 		if data.surrender_cd~=nil then
 			induceCD = data.surrender_cd

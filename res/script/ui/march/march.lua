@@ -112,6 +112,28 @@ function UI_march:init(position_, attackType_, extraParam_, callBack_)
 		self:showLoading(cmdSender)
 	end
 
+	local function preConfirmMarch()
+		if self.attackType == globalData.MARCH_TYPE.DONATE then
+			if self.extraParam.endTime == 0 then
+				confirmMarch()
+			elseif self.extraParam.endTime - player.getServerTime() < self.time then
+				-- 提示
+				require("ui/msgBox/msgBox")
+				local msgBox = UI_msgBox.new(hp.lang.getStrByID(5525), 
+					hp.lang.getStrByID(5526), 
+					hp.lang.getStrByID(1209), 
+					hp.lang.getStrByID(2412), 
+					confirmMarch
+					)
+				game.curScene:addModalUI(msgBox)
+			else
+				confirmMarch()
+			end
+		else
+			confirmMarch()
+		end
+	end
+
 	local function OnMarchTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)		
 		if eventType == TOUCH_EVENT_ENDED then
@@ -127,12 +149,12 @@ function UI_march:init(position_, attackType_, extraParam_, callBack_)
       			self:addModalUI(box_)
 			else
 				if self.checked then
-					confirmMarch()
+					preConfirmMarch()
 				elseif self.heroAvailable == false then
-					confirmMarch()
+					preConfirmMarch()
 				else
 					require "ui/march/marchNoHeroWarning"
-					local ui_ = UI_marchNoHeroWarning.new(confirmMarch)
+					local ui_ = UI_marchNoHeroWarning.new(preConfirmMarch)
 					self:addModalUI(ui_)
 				end
 			end
@@ -175,7 +197,7 @@ function UI_march:init(position_, attackType_, extraParam_, callBack_)
 	local function changeSoldier(type_, num_, change_)
 		-- 文字
 		self.army:setSoldier(type_, num_)
-		self.numTextList[type_]:setString(tostring(num_))
+		self.numTextList[type_].setString(tostring(num_))
 		local maxNum_ = self.numList[type_]
 		self.restNum[type_]:setString(tostring(maxNum_ - num_))
 
@@ -184,6 +206,68 @@ function UI_march:init(position_, attackType_, extraParam_, callBack_)
 			local per_ = num_ / self.numList[type_] * 100
 			self.progress[type_]:setPercent(per_)
 		end
+	end
+
+	local function updateSliderInfoByTag(tag_, soldierNum_, src_)		
+		if self.numList[tag_] < soldierNum_ then
+			soldierNum_ = self.numList[tag_]
+		end		
+		local restNumber_ = self.maxNumber - soldierNum_
+		-- 当前剩余可选
+		local remainNumber_ = self.maxNumber - self.army:getSoldierTotalNumber() + self.army:getSoldierNumberByType(tag_)
+		-- 是否超出上限
+		if soldierNum_ > remainNumber_ then
+			local restTotal_ = 0
+			for i, v in pairs(self.numTextList) do
+				local curTag_ = i
+				if curTag_ ~= tag_ then
+					restTotal_ = restTotal_ + tonumber(v.getString())
+				end
+			end
+
+			if restTotal_ ~= 0 then
+				local used_ = 0				
+				local floor_ = {}
+				for i, v in pairs(self.numTextList) do
+					local curTag_ = i
+					if curTag_ ~= tag_ then
+						local per_ = tonumber(v.getString()) / restTotal_
+						floor_[i] = math.floor(restNumber_ * per_)
+						used_ = used_ + floor_[i]
+					end
+				end
+
+				-- 补全
+				local minus_ = restNumber_ - used_
+				if minus_ > 0 then
+					local add_ = 0
+					for i, v in pairs(floor_) do
+						floor_[i] = floor_[i] + 1
+						add_ = add_ + 1
+						if add_ == minus_ then
+							break
+						end
+					end
+				end
+
+				-- 设置
+				for i, v in pairs(floor_) do
+					changeSoldier(i, v, true)
+				end
+				if src_ == 2 then
+					changeSoldier(tag_, soldierNum_, true)
+				elseif src_ == 1 then
+					changeSoldier(tag_, soldierNum_, false)
+				end
+			end
+		else
+			if src_ == 2 then
+				changeSoldier(tag_, soldierNum_, true)
+			elseif src_ == 1 then
+				changeSoldier(tag_, soldierNum_, false)
+			end
+		end		
+		self:updateUIInfo()
 	end
 
 	local function OnSliderPercentChange(sender, eventType)	
@@ -197,36 +281,8 @@ function UI_march:init(position_, attackType_, extraParam_, callBack_)
 		local maxNum_ = self.numList[tag_]
 		-- 实际选中
 		local soldierNum_ = hp.common.round(self.percentList[tag_] * maxNum_ / 100)
-		-- 当前剩余可选
-		local remainNumber_ = self.maxNumber - self.army:getSoldierTotalNumber() + tonumber(self.numTextList[tag_]:getString())
-		-- 是否超出上限
-		if soldierNum_ > remainNumber_ then
-			local restTotal_ = 0
-			for i = 1, globalData.TOTAL_LEVEL do
-				if i ~= tag_ then
-					restTotal_ = restTotal_ + tonumber(self.numTextList[i]:getString())
-				end
-			end
-
-			if restTotal_ ~= 0 then
-				local index_ = 1
-				local used_ = 0
-				local restNumber_ = self.maxNumber - soldierNum_
-				for i = 1, globalData.TOTAL_LEVEL do
-					if i ~= tag_ then
-						local per_ = tonumber(self.numTextList[i]:getString()) / restTotal_
-						used_ = used_ + math.floor(restNumber_ * per_)
-						changeSoldier(i, math.floor(restNumber_ * per_), true)
-						index_ = index_ + 1
-					end
-				end
-				-- 补全
-				changeSoldier(tag_, self.maxNumber - used_, false)
-			end
-		else
-			changeSoldier(tag_, soldierNum_, false)
-		end		
-		self:updateUIInfo()
+		
+		updateSliderInfoByTag(tag_, soldierNum_, 1)
 	end
 
 	local function onAllSelectTouched(sender, eventType)
@@ -262,6 +318,19 @@ function UI_march:init(position_, attackType_, extraParam_, callBack_)
 			self:updateProgressBar()
 		end
 	end
+
+	local function onEditChangeTouched(edit_)
+		local tag_ = edit_.getTag()
+		local str_ = edit_.getString()
+		local strNum_ = tonumber(str_)
+		if strNum_ == nil then
+			strNum_ = 0
+		end
+		-- 判断
+		updateSliderInfoByTag(tag_, strNum_, 2)
+	end
+
+	self.onEditChangeTouched = onEditChangeTouched
 
 	self.sliderListener = OnSliderPercentChange
 
@@ -386,7 +455,7 @@ function UI_march:updateProgressBar()
 			local num_ = self.army:getSoldierNumberByType(i)
 			local per = hp.common.round(num_ / self.numList[i] * 100)
 			self.progress[i]:setPercent(per)
-			self.numTextList[i]:setString(tostring(num_))
+			self.numTextList[i].setString(tostring(num_))
 			self.restNum[i]:setString(tostring(self.numList[i] - num_))
 		end
 	end
@@ -471,7 +540,14 @@ function UI_march:initSoldiers()
 			self.progress[i] = progress
 
 			-- 数量
-			self.numTextList[i] = panel_:getChildByName("ImageView_8363"):getChildByName("Label_47")
+			local desc_ = panel_:getChildByName("ImageView_8363"):getChildByName("Label_47")
+			self.numTextList[i] = hp.uiHelper.labelBind2EditBox(desc_)
+			self.numTextList[i].setTag(i)
+			-- self.numTextList[i] = (desc_)
+			self.numTextList[i].addEditCallBack(self.onEditChangeTouched)
+			self.numTextList[i].setInputMode(2)
+			-- self.numTextList[i].setString(player.getAlliance():getBaseInfo().message)
+
 			self.percentList[i] = 0
 			self.numList[i] = v:getNumber()
 			-- 不能超过上限

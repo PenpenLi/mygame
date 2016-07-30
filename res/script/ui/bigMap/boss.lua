@@ -9,11 +9,11 @@ UI_boss = class("UI_boss", UI)
 
 
 -- init
-function UI_boss:init(tileInfo_)
+function UI_boss:init(titleInfo_)
 	-- data
 	-- ===============================
-	self.tileInfo = tileInfo_
-	self.bossInfo_ = hp.gameDataLoader.getInfoBySid("boss", tileInfo_.objInfo.sid)
+	self.tileInfo = titleInfo_
+	self.bossInfo_ = hp.gameDataLoader.getInfoBySid("boss", titleInfo_.objInfo.sid)
 	-- ui
 	-- ===============================
 	self:initCallBack()
@@ -51,27 +51,7 @@ function UI_boss:initCallBack()
 		end
 	end
 
-	-- 子菜单（过时）
-	-- local function onInfoTouched(sender, eventType)
-	-- 	hp.uiHelper.btnImgTouched(sender, eventType)
-	-- 	if eventType == TOUCH_EVENT_ENDED then			
-	-- 		require "ui/bigMap/bossInfo"
-	-- 		ui_ = UI_bossInfo.new(self.bossInfo_)
-	-- 		self:addModalUI(ui_)
-	-- 	end
-	-- end
-
-	-- 关闭（过时）
-	-- local function onCloseTouched(sender, eventType)
-	-- 	hp.uiHelper.btnImgTouched(sender, eventType)
-	-- 	if eventType == TOUCH_EVENT_ENDED then			
-	-- 		self:close()
-	-- 	end
-	-- end
-
 	self.onAttackTouched = onAttackTouched
-	-- self.onInfoTouched = onInfoTouched
-	-- self.onCloseTouched = onCloseTouched
 end
 
 function UI_boss:initUI()

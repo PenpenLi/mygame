@@ -82,19 +82,19 @@ end
 
 -- 是否发光
 function mansionMgr.isLight()
-	if player.postmanAndEnvoyMgr.getPostmanIsLightOnMsg() then
-		return true
-	end
-	if player.postmanAndEnvoyMgr.getEnvoyIsLightOnMsg() then
-		return true
-	end
+	-- if player.postmanAndEnvoyMgr.getPostmanIsLightOnMsg() then
+	-- 	return true
+	-- end
+	-- if player.postmanAndEnvoyMgr.getEnvoyIsLightOnMsg() then
+	-- 	return true
+	-- end
+	-- if mansionMgr.generaMgr.isLight() then
+	-- 	return true
+	-- end
+	-- if mansionMgr.protocolOfficerMgr.isLight() then
+	-- 	return true
+	-- end
 	if mansionMgr.primeMinisterMgr.isLight() then
-		return true
-	end
-	if mansionMgr.generaMgr.isLight() then
-		return true
-	end
-	if mansionMgr.protocolOfficerMgr.isLight() then
 		return true
 	end
 	return false

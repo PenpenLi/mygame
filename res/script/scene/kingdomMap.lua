@@ -23,6 +23,7 @@ local myPosServerY = 2
 local g_resTextColor = cc.c4b(255, 216, 0, 255)
 local g_allyTextColor = cc.c4b(107, 229, 225, 255)
 local g_enemyTextColor = cc.c4b(255, 83, 83, 255)
+local g_unionBossTextColor = cc.c4b(255, 0, 234, 255)
 local g_myUnionID = 0
 local g_myUnionName = ""
 local g_myID = 0
@@ -182,7 +183,7 @@ function kingdomMap:init()
 	--==========================
 	self.menuLayer = cc.Layer:create()
 	require "ui/mainMenu"
-	local mainMenu = UI_mainMenu.new(3)
+	local mainMenu = UI_mainMenu.new(self)
 	mainMenu:onAdd(self)
 	self.menuLayer:addChild(mainMenu.layer)
 	table.insert(self.uis, mainMenu)
@@ -242,6 +243,9 @@ function kingdomMap:addUI(ui_)
 	table.insert(self.uis, ui_)
 	table.insert(self.UIs, ui_)
 	ui_:onAdd(self)
+
+	-- 重设菜单
+	self.mainMenu.reset()
 end
 
 -- removeUI
@@ -262,6 +266,9 @@ function kingdomMap:removeUI(ui_)
 			break
 		end
 	end
+
+	-- 重设菜单
+	self.mainMenu.reset()
 end
 
 -- removeAllUI
@@ -279,6 +286,9 @@ function kingdomMap:removeAllUI()
 	end
 
 	self.UIs = {}
+
+	-- 重设菜单
+	self.mainMenu.reset()
 end
 
 
@@ -592,7 +602,9 @@ function kingdomMap:initResInfo()
 	-- boss info
 	local bossInfos = {}
 	for i, v in ipairs(game.data.boss) do
-		local bossInfo_ = {}
+		bossInfos[v.sid] = v
+	end
+	for i, v in ipairs(game.data.newBoss) do
 		bossInfos[v.sid] = v
 	end
 
@@ -874,19 +886,28 @@ function kingdomMap:refreshMapViewObjs()
 							sp.objNode:setTextureRect(cc.size(0, 0))
 							local aniNode = hp.sequenceAniHelper.createAnimation(bossInfo.animation)
 							local hpBg = cc.Sprite:create(config.dirUI.common .. "boss_hp_proBg3.png")
-							local hp = cc.Sprite:create(config.dirUI.common .. "boss_hp_pro3.png")
+							local hp = nil
+
+							if objTmp.sid>=20000 and objTmp.sid<30000 then
+							-- 联盟活动boss
+								hp = cc.Sprite:create(config.dirUI.common .. "boss_hp_pro4.png")
+								sp.descNode:setTextColor(g_unionBossTextColor)
+								hpBg:setPosition(39, 0)
+							else
+								hp = cc.Sprite:create(config.dirUI.common .. "boss_hp_pro3.png")
+								sp.descNode:setTextColor(g_enemyTextColor)
+								hpBg:setPosition(24, 0)
+							end
 							hpBg:addChild(hp)
 							hp:setAnchorPoint(0, 0)
 							hp:setPosition(2, 2)
 							hp:setTextureRect(cc.rect(0, 0, math.ceil(objTmp.life*125/bossInfo.maxLife), 12))
 
-							hpBg:setPosition(24, 0)
 							aniNode:addChild(hpBg)
 							aniNode:setAnchorPoint(0.5, 0)
 							aniNode:setPosition(0, 24)
 							sp.objNode:addChild(aniNode)
 							sp.descNode:setString(bossInfo.name)
-							sp.descNode:setTextColor(g_enemyTextColor)
 						end
 
 						sp.objNode:setVisible(true)
@@ -1131,9 +1152,16 @@ function kingdomMap:onTouchEnded(touchs_)
 				end
 			elseif self.touchedInfo.type == 4 then
 			-- Boss
-				require "ui/bigMap/boss"
-				ui_ = UI_boss.new(self.tileInfo)
-				self:addModalUI(ui_)
+				if self.tileInfo.objInfo.sid>=20000 and self.tileInfo.objInfo.sid<30000 then
+				-- 联盟活动，精英BOSS
+					require "ui/bigMap/eliteBoss"
+					ui_ = UI_eliteBoss.new(self.tileInfo)
+					self:addModalUI(ui_)
+				else
+					require "ui/bigMap/boss"
+					ui_ = UI_boss.new(self.tileInfo)
+					self:addModalUI(ui_)
+				end
 			elseif self.touchedInfo.type == 10 then
 			-- 重镇
 				require "ui/bigMap/battle/fortress"

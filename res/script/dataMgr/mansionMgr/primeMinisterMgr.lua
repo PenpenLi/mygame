@@ -240,6 +240,17 @@ local function haveEnergy()
 	return false
 end
 
+-- 攻击boss
+local function attackBoss()
+	local energy = player.getEnerge()
+	local num = player.soldierManager.getCityArmy():getSoldierTotalNumber()
+
+	if energy ~= nil and energy >= 20 and num > 0 then
+		return true
+	end
+	return false
+end
+
 -- 获取状态
 local function status()
 	-- 顺序:
@@ -270,7 +281,7 @@ local function status()
 	if checkedTab[7] == 0 and vipForcesIsFree() then
 		return true
 	end
-	if checkedTab[8] == 0 and  haveEnergy() then
+	if checkedTab[8] == 0 and haveEnergy() then
 		return true
 	end
 	if checkedTab[9] == 0 and canResearch() then
@@ -319,9 +330,105 @@ end
 -- 对外接口
 -- ================================
 
+-- 内政状态
+function primeMinisterMgr.affairsStatus()
+	local num = 0
+	local checkedTab = player.checkedPMTbl.getCheckedTbl()
+	-- 建筑
+	if checkedTab[11] == 0 and builderIsFree() then
+		num = num + 1
+	end
+	-- 研究
+	if checkedTab[9] == 0 and canResearch() then
+		num = num + 1
+	end
+	-- 陷阱
+	if checkedTab[13] == 0 and wallIsFree() then
+		num = num + 1
+	end
+	return num
+end
+
+-- 军队状态
+function primeMinisterMgr.armyStatus()
+	local num = 0
+	local checkedTab = player.checkedPMTbl.getCheckedTbl()
+	-- 训练士兵
+	if checkedTab[12] == 0 and barracksIsFree() then
+		num = num + 1
+	end
+	-- 医馆伤兵
+	if checkedTab[4] == 0 and hospitalIsFree() then
+		num = num + 1
+	end
+	-- 出城采集
+	if checkedTab[10] == 0 and canMarch() then
+		num = num + 1
+	end
+	return num
+end
+
+-- 行动任务
+function primeMinisterMgr.missionStatus()
+	local num = 0
+	local checkedTab = player.checkedPMTbl.getCheckedTbl()
+	-- 城卫军
+	if checkedTab[5] == 0 and localForcesIsFree() then
+		num = num + 1
+	end
+	-- 联盟军
+	if checkedTab[6] == 0 and unionForcesIsFree() then
+		num = num + 1
+	end
+	-- 禁卫军
+	if checkedTab[7] == 0 and vipForcesIsFree() then
+		num = num + 1
+	end
+	return num
+end
+
+-- 体力状态
+function primeMinisterMgr.energyStatus()
+	local num = 0
+	local checkedTab = player.checkedPMTbl.getCheckedTbl()
+	if checkedTab[8] == 0 and haveEnergy() then
+		num = num + 1
+	end
+	if checkedTab[14] == 0 and attackBoss() then
+		num = num + 1
+	end
+	return num
+end
+
+-- 国王争夺战
+function primeMinisterMgr.kingdomActStatus()
+	local num = 0
+	local checkedTab = player.checkedPMTbl.getCheckedTbl()
+	if checkedTab[2] == 0 and not kingActivityIsClick and isStartKingActivity() then
+		num = num + 1
+	end
+	return num
+end
+
 -- 是否发光
 function primeMinisterMgr.isLight()
-	return status()
+	-- return status()
+	if primeMinisterMgr.affairsStatus() > 0 then
+		return true
+	end
+	if primeMinisterMgr.armyStatus() > 0 then
+		return true
+	end
+	if primeMinisterMgr.missionStatus() > 0 then
+		return true
+	end
+	if primeMinisterMgr.energyStatus() > 0 then
+		return true
+	end
+	if primeMinisterMgr.kingdomActStatus() > 0 then
+		return true
+	end
+	return false
 end
 
 -- 国王争夺战已点击

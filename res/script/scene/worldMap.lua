@@ -158,7 +158,7 @@ function worldMap:init()
 	--==========================
 	self.menuLayer = cc.Layer:create()
 	require "ui/mainMenu"
-	local mainMenu = UI_mainMenu.new(3)
+	local mainMenu = UI_mainMenu.new(self)
 	mainMenu:onAdd(self)
 	self.menuLayer:addChild(mainMenu.layer)
 	table.insert(self.uis, mainMenu)
@@ -218,6 +218,9 @@ function worldMap:addUI(ui_)
 	table.insert(self.uis, ui_)
 	table.insert(self.UIs, ui_)
 	ui_:onAdd(self)
+
+	-- 重设菜单
+	self.mainMenu.reset()
 end
 
 -- removeUI
@@ -238,6 +241,9 @@ function worldMap:removeUI(ui_)
 			break
 		end
 	end
+
+	-- 重设菜单
+	self.mainMenu.reset()
 end
 
 -- removeAllUI
@@ -255,6 +261,9 @@ function worldMap:removeAllUI()
 	end
 
 	self.UIs = {}
+
+	-- 重设菜单
+	self.mainMenu.reset()
 end
 
 

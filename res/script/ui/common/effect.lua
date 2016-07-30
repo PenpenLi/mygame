@@ -297,6 +297,8 @@ function outLight1(sid)
 		outlight = cc.Sprite:create(config.dirUI.effect .. "outlight/" .. sid .. ".png")
 	elseif sid == "sz" then
 		outlight = cc.Sprite:create(config.dirUI.effect .. "outlight/" .. sid .. ".png")
+	elseif sid == "manager" then
+		outlight = cc.Sprite:create(config.dirUI.common .. "manager_button_light.png")
 	else
 		outlight = cc.Sprite:create()
 		return outlight

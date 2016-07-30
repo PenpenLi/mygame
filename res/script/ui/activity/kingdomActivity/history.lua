@@ -215,10 +215,10 @@ function UI_history:initUI()
 					label_ranking:setString(i)
 				end
 				-- 联盟名
-				if v[1] ~= nil and #v[1] > 0 then
-					content:getChildByName("Label_name"):setString(string.format(hp.lang.getStrByID(8010), v[1]) .. v[2])
+				if v[2] ~= nil and #v[2] > 0 then
+					content:getChildByName("Label_name"):setString(string.format(hp.lang.getStrByID(8010), v[2]) .. v[1])
 				else
-					content:getChildByName("Label_name"):setString(v[2])
+					content:getChildByName("Label_name"):setString(v[1])
 				end
 				-- 服务器名
 				content:getChildByName("Label_kingdom"):setString(hp.gameDataLoader.getInfoBySid("serverList", v[3]).name)

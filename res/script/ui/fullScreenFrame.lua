@@ -99,11 +99,12 @@ function UI_fullScreenFrame:setTitle(strTitle_, fntFile_)
 			local titleBg = self.contPanel:getChildByName("Image_titleBg")
 			local bgLeft = titleBg:getChildByName("Image_bgLeft")
 			local bgRight = titleBg:getChildByName("Image_bgRight")
-			local px = titleBg:getSize().width/2
-			len = len-4
-			len = len*10
-			bgLeft:setPositionX(px-len)
-			bgRight:setPositionX(px+len)
+			local sz = titleBg:getSize()
+			len = (len-4)*10
+			sz.width = sz.width+len*2
+			titleBg:setSize(sz)
+			bgLeft:setPositionX(sz.width/2-len)
+			bgRight:setPositionX(sz.width/2+len)
 		end
 		titleNode:setString(strTitle_)
 	end

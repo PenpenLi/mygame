@@ -29,6 +29,7 @@ function UI_activityMain:init()
 	self:registMsg(hp.MSG.SOLO_ACTIVITY)
 	self:registMsg(hp.MSG.UNION_ACTIVITY)
 	self:registMsg(hp.MSG.KINGDOM_ACTIVITY)
+	self:registMsg(hp.MSG.BOSS_ACTIVITY)
 
 	self:initShow()
 	self:tickUpdate()
@@ -51,6 +52,9 @@ function UI_activityMain:initUI()
 
 	self.kingdomItem = self.item:clone()
 	self.listView:pushBackCustomItem(self.kingdomItem)
+
+	self.bossItem = self.item:clone()
+	self.listView:pushBackCustomItem(self.bossItem)
 end
 
 function UI_activityMain:initCallBack()
@@ -70,6 +74,7 @@ function UI_activityMain:initCallBack()
 		if eventType==TOUCH_EVENT_ENDED then
 			if player.getAlliance() ~= nil and player.getAlliance():getUnionID() ~= 0 then
 				player.unionActivityMgr.updateActivity(self)
+				self.unionActClick = true
 			else
 				local function joinUnion()
 					require "ui/union/invite/unionJoin.lua"
@@ -91,9 +96,25 @@ function UI_activityMain:initCallBack()
 	local function onKingdomActivityTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			player.kingdomActivityMgr.updateActivity(self)
+			self.kingdomActClick = true
 		end
 	end
 	self.onKingdomActivityTouched = onKingdomActivityTouched
+
+	local function onBossActivityTouched(sender, eventType)
+		if eventType==TOUCH_EVENT_ENDED then
+			local bossActivity = player.bossActivityMgr.getActivity()
+			if bossActivity and bossActivity.status ~= BOSS_ACTIVITY_STATUS.CLOSE then
+				require "ui/activity/bossActivity/bossActivity"
+				local ui = UI_bossActivity.new()
+				self:addUI(ui)
+			else
+				player.bossActivityMgr.updateActivity(self)
+				self.bossActClick = true
+			end
+		end
+	end
+	self.onBossActivityTouched = onBossActivityTouched
 end
 
 function UI_activityMain:onMsg(msg_, param_)
@@ -111,9 +132,10 @@ function UI_activityMain:onMsg(msg_, param_)
 		elseif param_.msgType == 5 then
 			self:dataUpdate()
 		end
-	end
-	if msg_ == hp.MSG.UNION_ACTIVITY then
-		if param_ == 1 then
+	elseif msg_ == hp.MSG.UNION_ACTIVITY then
+		if param_ == 1 and self.unionActClick then
+			self:dataUpdate()
+			self.unionActivity = false
 			if UNION_ACTIVITY_PAGE == 0 then
 				UNION_ACTIVITY_PAGE = 1
 				require "ui/activity/unionActivity/unionActivity"
@@ -123,14 +145,25 @@ function UI_activityMain:onMsg(msg_, param_)
 		elseif param_ == 5 or param_ == 6 then
 			self:dataUpdate()
 		end
-	end
-	if msg_ == hp.MSG.KINGDOM_ACTIVITY then
+	elseif msg_ == hp.MSG.KINGDOM_ACTIVITY then
 		-- 王国活动数据更新成功，进入界面
-		if param_ == 1 then
+		if param_ == 1 and self.kingdomActClick then
+			self:dataUpdate()
+			self.kingdomActClick = false
 			require "ui/activity/kingdomActivity/kingdomActivity"
 			local ui = UI_kingdomActivity.new()
 			self:addUI(ui)
 		elseif param_ == 3 or param_ == 4 then
+			self:dataUpdate()
+		end
+	elseif msg_ == hp.MSG.BOSS_ACTIVITY then
+		if param_ == 1 and self.bossActClick then
+			self:dataUpdate()
+			self.bossActClick = false
+			require "ui/activity/bossActivity/bossActivity"
+			local ui = UI_bossActivity.new()
+			self:addUI(ui)
+		else
 			self:dataUpdate()
 		end
 	end
@@ -141,6 +174,9 @@ function UI_activityMain:onRemove()
 end
 
 function UI_activityMain:initShow()
+
+	-- 个人活动项
+	-- =====================
 	self.item:addTouchEventListener(self.onSoloActivityTouched)
 	local content_ = self.item:getChildByName("Panel_20426")
 	content_:getChildByName("Label_20462"):setString(hp.lang.getStrByID(5353))
@@ -158,6 +194,7 @@ function UI_activityMain:initShow()
 	self.uiBrightFrame = self.item:getChildByName("Panel_15291"):getChildByName("Image_69")
 
 	-- 联盟活动项
+	-- =====================
 	self.unionItem:addTouchEventListener(self.onUnionActivityTouched)
 	local content_unionAct = self.unionItem:getChildByName("Panel_20426")
 
@@ -172,6 +209,7 @@ function UI_activityMain:initShow()
 	self.union_BrightFrame = self.unionItem:getChildByName("Panel_15291"):getChildByName("Image_69")
 
 	-- 王国活动项
+	-- =====================
 	self.kingdomItem:addTouchEventListener(self.onKingdomActivityTouched)
 	local content_kingdomAct = self.kingdomItem:getChildByName("Panel_20426")
 
@@ -185,17 +223,38 @@ function UI_activityMain:initShow()
 	self.king_Time = content_kingdomAct:getChildByName("Label_1643")
 	self.king_BrightFrame = self.kingdomItem:getChildByName("Panel_15291"):getChildByName("Image_69")
 
+	-- BOSS活动项
+	-- =====================
+	self.bossItem:addTouchEventListener(self.onBossActivityTouched)
+	local content_bossAct = self.bossItem:getChildByName("Panel_20426")
+
+	content_bossAct:getChildByName("Label_20462"):setString(string.format(hp.lang.getStrByID(11616), hp.lang.getStrByID(11615)))
+	content_bossAct:getChildByName("ImageView_20455"):loadTexture(config.dirUI.common .. "activity_23.png")
+
+	self.boss_Desc = content_bossAct:getChildByName("Label_20462_0")
+	self.boss_LoadingBarBg = self.bossItem:getChildByName("Panel_15291"):getChildByName("ImageView_1644_0")
+	self.boss_TimeBg = self.bossItem:getChildByName("Panel_15291"):getChildByName("Image_17")
+	self.boss_LoadingBar = self.boss_LoadingBarBg:getChildByName("LoadingBar_1640")
+	self.boss_Time = content_bossAct:getChildByName("Label_1643")
+	self.boss_BrightFrame = self.bossItem:getChildByName("Panel_15291"):getChildByName("Image_69")
+
+	-- 数据更新
 	self:dataUpdate()
 end
 
 -- 数据更新
 function UI_activityMain:dataUpdate()
-	local activity_ = player.soloActivityMgr.getActivity()
 	local status_ = globalData.ACTIVITY_STATUS
+	
+	-- 个人活动数据更新
+	local activity_ = player.soloActivityMgr.getActivity()
+	
 	if activity_.status == status_.CLOSE then
 		self.uiDesc:setString(hp.lang.getStrByID(5374))
 		self.uiTimeBg:setVisible(false)
 		self.uiBrightFrame:setVisible(false)
+		self.uiTime:setVisible(false)
+		self.uiLoadingBarBg:setVisible(false)
 	elseif activity_.status == status_.OPEN then
 		self.uiDesc:setString(hp.lang.getStrByID(5354))
 		self.uiLoadingBarBg:setVisible(true)
@@ -216,11 +275,14 @@ function UI_activityMain:dataUpdate()
 		self.union_Desc:setString(hp.lang.getStrByID(5374))
 		self.union_TimeBg:setVisible(false)
 		self.union_BrightFrame:setVisible(false)
+		self.union_Time:setVisible(false)
+		self.union_LoadingBarBg:setVisible(false)
 	elseif unionActivity.status == UNION_ACTIVITY_STATUS.OPEN then
 		self.union_Desc:setString(hp.lang.getStrByID(5354))
 		self.union_LoadingBarBg:setVisible(true)
 		self.union_TimeBg:setVisible(false)
 		self.union_Time:setVisible(true)
+		self.union_BrightFrame:setVisible(true)
 	elseif unionActivity.status == UNION_ACTIVITY_STATUS.NOT_OPEN then
 		self.union_Desc:setString(hp.lang.getStrByID(5375))
 		self.union_LoadingBarBg:setVisible(false)
@@ -243,12 +305,40 @@ function UI_activityMain:dataUpdate()
 		self.king_LoadingBarBg:setVisible(true)
 		self.king_TimeBg:setVisible(false)
 		self.king_Time:setVisible(true)
+		self.king_BrightFrame:setVisible(true)
 	elseif kingdomActivity.status == KINGDOM_ACTIVITY_STATUS.NOT_OPEN then
 		self.king_Desc:setString(hp.lang.getStrByID(5375))
 		self.king_LoadingBarBg:setVisible(false)
 		self.king_TimeBg:setVisible(true)
 		self.king_Time:setVisible(true)
 		self.king_BrightFrame:setVisible(false)
+	end
+
+	-- 精英boss活动数据更新
+	local bossActivity = player.bossActivityMgr.getActivity()
+
+	if bossActivity == nil or bossActivity.status == BOSS_ACTIVITY_STATUS.CLOSE then
+		self.boss_Desc:setString(hp.lang.getStrByID(5374))
+		self.boss_TimeBg:setVisible(false)
+		self.boss_BrightFrame:setVisible(false)
+		self.boss_Time:setVisible(false)
+		self.boss_LoadingBarBg:setVisible(false)
+	elseif bossActivity.status == BOSS_ACTIVITY_STATUS.OPEN then
+		if bossActivity.endTime - player.getServerTime() > player.bossActivityMgr.getTime() then
+			self.boss_Desc:setString(hp.lang.getStrByID(11618))
+		else
+			self.boss_Desc:setString(hp.lang.getStrByID(5354))
+		end
+		self.boss_LoadingBarBg:setVisible(true)
+		self.boss_TimeBg:setVisible(false)
+		self.boss_Time:setVisible(true)
+		self.boss_BrightFrame:setVisible(true)
+	elseif bossActivity.status == BOSS_ACTIVITY_STATUS.NOT_OPEN then
+		self.boss_Desc:setString(hp.lang.getStrByID(5375))
+		self.boss_LoadingBarBg:setVisible(false)
+		self.boss_TimeBg:setVisible(true)
+		self.boss_Time:setVisible(true)
+		self.boss_BrightFrame:setVisible(false)
 	end
 end
 
@@ -257,11 +347,7 @@ function UI_activityMain:heartbeat(dt_)
 end
 
 function UI_activityMain:tickUpdate()
-	if self.uiTime == nil then
-		return
-	end
-
-	if self.uiLoadingBar == nil then
+	if self.uiTime == nil or self.uiLoadingBar == nil then
 		return
 	end
 
@@ -315,10 +401,10 @@ function UI_activityMain:tickUpdate()
 		end
 	end
 	
-	local kingdomActivity =  player.kingdomActivityMgr.getActivity()
+	local kingdomActivity = player.kingdomActivityMgr.getActivity()
 
 	-- 无王国活动
-	if kingdomActivity == nil or kingdomActivity.status == UNION_ACTIVITY_STATUS.CLOSE then
+	if kingdomActivity == nil or kingdomActivity.status == KINGDOM_ACTIVITY_STATUS.CLOSE then
 
 	else
 		local cd = 0
@@ -334,5 +420,26 @@ function UI_activityMain:tickUpdate()
 			cd = 0
 		end
 		self.king_Time:setString(hp.datetime.strTime(cd))
+	end
+
+	-- 精英boss活动
+	local bossActivity = player.bossActivityMgr.getActivity()
+	if bossActivity == nil or bossActivity.status == BOSS_ACTIVITY_STATUS.CLOSE then
+
+	else
+		local cd = 0
+		if bossActivity.status == BOSS_ACTIVITY_STATUS.NOT_OPEN then
+			cd = bossActivity.beginTime - player.getServerTime()
+		else
+			cd = player.bossActivityMgr.getTime()
+			if cd > bossActivity.endTime - player.getServerTime() then
+				cd = bossActivity.endTime - player.getServerTime()
+			end
+		end
+
+		if cd < 0 then
+			cd = 0
+		end
+		self.boss_Time:setString(hp.datetime.strTime(cd))
 	end
 end

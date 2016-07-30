@@ -303,11 +303,6 @@ function Building:heartbeat(dt)
 end
 
 
-function Building:heartbeat(dt)
-	-- body
-end
-
-
 --
 -- getPos2Position
 --------------------------------

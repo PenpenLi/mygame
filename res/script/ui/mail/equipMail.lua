@@ -46,25 +46,41 @@ function UI_equipMail:init(Info, mailType_, mailIndex)
 	if equipInfo.type1 > 0 then
 		equipAttr[1] = {}
 		equipAttr[1].type = hp.gameDataLoader.getInfoBySid("attr", equipInfo.type1).desc
-		equipAttr[1].value = "+" .. equipInfo.value1[Info.quality] / 100 .. "%"
+		if equipInfo.value1[Info.quality] < 0 then
+			equipAttr[1].value = equipInfo.value1[Info.quality] / 100 .. "%"
+		else
+			equipAttr[1].value = "+" .. equipInfo.value1[Info.quality] / 100 .. "%"
+		end
 	end
 
 	if equipInfo.type2 > 0 then
 		equipAttr[2] = {}
 		equipAttr[2].type = hp.gameDataLoader.getInfoBySid("attr", equipInfo.type2).desc
-		equipAttr[2].value = "+" .. equipInfo.value2[Info.quality] / 100 .. "%"
+		if equipInfo.value2[Info.quality] < 0 then
+			equipAttr[2].value = equipInfo.value2[Info.quality] / 100 .. "%"
+		else
+			equipAttr[2].value = "+" .. equipInfo.value2[Info.quality] / 100 .. "%"
+		end
 	end
 
 	if equipInfo.type3 > 0 then
 		equipAttr[3] = {}
 		equipAttr[3].type = hp.gameDataLoader.getInfoBySid("attr", equipInfo.type3).desc
-		equipAttr[3].value = "+" .. equipInfo.value3[Info.quality] / 100 .. "%"
+		if equipInfo.value3[Info.quality] < 0 then
+			equipAttr[3].value = equipInfo.value3[Info.quality] / 100 .. "%"
+		else
+			equipAttr[3].value = "+" .. equipInfo.value3[Info.quality] / 100 .. "%"
+		end
 	end
 
 	if equipInfo.type4 > 0 then
 		equipAttr[4] = {}
 		equipAttr[4].type = hp.gameDataLoader.getInfoBySid("attr", equipInfo.type4).desc
-		equipAttr[4].value = "+" .. equipInfo.value4[Info.quality] / 100 .. "%"
+		if equipInfo.value4[Info.quality] < 0 then
+			equipAttr[4].value = equipInfo.value4[Info.quality] / 100 .. "%"
+		else
+			equipAttr[4].value = "+" .. equipInfo.value4[Info.quality] / 100 .. "%"
+		end
 	end
 
 	-- 动态添加装备属性数据

@@ -112,12 +112,13 @@ function UI_scoutMail:init(mailInfo, mailType_, mailIndex)
 		listRoot:removeItem(3)
 		listRoot:removeItem(2)
 
-		content_desc:getChildByName("Label_text1"):setString(hp.lang.getStrByID(8018))
+		content_desc:getChildByName("Label_text2"):setString(hp.lang.getStrByID(8018))
+		content_desc:getChildByName("Image_line"):setVisible(false)
 	else
 		local scoutType = annex[1]
 		local scoutLv = annex[2]
 
-		content_desc:getChildByName("Label_text1"):setString(hp.lang.getStrByID(8008))
+		
 		content_desc:getChildByName("Label_text2"):setString(string.format(hp.lang.getStrByID(8011) ,hp.lang.getStrByID(8009)))
 		local descInfo
 		if annex[4] == nil or annex[4] == "" then
@@ -136,19 +137,32 @@ function UI_scoutMail:init(mailInfo, mailType_, mailIndex)
 		local heroState
 		local army1Data
 		local units1Data
+		local pos
 		if scoutType == 0 then
+			-- 侦查城市
 			heroName = annex[9]
 			heroLv = annex[10]
 			heroState = annex[17]
 			army1Data = annex[5]
 			units1Data = annex[8]
+			pos = annex[18]
 		else
+			-- 侦查野外
 			heroName = annex[7]
 			heroLv = annex[8]
 			army1Data = annex[5]
 			units1Data = annex[6]
 			heroState = annex[10]
+			pos = annex[11]
 		end
+		-- 坐标
+		local label_pos = content_desc:getChildByName("Label_text1")
+		local image_line = content_desc:getChildByName("Image_line")
+		label_pos:setString(string.format(hp.lang.getStrByID(7718), hp.gameDataLoader.getInfoBySid("serverList", pos[1]).name, pos[2], pos[3]))
+		local width = label_pos:getContentSize().width
+		local size = image_line:getSize()
+		size.width = width
+		image_line:setSize(size)
 		-- 敌军信息
 		local content_enemy = panel_army:getChildByName("Panel_enemyContent")
 		content_enemy:getChildByName("Label_title"):setString(hp.lang.getStrByID(8002))
@@ -360,7 +374,26 @@ function UI_scoutMail:init(mailInfo, mailType_, mailIndex)
 				listRoot:removeItem(listRoot:getIndex(panel_building))
 			end
 		end
-	-- 侦查是否成功 end
+
+		-- 大地图跳转
+		-- ===============================
+		local function goto(sender, eventType)
+			if eventType==TOUCH_EVENT_ENDED then
+				if game.curScene.mapLevel == 2 then
+					self:closeAll()
+	    			game.curScene:gotoPosition(cc.p(pos[2], pos[3]), "", pos[1])
+	    		else
+	    			self:close()
+					require("scene/kingdomMap")
+					local map = kingdomMap.new()
+					map:enter()
+					map:gotoPosition(cc.p(pos[2], pos[3]), "", pos[1])
+				end
+			end
+		end
+		label_pos:addTouchEventListener(goto)
+
+		-- 侦查是否成功 end
 	end
 
 	-- 删除按钮设置
@@ -368,7 +401,7 @@ function UI_scoutMail:init(mailInfo, mailType_, mailIndex)
 	local panel_oper = listRoot:getChildByName("Panel_oper")
 	panel_oper:getChildByName("Panel_content"):getChildByName("Label_deleteText"):setString(hp.lang.getStrByID(1221))
 	
-	function delBtnOnTouched(sender, eventType)
+	local function delBtnOnTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			self:close()

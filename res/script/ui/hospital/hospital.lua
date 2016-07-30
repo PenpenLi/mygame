@@ -30,6 +30,7 @@ function UI_hospital:init(building_)
 	self.labelNum = {}
 	self.ImageNumRest = {}
 	self.resourceText = {}
+	self.resourceImg = {}
 
 	-- ui
 	-- ===============================
@@ -52,6 +53,7 @@ function UI_hospital:init(building_)
 	self:registMsg(hp.MSG.HOSPITAL_CHOOSE_SOLDIER)
 	self:registMsg(hp.MSG.HOSPITAL_HEAL_FINISH)
 	self:registMsg(hp.MSG.HOSPITAL_HURT_REFRESH)
+	self:registMsg(hp.MSG.RESOURCE_CHANGED)
 
 	-- 初始化数据
 	self:initData()
@@ -93,7 +95,9 @@ function UI_hospital:initUI()
 	-- 消耗
 	local resourceList = {"", "_Copy0", "_Copy1", "_Copy2", "_Copy3"}
 	for i, v in ipairs(resourceList) do
-		self.resourceText[i] = content:getChildByName("ImageView_23216"..resourceList[i]):getChildByName("Label_23217")
+		self.resourceImg[i] = content:getChildByName("ImageView_23216"..resourceList[i])
+		self.resourceText[i] = self.resourceImg[i]:getChildByName("Label_23217")
+		self.resourceImg[i]:addTouchEventListener(self.onResItemTouched)
 	end
 
 	-- 上限和当前伤兵
@@ -375,12 +379,22 @@ function UI_hospital:initCallBack()
 		end
 	end
 
+	local function onResItemTouched(sender, eventType)
+		hp.uiHelper.btnImgTouched(sender, eventType)
+		if eventType==TOUCH_EVENT_ENDED then
+			require "ui/item/resourceItem"
+			local ui  = UI_resourceItem.new(sender:getTag())
+			self:addUI(ui)
+		end
+	end
+
 	self.onMoreInfoTouched = onMoreInfoTouched
 	self.onAllSelectTouched = onAllSelectTouched
 	self.onSoonHealTouched = onSoonHealTouched
 	self.onHealTouched = onHealTouched
 	self.onSoldierTouched = onSoldierTouched
 	self.onSpeedUpTouched = onSpeedUpTouched
+	self.onResItemTouched = onResItemTouched
 end
 
 function UI_hospital:refreshSoldierShow()
@@ -436,6 +450,10 @@ function UI_hospital:refreshSoldierShow()
 		-- hide redundant ui
 		for i = index, 3 do
 			adampt:getChildByName(string.format("%d", i)):setVisible(false)
+		end
+
+		if index == 1 then
+			self.listView:removeLastItem()
 		end
 	end
 
@@ -581,6 +599,8 @@ function UI_hospital:onMsg(msg_, param_)
 		self:updateTrainShow()
 	elseif msg_ == hp.MSG.HOSPITAL_HURT_REFRESH then
 		self:onHurtSoldierRefresh()
+	elseif msg_ == hp.MSG.RESOURCE_CHANGED then
+		self:updateCost()
 	end
 end
 

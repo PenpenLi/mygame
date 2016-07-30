@@ -28,6 +28,7 @@ function UI_battleMail:init(mailInfo_, mailType_, mailIndex)
 	local isWin = true
 	local isAtt = true
 	local ID = 0
+	local K = 0
 
 	-- title panel
 	-- ===============================
@@ -40,6 +41,7 @@ function UI_battleMail:init(mailInfo_, mailType_, mailIndex)
 	isAtt = attInfo[4] == player.getID()
 	if isAtt then
 		ID = defInfo[4]
+		K = defInfo[5]
 		if not attWin then
 			label_title:setString(hp.lang.getStrByID(7602))
 			image_bg:loadTexture(config.dirUI.common .. "failedMailHead.png")
@@ -49,6 +51,7 @@ function UI_battleMail:init(mailInfo_, mailType_, mailIndex)
 		end
 	else
 		ID = attInfo[4]
+		K = attInfo[5]
 		if attWin then
 			label_title:setString(hp.lang.getStrByID(7602))
 			image_bg:loadTexture(config.dirUI.common .. "failedMailHead.png")
@@ -108,7 +111,7 @@ function UI_battleMail:init(mailInfo_, mailType_, mailIndex)
 		attTitle = attInfo[1]
 	end
 	content_attPlayer:getChildByName("Label_title"):setString(attTitle)
-	content_attPlayer:getChildByName("Label_pos"):setString("K:" .. attInfo[5] .. " X:" .. attInfo[6] .. " Y:" .. attInfo[7])
+	content_attPlayer:getChildByName("Label_pos"):setString("K:" .. hp.gameDataLoader.getInfoBySid("serverList", attInfo[5]).name .. " X:" .. attInfo[6] .. " Y:" .. attInfo[7])
 	content_attPlayer:getChildByName("Label_powText"):setString(hp.lang.getStrByID(5119))
 	content_attPlayer:getChildByName("Label_power"):setString("-" .. attInfo[8])
 	content_attPlayer:getChildByName("Image_icon"):loadTexture(config.dirUI.heroHeadpic .. attInfo[2] .. ".png")
@@ -120,26 +123,63 @@ function UI_battleMail:init(mailInfo_, mailType_, mailIndex)
 		defTitle = defInfo[1]
 	end
 	content_defPlayer:getChildByName("Label_title"):setString(defTitle)
-	content_defPlayer:getChildByName("Label_pos"):setString("K:" .. defInfo[5] .. " X:" .. defInfo[6] .. " Y:" .. defInfo[7])
+	content_defPlayer:getChildByName("Label_pos"):setString("K:" .. hp.gameDataLoader.getInfoBySid("serverList", defInfo[5]).name .. " X:" .. defInfo[6] .. " Y:" .. defInfo[7])
 	content_defPlayer:getChildByName("Label_powText"):setString(hp.lang.getStrByID(5119))
 	content_defPlayer:getChildByName("Label_power"):setString("-" .. defInfo[8])
 	content_defPlayer:getChildByName("Image_icon"):loadTexture(config.dirUI.heroHeadpic .. defInfo[2] .. ".png")
+
+	local x, y
+	-- pos link
+	local function goto(sender, eventType)
+		if eventType==TOUCH_EVENT_ENDED then
+			if game.curScene.mapLevel == 2 then
+				self:closeAll()
+    			game.curScene:gotoPosition(cc.p(x, y), "", K)
+    		else
+    			self:close()
+				require("scene/kingdomMap")
+				local map = kingdomMap.new()
+				map:enter()
+				map:gotoPosition(cc.p(x, y), "", K)
+			end
+		end
+	end
+	local pos, line
+	if isAtt then
+		pos = content_defPlayer:getChildByName("Label_pos")
+		line = content_defPlayer:getChildByName("Image_line")
+		content_attPlayer:getChildByName("Image_line"):setVisible(false)
+		x = defInfo[6]
+		y = defInfo[7]
+	else
+		pos = content_attPlayer:getChildByName("Label_pos")
+		line = content_attPlayer:getChildByName("Image_line")
+		content_defPlayer:getChildByName("Image_line"):setVisible(false)
+		x = attInfo[6]
+		y = attInfo[7]
+	end
+	pos:addTouchEventListener(goto)
+	pos:setColor(cc.c3b(27, 172, 255))
+
+	local width = pos:getContentSize().width
+	local size = line:getSize()
+	size.width = width
+	line:setSize(size)
+
 	-- icon link
 	local function popPlayerInfo(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			require "ui/common/playerInfo"
-			local ui_ = UI_playerInfo.new(ID)
+			local ui_ = UI_playerInfo.new(ID, hp.gameDataLoader.getInfoBySid("serverList", K).url)
 			self:addUI(ui_)
 		end
 	end
-	local info_btn
 	if isAtt then
-		info_btn = content_defPlayer:getChildByName("Image_icon")
+		content_defPlayer:getChildByName("Image_icon"):addTouchEventListener(popPlayerInfo)
 	else
-		info_btn = content_attPlayer:getChildByName("Image_icon")
+		content_attPlayer:getChildByName("Image_icon"):addTouchEventListener(popPlayerInfo)
 	end
-	info_btn:addTouchEventListener(popPlayerInfo)
 
 	-- lost panel
 	-- ===============================

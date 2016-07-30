@@ -350,15 +350,6 @@ function UI_shopItem:pushLoadingItem(loadingNumOnce)
 		nodeTmp:setSize(sz)
 	end
 
-	local firstOperBtn = nil
-	local function bindGuideUI2(step)
-		if step==5006 then
-			itemList:visit()
-			player.guide.bind2Node111(5006, firstOperBtn, onItemOperTouched)
-		end
-	end
-	self.bindGuideUI2 = bindGuideUI2
-
 	-- 设置一项的显示
 	local function setItemInfo(itemNode, itemInfo)
 		local itemCont = itemNode:getChildByName("Panel_cont")
@@ -384,10 +375,6 @@ function UI_shopItem:pushLoadingItem(loadingNumOnce)
 				operBtn:getChildByName("Panel_use"):setVisible(false)
 				operBtn:setVisible(false)
 			end
-		end
-
-		if loadingNum==0 then
-			firstOperBtn = operBtn
 		end
 
 		if itemInfo.funStyle==12 then

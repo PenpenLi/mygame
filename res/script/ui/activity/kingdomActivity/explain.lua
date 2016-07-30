@@ -54,7 +54,9 @@ function UI_explain:initUI()
 	-- 活动未开启
 	if activity == nil then
 		list:setVisible(false)
-		widget:getChildByName("Panel_noActivity"):setVisible(true)
+		local tips = widget:getChildByName("Panel_noActivity")
+		tips:setVisible(true)
+		tips:getChildByName("Label_text"):setString(hp.lang.getStrByID(11172))
 		return
 	end
 
@@ -64,15 +66,6 @@ function UI_explain:initUI()
 	local serverid2 = player.serverMgr.getMyServerID()
 
 	self.serverID = serverId
-
-	-- 活动未开启
-	if activity.status == KINGDOM_ACTIVITY_STATUS.NOT_OPEN then
-		list:setVisible(false)
-		local tips = widget:getChildByName("Panel_noActivity")
-		tips:setVisible(true)
-		tips:getChildByName("Label_text"):setString(hp.lang.getStrByID(11172))
-		return
-	end
 
 	-- 设置静态数据
 	local panel_info1 = list:getItem(0)

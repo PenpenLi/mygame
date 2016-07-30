@@ -89,13 +89,13 @@ function Minister:openMenu()
 		-- 已死亡（可复活）
 		elseif state == 2 then
 			--进入墓地
-			local building=game.curScene:getBuildingBySid(1021)
+			local building=player.buildingMgr.getBuildingObjBySid(1021)
 			building:onClicked()
 		-- 已死亡（不可复活）
 		elseif state == 3 then
 			-- 前往招贤馆
 			local function gotoHeroRoom()
-				local building=game.curScene:getBuildingBySid(1022)
+				local building=player.buildingMgr.getBuildingObjBySid(1022)
 				building:onClicked()
 			end	
 			require("ui/msgBox/msgBox")
@@ -116,7 +116,7 @@ function Minister:openMenu()
 		player.postmanAndEnvoyMgr.setPostmanIsLight(false)
 	elseif self.sid == "sz" then
 	-- 使者
-		--local Build = game.curScene:getBuildingBySid(1013) Build:onClicked()
+		--local Build = player.buildingMgr.getBuildingObjBySid(1013) Build:onClicked()
 		local function joinUnion()
 			require "ui/union/invite/unionJoin.lua"
 			local ui_ = UI_unionJoin.new()

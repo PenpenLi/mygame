@@ -9,8 +9,23 @@ UI_marchMail = class("UI_marchMail", UI)
 
 
 --init
-function UI_marchMail:init(Info,mailType_,mailIndex)
+function UI_marchMail:init(Info_,mailType_,mailIndex)
+
+	-- data
+	local annex = Info_.annex
+	content = Info_.content .. "\n\n"
+	content = content .. string.format(hp.lang.getStrByID(7716), annex[2])
+	content = content .. string.format(hp.lang.getStrByID(7717), annex[3])
 	
+	local Info = {}
+	Info.content = Info_.content
+	Info.resTp	= annex[1]
+	Info.resNum	= annex[2]
+	Info.materials	= annex[3]
+	Info.server = annex[4]
+	Info.x = annex[5]
+	Info.y = annex[6]
+
 	-- ui
 	-- ===============================
 	local wigetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "marchMail.json")
@@ -24,8 +39,16 @@ function UI_marchMail:init(Info,mailType_,mailIndex)
 	
 	Panel_item:getChildByName("Panel_cont_0"):getChildByName("Label_info"):setString(Info.content)
 	
-	
-	
+	local posText = string.format(hp.lang.getStrByID(7718), hp.gameDataLoader.getInfoBySid("serverList", Info.server).name, Info.x, Info.y)
+	local label_pos = Panel_item:getChildByName("Panel_cont_0"):getChildByName("Label_info_0")
+	label_pos:setString(posText)
+
+	local image_line = Panel_item:getChildByName("Panel_cont_0"):getChildByName("Image_line")
+	local width = label_pos:getContentSize().width
+	local size = image_line:getSize()
+	size.width = width
+	image_line:setSize(size)
+
 	local Panel_cont_1 = Panel_item:getChildByName("Panel_cont_1")
 	Panel_cont_1:getChildByName("Label_res"):setString(hp.lang.getStrByID(7713))
 	Panel_cont_1:getChildByName("Label_amount"):setString(hp.lang.getStrByID(7706))
@@ -61,14 +84,28 @@ function UI_marchMail:init(Info,mailType_,mailIndex)
 		Panel_item:getChildByName("Panel_contItem2"):getChildByName("Label_col"):setString( "")
 	end
 	
-	
-	
+	--goto
+	local function goto(sender, eventType)
+		if eventType==TOUCH_EVENT_ENDED then
+			if game.curScene.mapLevel == 2 then
+				self:closeAll()
+    			game.curScene:gotoPosition(cc.p(Info.x, Info.y), "", Info.server)
+    		else
+    			self:close()
+				require("scene/kingdomMap")
+				local map = kingdomMap.new()
+				map:enter()
+				map:gotoPosition(cc.p(Info.x, Info.y), "", Info.server)
+			end
+		end
+	end
+	label_pos:addTouchEventListener(goto)
 	
 	--del
 	Panel_item:getChildByName("Panel_delCont"):getChildByName("Label_delete"):setString( hp.lang.getStrByID(1221))
 		
 	local delBtn = Panel_item:getChildByName("Panel_delCont"):getChildByName("ImageView_delete")
-	function delBtnOnTouched(sender, eventType)
+	local function delBtnOnTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			self:close()

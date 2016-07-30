@@ -136,7 +136,7 @@ function UI_mainBuildLevel2:refreshArmyInfo()
 	content_:getChildByName("Label_43"):setColor(cc.c3b(255,163,31))
 	content_:getChildByName("Label_43"):setString(hp.lang.getStrByID(1040))
 	content_:getChildByName("Label_43_0"):setColor(cc.c3b(255,163,31))
-	content_:getChildByName("Label_43_0"):setString(hp.lang.getStrByID(5221))
+	content_:getChildByName("Label_43_0"):setString(hp.lang.getStrByID(5533))
 	content_:getChildByName("Label_43_1"):setColor(cc.c3b(255,163,31))
 	content_:getChildByName("Label_43_1"):setString(hp.lang.getStrByID(5260))
 
@@ -203,7 +203,7 @@ function UI_mainBuildLevel2:refreshResource()
 	-- 容量上限
 	content_ = addOneItem()
 	content_:getChildByName("Label_31"):setString(hp.lang.getStrByID(5269))
-	content_:getChildByName("Label_31_0"):setString(player.helper.getResCapacity(typeMap_[self.type]))
+	content_:getChildByName("Label_31_0"):setString(player.helper.getResCapacity(typeMap_[self.type]-1))
 	if self.type == 2 then
 		-- 小时消耗
 		content_ = addOneItem()

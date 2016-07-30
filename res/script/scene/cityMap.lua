@@ -12,9 +12,9 @@ cityMap = class("cityMap", Scene)
 --
 -- init
 ----------------------------
-function cityMap:init(enterFudi_)
+function cityMap:init(loginFlag_)
 	self.mapLevel = 3 --3级地图
-	self.enterFudi = enterFudi_
+	self.loginFlag = loginFlag_
 
 	-- 变量初始化
 	--================================
@@ -156,12 +156,7 @@ function cityMap:init(enterFudi_)
 	--==========================
 	self.menuLayer = cc.Layer:create()
 	require "ui/mainMenu"
-	local mainMenu = nil
-	if enterFudi_ then
-		mainMenu = UI_mainMenu.new(1)
-	else
-		mainMenu = UI_mainMenu.new(2)
-	end
+	local mainMenu = UI_mainMenu.new(self)
 	mainMenu:onAdd(self)
 	self.menuLayer:addChild(mainMenu.layer)
 	table.insert(self.uis, mainMenu)
@@ -221,18 +216,17 @@ end
 
 -- onEnter
 function cityMap:onEnter()
-	if self.enterFudi then
-	-- 需要进入府邸内部界面
-		require("ui/mansion/mansion")
-		local ui = UI_mansion.new()
-		self:addUI(ui)
-	else
-		self:onEnterAnim()
-	end
+	self:onEnterAnim()
 	
-	-- 进入新手指引
-	--===============================
-	player.guide.run()
+	if self.loginFlag then
+        -- 请求登录公告
+        require("ui/common/sysNotice")
+        UI_sysNotice.show()
+
+		-- 进入新手指引
+		--===============================
+		player.guide.run()
+	end
 end
 
 -- onMsg
@@ -253,6 +247,9 @@ function cityMap:addUI(ui_)
 	table.insert(self.uis, ui_)
 	table.insert(self.UIs, ui_)
 	ui_:onAdd(self)
+
+	-- 重设菜单
+	self.mainMenu.reset()
 end
 
 -- removeUI
@@ -273,6 +270,9 @@ function cityMap:removeUI(ui_)
 			break
 		end
 	end
+
+	-- 重设菜单
+	self.mainMenu.reset()
 end
 
 -- removeAllUI
@@ -290,6 +290,9 @@ function cityMap:removeAllUI()
 	end
 
 	self.UIs = {}
+
+	-- 重设菜单
+	self.mainMenu.reset()
 end
 
 -- addModalUI

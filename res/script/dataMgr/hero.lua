@@ -16,6 +16,7 @@ local baseInfo = {} --基础信息
 local constInfo = nil --表信息
 local skillList = {} --技能列表
 local isValid = false --英雄是否产生相应加成效果
+local extSkillPoint = 0 --额外技能点儿数
 
 
 -- player调用接口函数
@@ -35,6 +36,8 @@ function hero.init()
 	constInfo = nil
 	skillList = {}
 	isValid = false
+
+	extSkillPoint = 0
 end
 
 -- initData
@@ -72,6 +75,9 @@ function hero.initData(data_)
 	else
 		isValid = true
 	end
+
+	-- 额外技能点数
+	extSkillPoint = data_.incrP or 0
 end
 
 -- syncData
@@ -80,6 +86,15 @@ function hero.syncData(data_)
 	if data_.hero~=nil then
 		hero.initData(data_)
 		hp.msgCenter.sendMsg(hp.MSG.HERO_INFO_CHANGE)
+	end
+
+	-- 额外技能点
+	if data_.incrP then
+		if data_.incrP>extSkillPoint then
+		-- 有新的技能点儿
+			hp.msgCenter.sendMsg(hp.MSG.SKILL_CHANGED)
+		end
+		extSkillPoint = data_.incrP
 	end
 end
 
@@ -139,6 +154,30 @@ end
 function hero.getSkillLv(skillId_)
 	return skillList[skillId_] or 0
 end
+
+
+-- getSkillPoint
+-- 获取技能点数
+function hero.getSkillPoint()
+	-- 获取等级产生的技能点数
+	local lv = player.getLv()
+	local lvPointNum = 0
+	for i, v in ipairs(game.data.heroLv) do
+		lvPointNum = lvPointNum+v.dit
+		if v.level>=lv then
+			break
+		end
+	end
+
+	-- 获取已经分配的技能点数
+	local pointUsed = 0
+	for k,v in pairs(skillList) do
+		pointUsed = pointUsed+v
+	end
+
+	return lvPointNum+extSkillPoint - pointUsed
+end
+
 
 -- getAttrAddn
 -- 获取属性加成

@@ -33,7 +33,7 @@ function UI_beScoutedMail:init(mailInfo,mailType_,mailIndex)
 
 	if annex[2] ~= nil and #annex[2] > 0 then
 		
-		Info.pos = "K:" .. annex[2][1] .. " X:" .. annex[2][2] .. " Y:" .. annex[2][3]
+		Info.pos = "K:" .. hp.gameDataLoader.getInfoBySid("serverList", annex[2][1]).name .. " X:" .. annex[2][2] .. " Y:" .. annex[2][3]
 		
 	else
 		Info.pos = hp.lang.getStrByID(7956)
@@ -53,13 +53,32 @@ function UI_beScoutedMail:init(mailInfo,mailType_,mailIndex)
 	panelLabelCont:getChildByName("Label_info3"):setString(hp.lang.getStrByID(7954))
 	panelLabelCont:getChildByName("Label_info3_1"):setString(Info.pos)
 
+	local width = panelLabelCont:getChildByName("Label_info3_1"):getSize().width
+	local image_line = panelLabelCont:getChildByName("Image_line")
+	local size = image_line:getSize()
+	size.width = width
+	image_line:setSize(size)
 
+	--goto
+	local function goto(sender, eventType)
+		if game.curScene.mapLevel == 2 then
+			self:closeAll()
+    		game.curScene:gotoPosition(cc.p(annex[2][2], annex[2][3]), "", annex[2][1])
+    	else
+    		self:close()
+			require("scene/kingdomMap")
+			local map = kingdomMap.new()
+			map:enter()
+			map:gotoPosition(cc.p(annex[2][2], annex[2][3]), "", annex[2][1])
+		end
+	end
+	panelLabelCont:getChildByName("Label_info3_1"):addTouchEventListener(goto)
 
 	--del
 	Panel_item:getChildByName("Panel_delCont"):getChildByName("Label_delete"):setString( hp.lang.getStrByID(1221))
 		
 	local delBtn = Panel_item:getChildByName("Panel_delCont"):getChildByName("ImageView_delete")
-	function delBtnOnTouched(sender, eventType)
+	local function delBtnOnTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			self:close()

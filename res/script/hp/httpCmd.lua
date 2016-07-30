@@ -37,6 +37,8 @@ local RID = 0 --请求ID
 local sendTimes = 0 --请求发送次数
 local resendFlag = false --重新发送
 
+local checkNetworkFlag = false--需要检查网络
+
 
 -- 私有函数
 -- ================================
@@ -107,9 +109,41 @@ local function cmdDataEncode(v)
 	return json.encode(v)
 end
 
+--checkNetwork
+--检查网络
+local function checkNetwork()
+	local netcheckURL = "http://1251205422.cdn.myqcloud.com/1251205422/yitongsanguo/netcheck.txt"
+	local xhr = cc.XMLHttpRequest:new()
+	local function onHttpResponse()
+		local status = xhr.status
+		local response = xhr.response
+
+		if status~=200 then
+		-- 网络异常
+			game.sdkHelper.onDisconnect(0)
+			return
+		end
+
+		-- 服务器在维护
+		game.sdkHelper.onDisconnect(-5)
+	end
+	xhr.responseType = cc.XMLHTTPREQUEST_RESPONSE_JSON
+	xhr.timeout = 0
+	xhr:registerScriptHandler(onHttpResponse)
+
+	xhr:open("GET", netcheckURL)
+	xhr:send()
+end
+
 -- onResponseException
 -- 处理网络异常
 local function onResponseException( errCode )
+	if not player.isLogined() and errCode==0 then
+	-- 未登录，检查网络
+		checkNetworkFlag = true
+		return
+	end
+
 	game.sdkHelper.onDisconnect(errCode)
 end
 
@@ -226,13 +260,21 @@ function hp.httpCmdSequence.init()
 	RID = 0
 	sendTimes = 0
 	resendFlag = false
+
+	checkNetworkFlag = false
 end
 
 
 -- heartbeat
 function hp.httpCmdSequence.heartbeat(dt)
-	local httpCmd = nil
+	if checkNetworkFlag then
+		checkNetworkFlag = false
+		checkNetwork()
+		return
+	end
 
+
+	local httpCmd = nil
 	if sendingCmd then
 	-- 当前有一个正在发送的请求
 		if resendFlag then

@@ -10,31 +10,9 @@ local generalMgr = {}
 -- 私有函数
 -- ================================
 
--- 未使用天赋点
-local function haveUnusedPoint()
-	local lv = player.getLv()
-	local pointCount = 0
-	local pointUsed = 0
-	-- 所有天赋点
-	for i,v in ipairs(game.data.heroLv) do
-		pointCount = pointCount + v.dit
-		if v.level == lv then
-			break
-		end
-	end
-	-- 已使用天赋点
-	local skillList = player.hero.getSkillList()
-	for k,v in pairs(skillList) do
-		pointUsed = pointUsed + v
-	end
-	return pointCount - pointUsed > 0
-end
-
 -- 获取状态
 local function status()
-	if haveUnusedPoint() then
-		return true
-	end
+	return player.hero.getSkillPoint() > 0
 end
 
 -- 构造函数

@@ -1,7 +1,7 @@
 --------------------------
 -- file:playerData/activity/goldShopMgr.lua
 -- 描述:商城管理器
--- MSG: GOLD_SHOP {msgType:1-请求数据}
+-- MSG: GOLD_SHOP {msgType:1-请求数据,2-交易正在进行}
 -- =======================
 
 -- obj
@@ -15,6 +15,7 @@ local local_shopItem = {{},{},{}}
 local local_requestMark = false
 local local_itemBuying = false
 local local_buyCountTime = 0
+local local_trading = false
 
 -- 本地方法
 -- =======================
@@ -148,6 +149,7 @@ function goldShopMgr.init()
 	local_requestMark = false
 	local_itemBuying = false
 	local_buyCountTime = 0
+	local_trading = false
 end
 
 -- 数据初始化
@@ -209,15 +211,34 @@ function goldShopMgr.buyItem(sid_)
 			if info_ == nil then
 				return
 			end
+			hp.msgCenter.sendMsg(hp.MSG.GOLD_SHOP, {msgType=2})
 			game.sdkHelper.payBuy(info_.sid, info_.money * globalData.CHARGE_COEF)
+			-- local_trading = true
 		else
 			goldShopMgr.httpReqRequestData()
 		end
 	end
+
+	if local_trading then
+		require "ui/common/successBox"
+		local box_ = UI_successBox.new(hp.lang.getStrByID(5530), hp.lang.getStrByID(5531), nil)
+		game.curScene:addModalUI(box_)
+		return
+	end
 	
 	if not local_itemBuying then	
 		-- 检查
-		tryBuyItem(sid_, checkCallBack)
+		local function buyItemCallBack()
+			tryBuyItem(sid_, checkCallBack)
+		end	
+		require("ui/msgBox/msgBox")
+		local msgBox = UI_msgBox.new(hp.lang.getStrByID(5522), 
+			hp.lang.getStrByID(5523), 
+			hp.lang.getStrByID(1209), 
+			nil,
+			buyItemCallBack
+			)
+		game.curScene:addModalUI(msgBox)
 	else
 		cclog_("multi buy item!")
 	end

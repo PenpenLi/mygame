@@ -1,5 +1,5 @@
 --
--- ui/smith/equipDesign.lua
+-- ui/smith/equipDesignDetail.lua
 -- 装备制造秘籍详细信息界面
 --===================================
 require "ui/fullScreenFrame"
@@ -7,13 +7,15 @@ require "ui/fullScreenFrame"
 UI_equipDesignDetail = class("UI_equipDesignDetail", UI)
 
 --init
-function UI_equipDesignDetail:init(equipType_,callback_)
+function UI_equipDesignDetail:init(equipType_,equipSubType_,callback_,customData_)
 	-- data
 	-- ===============================
 	local equipType = equipType_
-	local callbackFun=callback_
-	local equips = clone(game.data.equip)
-	local count = table.getn(equips)
+	local equipSubType = equipSubType_
+	local callbackFun= callback_
+	local customData = customData_
+	--local equips = clone(game.data.equip)
+	--local count = table.getn(equips)
 	-- 两个下标，一个记录可制作集合下标，一个记录不可制造集合下标
 	local canIndex = 1
 	local notIndex = 1
@@ -23,8 +25,9 @@ function UI_equipDesignDetail:init(equipType_,callback_)
 	local defaultNum = 2
 	--可以制造的装备信息
 	local canMakeEquips = {}
-
-
+	--分好类的装备
+	local equips = {}
+	local count=0
 	-- function
 	-- ===============================
 	local pushLoadingItem
@@ -111,6 +114,31 @@ function UI_equipDesignDetail:init(equipType_,callback_)
 	btnInfo:addTouchEventListener(onBtnTouched)
 	btnGet:addTouchEventListener(onBtnTouched)
 
+	--用于判定是否有可制造装备
+	local items=clone(player.getItemList())
+	local materials=game.data.equipMaterial
+	local mlist={}
+	local mobj={}
+	for i,v in ipairs(materials) do
+		if v.type~=nil then
+			if mlist[v.type]== nil then
+				mlist[v.type]={}
+			end	
+			local mobj={}
+			mobj.type=v.type
+			mobj.sid=v.sid
+			mobj.num=0
+			table.insert(mlist[v.type],1,mobj)
+		end
+	end
+	for i,v in ipairs(mlist) do
+		for k,m in ipairs(v) do
+			if items[m.sid] ~= nil and items[m.sid]>0 then
+				m.num=items[m.sid]
+			end
+		end
+	end
+
 	-- 显示品质信息
 	local function showQuaInfo(equipInfo,level,listView)
 		listView:removeAllItems()
@@ -119,7 +147,10 @@ function UI_equipDesignDetail:init(equipType_,callback_)
 			local att=hp.gameDataLoader.getInfoBySid("attr", equipInfo.type1)
 			if att ~= nil then
 				local contAttr = self.attrDemo:clone()
-				local value="+"..(equipInfo.value1[level]/100).."%"
+				local value=(equipInfo.value1[level]/100).."%"
+				if equipInfo.value1[level]/100 >=0 then
+					value="+"..value
+				end
 				contAttr:getChildByName("Panel_text"):getChildByName("Label_name"):setString(att.desc)
 				contAttr:getChildByName("Panel_text"):getChildByName("Label_value"):setString(value)
 				listView:pushBackCustomItem(contAttr)
@@ -130,7 +161,10 @@ function UI_equipDesignDetail:init(equipType_,callback_)
 			local att=hp.gameDataLoader.getInfoBySid("attr", equipInfo.type2)
 			if att ~= nil then
 				local contAttr = self.attrDemo:clone()
-				local value="+"..(equipInfo.value2[level]/100).."%"
+				local value=(equipInfo.value2[level]/100).."%"
+				if equipInfo.value2[level]/100 >=0 then
+					value="+"..value
+				end
 				contAttr:getChildByName("Panel_text"):getChildByName("Label_name"):setString(att.desc)
 				contAttr:getChildByName("Panel_text"):getChildByName("Label_value"):setString(value)
 				if k % 2 ~= 0 then
@@ -144,7 +178,10 @@ function UI_equipDesignDetail:init(equipType_,callback_)
 			local att=hp.gameDataLoader.getInfoBySid("attr", equipInfo.type3)
 			if att ~= nil then
 				local contAttr = self.attrDemo:clone()
-				local value="+"..(equipInfo.value3[level]/100).."%"
+				local value=(equipInfo.value3[level]/100).."%"
+				if equipInfo.value3[level]/100 >=0 then
+					value="+"..value
+				end
 				contAttr:getChildByName("Panel_text"):getChildByName("Label_name"):setString(att.desc)
 				contAttr:getChildByName("Panel_text"):getChildByName("Label_value"):setString(value)
 				if k % 2 ~= 0 then
@@ -158,7 +195,10 @@ function UI_equipDesignDetail:init(equipType_,callback_)
 			local att=hp.gameDataLoader.getInfoBySid("attr", equipInfo.type4)
 			if att ~= nil then
 				local contAttr = self.attrDemo:clone()
-				local value="+"..(equipInfo.value4[level]/100).."%"
+				local value=(equipInfo.value4[level]/100).."%"
+				if equipInfo.value4[level]/100 >=0 then
+					value="+"..value
+				end
 				contAttr:getChildByName("Panel_text"):getChildByName("Label_name"):setString(att.desc)
 				contAttr:getChildByName("Panel_text"):getChildByName("Label_value"):setString(value)
 				if k % 2 ~= 0 then
@@ -223,40 +263,40 @@ function UI_equipDesignDetail:init(equipType_,callback_)
 
 	--计算可以制造的装备
 	local function getCanMakeEquips()
+		
 		local k = 1
-		for i=count,1,-1 do
-			if equips[i].type == equipType then
-				local canMake = true
-				-- 武将等级、白银
-				if player.getLv() < equips[i].mustLv or player.getResource("silver") < equips[i].cost then
-					canMake=false
-				end
-				if canMake then
-					--材料
-					local matrialSid={}
-					local items=clone(player.getItemList())
-					for j,v in pairs(equips[i].matrial) do
-						local noItem=true
-						for m=1,6 do
-							local psid=v*1000+(7-m)
-							if items[psid] ~= nil and items[psid]>0 then
-								matrialSid[j]=psid
+		for i=count,1,-1 do		
+			local mlist1=clone(mlist)
+			local canMake = true
+			-- 武将等级、白银
+			if player.getLv() < equips[i].mustLv or player.getResource("silver") < equips[i].cost then
+				canMake=false
+			end
+			if canMake then
+				--材料
+				local matrialSid={}
+				for j,v in pairs(equips[i].matrial) do
+					local noItem=true
+					if mlist1[v] ~=nil then
+						for l,m in ipairs(mlist1[v]) do
+							if m.num>0 then
+								matrialSid[j]=m.sid
 								noItem=false
-								items[psid] = items[psid]-1
+								m.num = m.num-1
 								break
 							end
 						end
-						if noItem then
-							canMake=false
-							break
-						end
-					end	
-
-					if canMake then
-						canMakeEquips[k] = newEquipMakeInfo(equips[i],matrialSid)
-						equips[i] = nil
-						k=k+1;
 					end
+					if noItem then
+						canMake=false
+						break
+					end
+				end	
+
+				if canMake then
+					canMakeEquips[k] = newEquipMakeInfo(equips[i],matrialSid)
+					equips[i] = nil
+					k=k+1;
 				end
 			end
 		end
@@ -316,7 +356,7 @@ function UI_equipDesignDetail:init(equipType_,callback_)
 		contCond:getChildByName("ImageView_bg"):setVisible(false)
 		contListConds:pushBackCustomItem(contCond)
 		--材料
-		local items=clone(player.getItemList())
+		local mlist1=clone(mlist)
 		local k=0
 		for j,v in pairs(matrial) do
 			if v>0 then
@@ -325,12 +365,13 @@ function UI_equipDesignDetail:init(equipType_,callback_)
 				condNode:getChildByName("Image_icon"):loadTexture(config.dirUI.material..v..".png")
 				condNode:getChildByName("Label_cond"):setString(hp.lang.getStrByID(3900+v))
 				local noItem=true
-				for m=1,6 do
-					local psid=v*1000+(7-m)
-					if items[psid] ~= nil and items[psid]>0 then
-						noItem=false
-						items[psid] = items[psid]-1
-						break
+				if mlist1[v] ~=nil then
+					for l,m in ipairs(mlist1[v]) do
+						if m.num>0 then
+							noItem=false
+							m.num = m.num-1
+							break
+						end
 					end
 				end
 				if noItem then
@@ -456,14 +497,14 @@ function UI_equipDesignDetail:init(equipType_,callback_)
 		end
 		if k<num then		
 			for i=notIndex,count do				
-				if equips[i]~= nil and equips[i].type == equipType then				
+				if equips[i]~=nil then			
 					showDesignDetail(false,equips[i],i)
 					notIndex = i+1 
 					k=k+1
-				 	if k >=num then
-				 		break
-				 	end
 				end
+			 	if k >=num then
+			 		break
+			 	end
 			end
 		end
 	end
@@ -474,7 +515,34 @@ function UI_equipDesignDetail:init(equipType_,callback_)
 		canIndex=1
 		notIndex=1
 		canMakeEquips={}
-		equips = clone(game.data.equip)
+		equips={}
+		-- 先将装备分好类
+		local nowTime=player.getServerTime()
+		local l=1
+		if customData then
+			equips = customData
+		else
+			for i,v in ipairs(game.data.equip) do
+				local eq=game.data.equip[i]
+				if v.type == equipType then
+					for k,m in ipairs(eq.subType) do
+						if m == equipSubType then
+							--指定时间显示限时装备
+							if eq.showTime[1] > 0 then
+								local st=os.time({year=eq.showTime[1],month=eq.showTime[2],day=eq.showTime[3],hour=0,min=0,sec=0})
+								local ot=os.time({year=eq.overTime[1],month=eq.overTime[2],day=eq.overTime[3],hour=0,min=0,sec=0})
+								if nowTime < st or nowTime > ot then
+									break
+								end
+							end
+							equips[l]=eq
+							l=l+1
+							break
+						end
+					end
+				end
+			end
+		end
 		count = table.getn(equips)
 		getCanMakeEquips()
 		pushLoadingItem(true,defaultNum)

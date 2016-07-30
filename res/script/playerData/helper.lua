@@ -198,6 +198,10 @@ function helper.getResOutput(resType_, addRes_, filter_)
 		end
 	end
 
+	if addn < 0 then
+		addn = 0
+	end
+
 	if addRes_ == true then
 		return math.floor(num*addn/10000)
 	else

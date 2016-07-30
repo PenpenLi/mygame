@@ -105,7 +105,7 @@ end
 -- 设置数据
 function BattleItem.setData()
 	local energy = player.getEnerge()
-	haveEnergy = energy ~= nil and energy >= 20
+	haveEnergy = energy ~= nil and energy >= 0
 	if haveEnergy then
 		priority = 1
 		text:setString(string.format(hp.lang.getStrByID(8187), energy))

@@ -404,8 +404,6 @@ function UI_copyMainNew:onRemove()
 	self.uiItem1:release()
 	self.uiItem2:release()
 	self.super.onRemove(self)
-
-	game.curScene.mainMenu.recheckSelectMenu()
 end
 
 function UI_copyMainNew:locatePos()

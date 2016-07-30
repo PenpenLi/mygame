@@ -42,7 +42,12 @@ function UnionGiftItem:initTouchEvent()
 						info = string.format(str, hp.lang.getStrByID(6018), data.num)
 					elseif data.type == 3 then
 						-- 具体物品
-						info = string.format(str, hp.gameDataLoader.getInfoBySid("item", data.sid).name, data.num)
+						if data.sid > 20000 then
+							info = string.format(str, hp.gameDataLoader.getInfoBySid("item", data.sid).name, data.num)
+						-- 材料
+						else
+							info = string.format(str, hp.gameDataLoader.getInfoBySid("equipMaterial", data.sid).name, data.num)
+						end
 					end
 					Scene.showMsg({4001, info})
 					-- 移除
@@ -90,7 +95,6 @@ function UnionGiftItem:initUI()
 	local get = content:getChildByName("Image_getBtn")
 	get:setTag(self.data.id)
 	get:addTouchEventListener(self.onReceiveTouch)
-	self.get = get
 end
 
 -- 心跳

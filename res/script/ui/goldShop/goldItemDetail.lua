@@ -30,6 +30,8 @@ function UI_goldItemDetail:init(sid_)
 
 	hp.uiHelper.uiAdaption(self.item)
 
+	self:registMsg(hp.MSG.GOLD_SHOP)
+
 	self:initShow()
 end
 
@@ -99,4 +101,12 @@ end
 function UI_goldItemDetail:onRemove()
 	self.item:release()
 	self.super.onRemove(self)
+end
+
+function UI_goldItemDetail:onMsg(msg_, param_)
+	if msg_ == hp.MSG.GOLD_SHOP then
+		if param_.msgType == 2 then
+			self:close()
+		end
+	end
 end

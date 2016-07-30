@@ -54,7 +54,7 @@ end
 local function onBtnTouch(sender, eventType)
 	hp.uiHelper.btnImgTouched(sender, eventType)
 	if eventType == TOUCH_EVENT_ENDED then
-		game.curScene:getBuildingBySid(1022):onClicked()
+		player.buildingMgr.getBuildingObjBySid(1022):onClicked()
 	end
 end
 

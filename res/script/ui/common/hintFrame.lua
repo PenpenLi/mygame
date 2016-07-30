@@ -40,6 +40,9 @@ function UI_hintFrame:init()
 	for i, v in ipairs(widgetName) do
 		self.component[i + 9] = self.content:getChildByName(v)
 	end
+	self.labelSize = self.component[13]:getSize()
+	local size_ = self.component[10]:getSize()
+	self.noImageSize = {height=self.labelSize.height, width=self.labelSize.width + size_.width}
 
 	self.opacity = {}
 	for i, v in ipairs(self.component) do
@@ -62,9 +65,11 @@ function UI_hintFrame:setInfo(param_)
 		self.component[10]:setVisible(true)
 		self.component[11]:setVisible(true)
 		self.component[11]:loadTexture(hintInfo_.image)
+		self.component[13]:setSize(self.labelSize)
 	else
 		self.component[10]:setVisible(false)
 		self.component[11]:setVisible(false)
+		self.component[13]:setSize(self.noImageSize)
 	end
 	self.component[12]:setString(hintInfo_.title)
 	table.remove(param_, 1)

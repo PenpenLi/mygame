@@ -43,7 +43,10 @@ function UI_induceHero:init(building_, prisonMgr_)
 		self:addUI(ui)
 	end
 	local function induce()
-		prisonMgr.induceHero(curSelectItem:getTag())
+		local rst, cmdSender = prisonMgr.induceHero(curSelectItem:getTag())
+		if rst then
+			self:showLoading(cmdSender, induceBtn)
+		end
 	end
 	local function onInduceTouched(sender, eventType)
 		if curSelectItem==nil then

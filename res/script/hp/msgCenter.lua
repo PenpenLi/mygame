@@ -98,6 +98,7 @@ hp.MSG =
 	KINGDOM_ACTIVITY = 72,			-- 王国活动
 	WORLD_INFO = 73,				-- 世界地图
 	NOVICE_GIFT = 74,				-- 新手礼包
+	BOSS_ACTIVITY = 75,				-- 精英BOSS活动
 }
 
 

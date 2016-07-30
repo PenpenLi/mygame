@@ -94,7 +94,7 @@ end
 function UI_unionShopCatalog:updateInfo(info_)
 	for i, v in pairs(info_) do
 		if self.uiStar[v[1]] ~= nil then
-			self.uiStar[v[1]]:setString(v[2])
+			self.uiStar[v[1]]:setString(string.format(hp.lang.getStrByID(5527), v[2]))
 		end
 	end
 end
@@ -142,6 +142,7 @@ function UI_unionShopCatalog:refreshShow()
 
 			-- 星星
 			self.uiStar[w.sid] = content_:getChildByName("Image_117"):getChildByName("Label_118")
+			self.uiStar[w.sid]:setString(string.format(hp.lang.getStrByID(5527), 0))
 
 			if index_ == 3 then
 				index_ = 1

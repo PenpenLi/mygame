@@ -16,6 +16,9 @@ function UI_famousHeroListDetail:init(land_)
 	local isMax=false
 	local lineNum = 4
 	local heros = clone(game.data.hero)
+	--即将开拍的倒计时
+	local  timeTable = {}
+	self.timeTable = timeTable
 
 	-- function
 	local getHeroList
@@ -80,7 +83,7 @@ function UI_famousHeroListDetail:init(land_)
 	end
 
 	--显示名将图鉴
-	local function showHeroList(data)
+	local function showHeroList(data,data1)
 		local temp ={}
 		local x = 1 
 		for i,v in ipairs(heros) do
@@ -93,6 +96,49 @@ function UI_famousHeroListDetail:init(land_)
 		local lineNode = nil
 		local k = 1
 		local demoNode = nil
+
+		--即将拍卖的名将
+		if data1~=nil then
+			for i,v in ipairs(data1) do
+				local sid=v[1]
+				local time=v[2]
+				if time > 0 then
+					local linePos = k%lineNum
+					local px = 0
+					if linePos==0 then
+						px = (lineNum-1)*demoSize.width
+					else
+						px = (linePos-1)*demoSize.width
+					end
+					if linePos==1 then
+						lineNode = lineDemo:clone()
+						ListView_hero:pushBackCustomItem(lineNode)
+					end
+					demoNode = demo:clone()
+					demoNode:setPosition(px, 0)
+					--设置武将信息
+					local heroInfo = hp.gameDataLoader.getInfoBySid("hero", sid)
+					if heroInfo ~= nil then
+						demoNode:setTag(heroInfo.sid)
+						demoNode:getChildByName("img_heroIcon"):loadTexture(config.dirUI.heroHeadpic ..sid..".png")
+						demoNode:getChildByName("Label_heroName"):setColor(cc.c3b(247, 204, 9))
+						demoNode:getChildByName("Label_heroName"):setString(heroInfo.name)
+						demoNode:getChildByName("Image_bg"):setVisible(true)
+						demoNode:getChildByName("Label_time_str"):setVisible(true)
+						demoNode:getChildByName("Label_time_str"):setString(hp.lang.getStrByID(6055))
+						demoNode:getChildByName("Label_time"):setVisible(true)
+						demoNode:getChildByName("Label_time"):setString(hp.datetime.strTime(time))
+						lineNode:addChild(demoNode)
+						demoNode:addTouchEventListener( detailCallBack )
+						local timeNode={}
+						timeNode.node=demoNode
+						timeNode.time=time
+						table.insert(self.timeTable, timeNode)
+						k = k+1
+					end
+				end
+			end
+		end
 
 		--已出世名将
 		for i,v in ipairs(data) do
@@ -125,19 +171,22 @@ function UI_famousHeroListDetail:init(land_)
 				lineNode = lineDemo:clone()
 				ListView_hero:pushBackCustomItem(lineNode)
 			end
-			demoNode = demo:clone()
-			demoNode:setPosition(px, 0)
+			
 			--设置武将信息
 			local heroInfo = hp.gameDataLoader.getInfoBySid("hero", sid)
-			demoNode:setTag(sid)
-			demoNode:getChildByName("img_heroIcon"):loadTexture(config.dirUI.heroHeadpic .. sid..".png")
-			demoNode:getChildByName("Label_heroName"):setColor(cc.c3b(247, 204, 9))
-			demoNode:getChildByName("Label_heroName"):setString(heroInfo.name)
-			demoNode:getChildByName("Label_heroMasterName"):setString(name)
-			demoNode:getChildByName("Label_position"):setString(pos)
-			demoNode:addTouchEventListener( detailCallBack )
-			lineNode:addChild(demoNode)
-			k = k+1
+			if heroInfo ~= nil then
+				demoNode = demo:clone()
+				demoNode:setPosition(px, 0)
+				demoNode:setTag(sid)
+				demoNode:getChildByName("img_heroIcon"):loadTexture(config.dirUI.heroHeadpic .. sid..".png")
+				demoNode:getChildByName("Label_heroName"):setColor(cc.c3b(247, 204, 9))
+				demoNode:getChildByName("Label_heroName"):setString(heroInfo.name)
+				demoNode:getChildByName("Label_heroMasterName"):setString(name)
+				demoNode:getChildByName("Label_position"):setString(pos)
+				demoNode:addTouchEventListener( detailCallBack )
+				lineNode:addChild(demoNode)
+				k = k+1
+			end
 		end
 
 		--未出世名将
@@ -146,10 +195,18 @@ function UI_famousHeroListDetail:init(land_)
 		for i=1, size do
 			mark=0
 			if data~=nil then
-				for j,v in ipairs(data) do
+				for j,v in ipairs(data1) do
 					if v[1]==temp[i].sid then
 						mark=1
 						break
+					end
+				end
+				if mark == 0 then
+					for j,v in ipairs(data) do
+						if v[1]==temp[i].sid then
+							mark=1
+							break
+						end
 					end
 				end
 			end
@@ -203,8 +260,8 @@ function UI_famousHeroListDetail:init(land_)
 				end
 			end
 			local pos=string.format(hp.lang.getStrByID(6045),v[7])
-
 			local item = demo:clone()
+
 			ListView_hero:pushBackCustomItem(item)
 
 			local heroInfo = hp.gameDataLoader.getInfoBySid("hero", v[1])
@@ -243,7 +300,7 @@ function UI_famousHeroListDetail:init(land_)
 				-- if len>0 then
 				-- 	showHeroList(data.hero)
 				-- end
-				showHeroList(data.hero)
+				showHeroList(data.hero,data.heroS)
 			end
 		end
 	end
@@ -267,6 +324,22 @@ function UI_famousHeroListDetail:init(land_)
 	getHeroList()
 	--showHeros()
 	--showHeroList()
+end
+
+function UI_famousHeroListDetail:heartbeat(dt)
+	if #self.timeTable>0 then
+		for i,v in ipairs(self.timeTable) do
+			if v ~=nil then	
+				if (v.time>0) then
+					v.time = v.time - dt
+					--cclog_ (v.time .. "sssssssssssssssssssssstime")
+					v.node:getChildByName("Label_time"):setString( hp.datetime.strTime(v.time) )
+				else
+					getHeroList()
+				end
+			end
+		end
+	end
 end
 
 

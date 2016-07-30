@@ -184,7 +184,7 @@ function UI_buildUpgrade:init(param_)
 				else
 					--升级
 					oper.type = 4
-					oper.side = block.type
+					oper.side = bInfo.type
 				end
 				cmdData.operation[1] = oper
 				local cmdSender = hp.httpCmdSender.new(onHttpResponse)
@@ -222,7 +222,7 @@ function UI_buildUpgrade:init(param_)
 				else
 					--立即升级
 					oper.type = 6
-					oper.side = block.type
+					oper.side = bInfo.type
 				end
 				cmdData.operation[1] = oper
 				local cmdSender = hp.httpCmdSender.new(onHttpResponse)
@@ -297,7 +297,7 @@ function UI_buildUpgrade:init(param_)
 	local function goUpdateBuilding(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			local building = game.curScene:getBuildingBySid(sender:getTag())
+			local building = player.buildingMgr.getBuildingObjBySid(sender:getTag())
 			if building==nil then
 				require("ui/msgBox/msgBox")
 				local msgBox = UI_msgBox.new(hp.lang.getStrByID(1191), 

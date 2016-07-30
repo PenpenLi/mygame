@@ -127,6 +127,9 @@ function UI_mainBuildingProfile:refreshPage2()
 
 			-- 加成
 			local add_ = player.helper.getAttrAddn(w) / 100
+			if add_ < 0 then
+				add_ = 0
+			end
 			content_:getChildByName("Label_43_1"):setString(add_.."%")
 			index_ = index_ + 1
 		end

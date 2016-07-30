@@ -12,22 +12,8 @@ UI_skillTree = class("UI_skillTree", UI)
 function UI_skillTree:init(hero_)
 	-- data
 	-- ===============================
-	local lv = player.getLv()
 	local skillList = hero_.getSkillList()
-	local pointCount = 0
-	local pointUsed = 0
-	for i,v in ipairs(game.data.heroLv) do
-		pointCount = pointCount+v.dit
-		if v.level==lv then
-			heroConstInfo = v
-			break
-		end
-	end
-	for k,v in pairs(skillList) do
-		pointUsed = pointUsed+v
-	end
-	--pointCount = 100
-	self.pointRemain = pointCount - pointUsed
+	self.pointRemain = hero_.getSkillPoint()
 	self.hero = hero_
 
 	-- ui
@@ -231,7 +217,7 @@ function UI_skillTree:init(hero_)
 			if data.result~=nil and data.result==0 then
 				skillList = {}
 				hero_.setSkillList(skillList)
-				self.pointRemain = pointCount
+				self.pointRemain = hero_.getSkillPoint()
 				refreshSkillTree()
 
 				if goldNum==0 then

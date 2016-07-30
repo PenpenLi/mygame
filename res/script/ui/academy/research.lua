@@ -185,7 +185,7 @@ function UI_research:init(researchType_, researchId_)
 	local function goUpdateBuilding(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			local building = game.curScene:getBuildingBySid(1007)
+			local building = player.buildingMgr.getBuildingObjBySid(1007)
 			if building==nil then
 				require("ui/msgBox/msgBox")
 				local msgBox = UI_msgBox.new(hp.lang.getStrByID(1191), 

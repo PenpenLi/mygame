@@ -1,0 +1,5 @@
+活动ID	标题	文字说明	开启时间	结束时间	刷新BOSS的ID	每星期刷新日	每次刷新时间	开放的装备
+sid	title		startTime	endTime	bossSid	weeks	times	
+sid	title	desc	startTime	endTime	bossIds	refreshDay	refreshTime	equip
+int	string	string	ints	ints	ints	ints	ints	ints
+1001	南蛮入侵	每晚6点全图随机刷新精英BOSS—南蛮.获得的材料可制造以下限时装备!	2014|12|23	2015|2|28	20101|20102|20103|20104|20105|20106	1|2|3|4|5|6|7	18|00	60001|60002|60003|60004|60005

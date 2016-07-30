@@ -460,23 +460,7 @@ function UI_cdList:init()
 	-- registMsg
 	self:registMsg(hp.MSG.CD_STARTED)
 	self:registMsg(hp.MSG.CD_FINISHED)
-	self:registMsg(hp.MSG.GUIDE_STEP)
 	self:registMsg(hp.MSG.MARCH_MANAGER)
-
-	-- 进行新手引导绑定
-	-- ================================
-	local function bindGuideUI( step )
-		if step==2005 or step==3005 or step==7005 then
-			for i, v in ipairs(cdItems) do
-				if v.type==cdBox.CDTYPE.BUILD then
-					cdList:visit()
-					player.guide.bind2Node111(step, v.operBtn, onCDBtnTouched)
-					break
-				end
-			end
-		end
-	end
-	self.bindGuideUI = bindGuideUI
 end
 
 --onRemove
@@ -493,8 +477,6 @@ function UI_cdList:onMsg(msg_, paramInfo_)
 		self.addCDItem(paramInfo_.cdType, true)
 	elseif msg_==hp.MSG.CD_FINISHED then
 		self.deleteCDItem(paramInfo_.cdType)
-	elseif msg_==hp.MSG.GUIDE_STEP then
-		self.bindGuideUI(paramInfo_)
 	elseif msg_==hp.MSG.MARCH_MANAGER then
 		self.marchCDItemsFlash()
 		

@@ -45,10 +45,12 @@ function UI_gemEmbed:init(equip_, bagUI_)
 	local equipImg = equipBg:getChildByName("Image_equip")
 	local equipName = equipBg:getChildByName("Label_name")
 	local equipLv = equipBg:getChildByName("Label_lv")
+	local equipDesc = equipBg:getChildByName("Label_desc")
 	equipBg:loadTexture(string.format("%scolorframe_%d.png", config.dirUI.common, equip.lv))
 	equipImg:loadTexture(string.format("%s%d.png", config.dirUI.equip, equip.sid))
 	equipName:setString(equipInfo.name)
 	equipLv:setString(string.format(hp.lang.getStrByID(3503), equipInfo.mustLv))
+	equipDesc:setString(equipInfo.desc)
 
 	--gem
 
@@ -73,6 +75,14 @@ function UI_gemEmbed:init(equip_, bagUI_)
 	local function onEmbedTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
+			if equipInfo.overTime[1]>0 then
+			-- 限时装备，无法进行宝石镶嵌
+				require("ui/msgBox/msgBox")
+				local ui = UI_msgBox.new(hp.lang.getStrByID(6034), hp.lang.getStrByID(3519), hp.lang.getStrByID(1209))
+				self:addModalUI(ui)
+				return
+			end
+
 			selectPos = sender:getTag()
 			require("ui/smith/gemSelect")
 			local ui = UI_gemSelect.new(equip, selectPos, gemCallback)
@@ -154,7 +164,11 @@ function UI_gemEmbed:init(equip_, bagUI_)
 				attrNameNode = attrCont:getChildByName("Label_type")
 				attrNumNode = attrCont:getChildByName("Label_num")
 				attrNameNode:setString(attrInfo.desc)
-				attrNumNode:setString("+"..(attrNum/100).."%")
+				if attrNum>=0 then
+					attrNumNode:setString("+"..(attrNum/100).."%")
+				else
+					attrNumNode:setString(""..(attrNum/100).."%")
+				end
 
 				listNode:pushBackCustomItem(attrNode)
 				equipAttrNum = equipAttrNum+1
@@ -173,7 +187,11 @@ function UI_gemEmbed:init(equip_, bagUI_)
 					attrNameNode = attrCont:getChildByName("Label_type")
 					attrNumNode = attrCont:getChildByName("Label_num")
 					attrNameNode:setString(attrInfo.desc)
-					attrNumNode:setString("+"..(attrNum/100).."%")
+					if attrNum>=0 then
+						attrNumNode:setString("+"..(attrNum/100).."%")
+					else
+						attrNumNode:setString(""..(attrNum/100).."%")
+					end
 
 					listNode:pushBackCustomItem(attrNode)
 					equipAttrNum = equipAttrNum+1
@@ -201,8 +219,23 @@ function UI_gemEmbed:init(equip_, bagUI_)
 				--摧毁成功
 				equip:destory()
 				bagUI_:refreshSelectedEquip()
-				self:close()
 				player.addItem(data.sid, 1)
+				--弹出获得材料提示
+				local gemInfo = hp.gameDataLoader.getInfoBySid("gem", data.sid)
+				if gemInfo~=nil then
+					require("ui/smith/gemMaterialInfo")
+					local ui = UI_gemMaterialInfo.new(1,gemInfo)
+					self:addModalUI(ui)
+				else
+					local materialInfo = hp.gameDataLoader.getInfoBySid("equipMaterial", data.sid)
+					if materialInfo~=nil then
+						require("ui/smith/gemMaterialInfo")
+						local ui = UI_gemMaterialInfo.new(2,materialInfo)
+						self:addModalUI(ui)
+					end
+				end
+
+				self:close()			
 			end
 		end
 	end

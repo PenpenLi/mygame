@@ -230,18 +230,34 @@ function UI_sourceHelp:initCallBack()
 			end
 
 			if restTotal_ ~= 0 then
-				local index_ = 1
 				local used_ = 0
+				local floor_ = {}
 				for i = 1, 5 do
 					if i ~= tag_ then
 						local per_ = tonumber(self.resouceNum[i]:getString()) / restTotal_
-						used_ = used_ + math.floor(restNumber_ * per_)
+						floor_[i] = math.floor(restNumber_ * per_)
+						used_ = used_ + floor_[i]
 						changeResource(i, math.floor(restNumber_ * per_), true)
-						index_ = index_ + 1
 					end
 				end
 				-- 补全
-				changeResource(tag_, self.loaded - used_, false)								
+				local minus_ = restNumber_ - used_
+				if minus_ > 0 then
+					local add_ = 0
+					for i, v in pairs(floor_) do
+						floor_[i] = floor_[i] + 1
+						add_ = add_ + 1
+						if add_ == minus_ then
+							break
+						end
+					end
+				end
+
+				-- 设置
+				for i, v in pairs(floor_) do
+					changeResource(i, v, true)
+				end
+				changeResource(tag_, resNum, false)
 			else
 				for i = 1, 5 do
 					if i ~= tag_ then

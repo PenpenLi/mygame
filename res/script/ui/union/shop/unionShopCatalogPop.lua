@@ -170,7 +170,7 @@ function UI_unionShopCatalogPop:updateInfo(info_)
 	content_:getChildByName("Label_219_0"):setString(string.format(hp.lang.getStrByID(1181), info_[2]))
 
 	-- 申请数量
-	content_:getChildByName("Image_223"):getChildByName("Label_233"):setString(tostring(table.getn(info_[3])))
+	self.requestNum:setString(string.format(hp.lang.getStrByID(5527), table.getn(info_[3])))
 end
 
 function UI_unionShopCatalogPop:changeItem(sid_)
@@ -224,6 +224,9 @@ function UI_unionShopCatalogPop:initUI()
 	self.totalCost:setString("0")
 	-- 数量
 	self.number = content_:getChildByName('Image_223_0'):getChildByName("Label_233")
+	-- 申请人数
+	self.requestNum = content_:getChildByName("Image_223"):getChildByName("Label_233")
+	self.requestNum:setString(string.format(hp.lang.getStrByID(5527), 0))
 	-- 滑动条
 	local sliderContainer_ = content_:getChildByName("Panel_4920_0")
 	self.slider = sliderContainer_:getChildByName("ImageView_sliderBg"):getChildByName("Slider_produce")

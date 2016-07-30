@@ -782,7 +782,6 @@ function Alliance:updateUnionGift(info_)
 	-- end
 
 	for n = 1, 2 do
-		-- for i,v in ipairs(info_) do
 		-- 倒序排列
 		for i = #info_, 1, -1 do
 			local v = info_[i]
@@ -807,19 +806,25 @@ end
 
 function Alliance:receiveGift(id_)
 	local giftInfo_
-	local index
 	for i,v in ipairs(self.unionGift) do
 		if id_ == v.id then
 			giftInfo_ = hp.gameDataLoader.getInfoBySid("unionGift", v.sid)
-			index = i
+			v.state = 0
 		end
 	end
 	self.baseInfo.giftExp = giftInfo_.exp + self.baseInfo.giftExp
 	self.baseInfo.giftLevel, self.baseInfo.giftCurLvExp, self.baseInfo.levelUpExp = Alliance.calcGiftLevel(self.baseInfo.giftExp)
-	-- self.unionGift[index] = nil
-	table.remove(self.unionGift, index)
 	self:changeHomePageInfo("gift", self.unionHomePageData.gift - 1)
 	hp.msgCenter.sendMsg(hp.MSG.UNION_RECEIVE_GIFT, id_)
+end
+
+-- add by huangwei 清除礼包
+function Alliance:clearGift(id_)
+	for i,v in ipairs(self.unionGift) do
+		if id_ == v.id then
+			table.remove(self.unionGift, i)
+		end
+	end
 end
 
 -- 一些事件响应

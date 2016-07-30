@@ -108,8 +108,13 @@ function UI_questDetail:initUI()
 			local buidingInfo = hp.gameDataLoader.getInfoBySid("building", buildingId)
 			local questType = self.questInfo.showtype
 			self:closeAll()
+			if game.curScene.mapLevel ~= 3 then
+				require("scene/cityMap")
+		        local map = cityMap.new()
+		        map:enter()
+			end
 			if questType == 1 then
-				local buiding = game.curScene:getBuildingBySid(buildingId)
+				local buiding = player.buildingMgr.getBuildingObjBySid(buildingId)
 				if buiding == nil then
 					self:closeAll()
 				else

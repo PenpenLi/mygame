@@ -104,19 +104,7 @@ function UI_questMain:init()
 	self:registMsg(hp.MSG.MISSION_DAILY_COMPLETE)
 	self:registMsg(hp.MSG.MISSION_DAILY_START)
 	self:registMsg(hp.MSG.MISSION_DAILY_REFRESH)
-	self:registMsg(hp.MSG.GUIDE_STEP)
 	self:registMsg(hp.MSG.MISSION_DAILY_QUICKFINISH)
-
-
-	-- 进行新手引导绑定
-	-- ================================
-	local function bindGuideUI( step )
-		if step==4003 then
-			self.wigetRoot:getChildByName("ListView_15172"):visit()
-			player.guide.bind2Node111(step, self.backgroud[1], OnQuestBtnTouched)
-		end
-	end
-	self.bindGuideUI = bindGuideUI
 end
 
 function UI_questMain:updateUIShow()
@@ -213,8 +201,6 @@ function UI_questMain:onMsg(msg_, parm_)
 		self:updateCheckStatus()		
 	elseif (msg_ == hp.MSG.MISSION_DAILY_START) or (msg_ == hp.MSG.MISSION_DAILY_REFRESH) or (msg_ == hp.MSG.MISSION_DAILY_QUICKFINISH) then
 		self:updateRecievable()
-	elseif msg_==hp.MSG.GUIDE_STEP then
-		self.bindGuideUI(parm_)
 	end
 end
 

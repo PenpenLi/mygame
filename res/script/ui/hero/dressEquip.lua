@@ -30,6 +30,7 @@ function UI_dressEquip:init(sender_,index,type_)
 	local onflag =nil
 	local selectImg = nil
 	local selectBagNode = nil
+	local equipBag = player.equipBag
 
 	-- functions
 	local refreshMaterialList
@@ -52,9 +53,6 @@ function UI_dressEquip:init(sender_,index,type_)
 	
 
 	-- 显示装备列表
-	local equipBag = player.equipBag
-	local equips = equipBag.getEquipsByType(equipType)
-	local size = #equips
 	local infoPanel = widgetRoot:getChildByName("Panel_info_bg")
 	local attrListNode = widgetRoot:getChildByName("ListView_attrs")
 	attrListNode:setItemModel(attrListNode:getItem(0))
@@ -79,7 +77,7 @@ function UI_dressEquip:init(sender_,index,type_)
 	local bagSize = bagDemo:getSize()
 	bagSize.width = bagSize.width*bagDemo:getScale()
 
-	listNode:removeAllItems()
+	
 
 	-- 装备按钮点击事件
 	local function onEquipTouched(sender, eventType)
@@ -130,6 +128,11 @@ function UI_dressEquip:init(sender_,index,type_)
 				onflag=flag
 			end
 		end
+		-- 限时装备隐藏宝石框
+		local equipInfo = hp.gameDataLoader.getInfoBySid("equip", equip_.sid)
+		if equipInfo~=nil and equipInfo.overTime[1]>0 then
+			colorBg:getChildByName("Image_cell"):setVisible(false)
+		end
 	end
 	-- 设置装备属性
 	local function setAttrInfo()
@@ -147,7 +150,13 @@ function UI_dressEquip:init(sender_,index,type_)
 				attrNameNode = attrNode:getChildByName("Label_attr_name")
 				attrNumNode = attrNode:getChildByName("Label_attr_value")
 				attrNameNode:setString(attrInfo.desc)
-				attrNumNode:setString(string.format("+%0.2f%%", attrNum/100))
+				if attrNum/100 >= 0 then
+					attrNumNode:setString(string.format("+%0.2f%%", attrNum/100))
+				else
+					--显示红色
+					attrNumNode:setColor(cc.c3b(235, 94, 107))
+					attrNumNode:setString(string.format("%0.2f%%", attrNum/100))
+				end
 				equipAttrNum = equipAttrNum+1
 			end
 		end
@@ -163,7 +172,13 @@ function UI_dressEquip:init(sender_,index,type_)
 					attrNameNode = attrNode:getChildByName("Label_attr_name")
 					attrNumNode = attrNode:getChildByName("Label_attr_value")
 					attrNameNode:setString(attrInfo.desc)
-					attrNumNode:setString(string.format("+%0.2f%%", attrNum/100))
+					if attrNum/100 >= 0 then
+						attrNumNode:setString(string.format("+%0.2f%%", attrNum/100))
+					else
+						--显示红色
+						attrNumNode:setColor(cc.c3b(235, 94, 107))
+						attrNumNode:setString(string.format("%0.2f%%", attrNum/100))
+					end
 					equipAttrNum = equipAttrNum+1
 				end
 			end
@@ -193,8 +208,16 @@ function UI_dressEquip:init(sender_,index,type_)
 	-- 设置选中装备的信息
 	function refreshSelectedEquip()
 		equip=player.equipBag.getEquipById(equip.id)
+		equipNode = nil
+		equipInfo = nil
+		onflag =nil
+		selectImg = nil
+		selectBagNode = nil
+		showEquipList()
 		setSelectedEquip()
-		setEquipInfo(selectBagNode,equip)
+		if selectBagNode ~= nil then
+			setEquipInfo(selectBagNode,equip)
+		end
 		if sender ~=nil then
 			sender.refreshEquipInfo(equipIndex)
 		end
@@ -325,7 +348,7 @@ function UI_dressEquip:init(sender_,index,type_)
 				local ui = UI_gemEmbed.new(equip, self)
 				self:addUI(ui)
 			elseif sender==smithBtn then				
-				local building=game.curScene:getBuildingBySid(1011)
+				local building=player.buildingMgr.getBuildingObjBySid(1011)
 				if building ~= nil then
 					building:onClicked()
 				else
@@ -342,44 +365,66 @@ function UI_dressEquip:init(sender_,index,type_)
 	gemBtn:addTouchEventListener(onBtnTouched)
 	smithBtn:addTouchEventListener(onBtnTouched)
 
-	if size == 0 then
-		infoPanel:setVisible(false)
-		attrListNode:setVisible(false)
-		local framePanel = widgetRoot:getChildByName("Panel_frame")
-		framePanel:setVisible(false)
-	else
-		
-		local lineNode = nil
-		local bagNode = nil
-		local equipNode = nil
-		local k = 1
-		local equipedEq = player.equipBag.getEquips_equiped()[equipIndex]
-		for i=1, size do
-			local linePos = k%lineNum
-			local px = 0
-			if linePos==0 then
-				px = (lineNum-1)*bagSize.width
-			else
-				px = (linePos-1)*bagSize.width
+	-- 显示装备列表
+	function showEquipList()
+		listNode:removeAllItems()
+		local equips = equipBag.getEquipsByType(equipType)
+		local size = #equips
+		if size == 0 then
+			infoPanel:setVisible(false)
+			attrListNode:setVisible(false)
+			local framePanel = widgetRoot:getChildByName("Panel_frame")
+			framePanel:setVisible(false)
+		else
+			
+			local lineNode = nil
+			local bagNode = nil
+			local equipNode = nil
+			local k = 1
+			local equipedEq = player.equipBag.getEquips_equiped()[equipIndex]
+			-- 当前穿戴的装备
+			if equipedEq~=nil then
+				lineNode = lineDemo:clone()
+				listNode:pushBackCustomItem(lineNode)
+				bagNode = bagDemo:clone()
+				bagNode:setPosition(0, 0)
+				lineNode:addChild(bagNode)
+				setEquipInfo(bagNode, equipedEq)
+
+				equip = equipedEq
+				selectBagNode=bagNode
+				k = k+1
 			end
-			if equips[i]~=nil then
-				if equips[i]:isEquiped()==false or (equipedEq~=nil and equips[i].id==equipedEq.id) then
-					if linePos==1 then
-						lineNode = lineDemo:clone()
-						listNode:pushBackCustomItem(lineNode)
-					end
-					bagNode = bagDemo:clone()
-					bagNode:setPosition(px, 0)
-					lineNode:addChild(bagNode)
-					setEquipInfo(bagNode, equips[i])
-					if k==1 then
-						equip = equips[i]
-						selectBagNode=bagNode
-					end	
-					k = k+1
+			-- 其他的装备
+
+			for i=1, size do
+				local linePos = k%lineNum
+				local px = 0
+				if linePos==0 then
+					px = (lineNum-1)*bagSize.width
+				else
+					px = (linePos-1)*bagSize.width
 				end
+				if equips[i]~=nil then
+					if equips[i]:isEquiped()==false then
+						if linePos==1 then
+							lineNode = lineDemo:clone()
+							listNode:pushBackCustomItem(lineNode)
+						end
+						bagNode = bagDemo:clone()
+						bagNode:setPosition(px, 0)
+						lineNode:addChild(bagNode)
+						setEquipInfo(bagNode, equips[i])
+						if k==1 then
+							equip = equips[i]
+							selectBagNode=bagNode
+						end	
+						k = k+1
+					end
+				end	
 			end	
-		end	
+		end
 	end
+	showEquipList()
 	setSelectedEquip()
 end

@@ -67,7 +67,7 @@ function UI_reinforce:initCallBack()
 				end
 				require "ui/march/march"			
 				if self.member ~=nil then
-					UI_march.openMarchUI(self, self.member:getPosition(), globalData.MARCH_TYPE.REINFORCE, {maxNumber=soldierNum_, armyID=0}, callBack)
+					UI_march.openMarchUI(self, self.member:getPosition(), globalData.MARCH_TYPE.REINFORCE, {maxNumber=soldierNum_, armyID=0, endTime=0}, callBack)
 				end
 			end
 
