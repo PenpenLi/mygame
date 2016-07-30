@@ -1,6 +1,6 @@
-﻿--
+--
 -- ui/mail/marchMail.lua
--- 主建筑更多信息
+-- 采集邮件
 --===================================
 require "ui/frame/popFrame"
 require "ui/UI"
@@ -40,8 +40,6 @@ function UI_marchMail:init(Info,mailType_,mailIndex)
 	local img = hp.gameDataLoader.getInfoBySid("resInfo", Info.resTp + 1).image
 	local resTpName = hp.gameDataLoader.getInfoBySid("resInfo", Info.resTp + 1).name
 	
-	local materials = hp.gameDataLoader.getInfoBySid("equipMaterial", Info.materials )
-	
 	
 	Panel_item:getChildByName("Panel_contItem1"):getChildByName("Image_icon"):
 		loadTexture(config.dirUI.common .. img)
@@ -50,8 +48,12 @@ function UI_marchMail:init(Info,mailType_,mailIndex)
 	Panel_item:getChildByName("Panel_contItem1"):getChildByName("Label_col"):setString( Info.resNum)
 	
 	if Info.materials > 0 then
-		Panel_item:getChildByName("Panel_contItem2"):getChildByName("Label_name"):setString( materials.name)
-		Panel_item:getChildByName("Panel_contItem2"):getChildByName("Label_col"):setString( "1")
+		local materials = hp.gameDataLoader.getInfoBySid("equipMaterial", Info.materials)
+		if materials == ni then
+			materials = hp.gameDataLoader.getInfoBySid("gem", Info.materials)
+		end
+		Panel_item:getChildByName("Panel_contItem2"):getChildByName("Label_name"):setString(materials.name)
+		Panel_item:getChildByName("Panel_contItem2"):getChildByName("Label_col"):setString("1")
 		
 	else
 		Panel_item:getChildByName("Panel_contItem2"):getChildByName("Label_noFnd"):setString(hp.lang.getStrByID(7715))
@@ -70,7 +72,7 @@ function UI_marchMail:init(Info,mailType_,mailIndex)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			self:close()
-			hp.mailCenter.deleteMail(mailType_, {mailIndex})
+			player.mailCenter.deleteMail(mailType_, {mailIndex})
 		end
 	end
 	

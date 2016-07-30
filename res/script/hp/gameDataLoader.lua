@@ -165,11 +165,35 @@ function hp.gameDataLoader.loadData()
 	data.watchtower	   =	loadFunc("data/B_watchtower.tab")
 	data.hallofwar     =    loadFunc("data/B_hallofwar.tab")
 	data.villa         =    loadFunc("data/B_villa.tab")
-
+	data.instanceGroup =    loadFunc("data/InstanceGroup.tab")
+	data.instance      =    loadFunc("data/Instance.tab")
+	data.groupShow     =    loadFunc("data/instanceGroupShow.tab")
+	data.bufShow	   =	loadFunc("data/BufShowConfig.tab")
+	data.uiBufManager  =	loadFunc("data/UIBufManager.tab")
+	data.battleArmy	   =	loadFunc("data/battleArmy.tab")
+	data.notice		   =	loadFunc("data/notice.tab")
+	data.mansionTalk   =	loadFunc("data/MansionTalk.tab")
+	data.personalEvent =	loadFunc("data/PersonalEvent.tab")
+	data.eventRank 	   =	loadFunc("data/EventRank.tab")
+	data.kingTitle 	   =	loadFunc("data/KingTitle.tab")
+	data.cityPeople    =    loadFunc("data/cityPeople.tab")
+	data.cityElement   =    loadFunc("data/CityElement.tab")
+	data.playerBattleInfo   =    loadFunc("data/PlayerBattleInfo.tab")
+	data.recharge     =    loadFunc("data/Recharge.tab")
+	data.allienceEvent =    loadFunc("data/AllienceEvent.tab")
+	data.unionActRank  =    loadFunc("data/A_EventRank.tab")
 	data.resType       =    {{"gold", "钻石"}, {"silver", "白银"}, {"food", "粮草"}, 
 							{"wood", "木材"}, {"rock", "石材"}, {"mine", "生铁"}, 
 							{"exp", "武将经验"}, {"chip", "赌资"}, {"vip_exp", "VIP积分"}}
-	
+	data.daily         =    loadFunc("data/Daily.tab")
+	data.daily_s       = 	loadFunc("data/Daily_S.tab")
+	data.kingEvent     = 	loadFunc("data/KingEvent.tab")
+	data.k_eventRank_a =	loadFunc("data/K_EventRank_A.tab")
+	data.k_eventRank_e =	loadFunc("data/K_EventRank_E.tab")
+	data.pushConfig	   =	loadFunc("data/pushConfig.tab")
+	data.serverList    =    loadFunc("data/serverInfo/test_ServerList.tab")
+	data.noviceGift	   =    loadFunc("data/Daily_X.tab")
+
 	return data
 end
 
@@ -211,7 +235,7 @@ function hp.gameDataLoader.getBuildingInfoByLevel(table_, level_, field_, defaul
 	end
 end
 
--- 多重条件查找 param_: {{field_, value_}, {field_, value_}, ...}
+-- 多重条件查找 param_: {field_=value_, field_=value_, ...}
 function hp.gameDataLoader.multiConditionSearch(table_, param_)
 	local tb = game.data[table_]
 	if tb == nil then
@@ -221,8 +245,8 @@ function hp.gameDataLoader.multiConditionSearch(table_, param_)
 
 	for i,v in ipairs(tb) do
 		local result_ = true
-		for j, w in ipairs(param_) do
-			if v[w[1]] ~= w[2] then
+		for j, w in pairs(param_) do
+			if v[j] ~= w then
 				result_ = false
 				break
 			end
@@ -234,4 +258,22 @@ function hp.gameDataLoader.multiConditionSearch(table_, param_)
 	end
 
 	return nil
+end
+
+-- 获取道具
+function hp.gameDataLoader.getItemByID(sid_)	
+	local info_ = hp.gameDataLoader.getInfoBySid("gem", sid_)
+	local table_ = "gem"
+
+	if info_ == nil then
+		info_ = hp.gameDataLoader.getInfoBySid("equipMaterial", sid_)		
+		table_ = "material"				
+	end
+
+	if info_ == nil then
+		info_ = hp.gameDataLoader.getInfoBySid("item", sid_)
+		table_ = "item"
+	end
+
+	return info_, table_
 end

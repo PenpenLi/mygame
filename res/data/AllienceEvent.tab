@@ -1,0 +1,8 @@
+活动ID	持续时间	目标点数	点数1奖励礼包类型	点数2奖励礼包类型	点数3奖励礼包类型	目标1类型	目标1参数	目标1点数	目标2类型	目标2参数	目标2点数	名次ID奖励
+sid	endureTime	points	reward1	reward2	reward3	type1	param1	point1	type2	param2	point2	leaderReward
+sid	lasttime	points	reward1	reward2	reward3	type1	param1	point1	type2	param2	point2	leaderReward
+int	int	ints	int	int	int	int	ints	ints	int	ints	ints	int
+101	82800	625000|1250000|5000000	2	3	4	1	1|2|3|4	1|5|40|100	-1	-1	-1	1001
+102	82800	625000|1250000|5000000	2	3	4	2	1|2|3|4	1|5|40|100	3	2|3|4	1|20|100	1001
+103	82800	625000|1250000|5000000	2	3	4	4	1|2|3|4|5	1|5|20|40|100	-1	-1	-1	1001
+104	82800	625000|1250000|5000000	2	3	4	5	1|2|3|4|5	1|5|20|40|100	-1	-1	-1	1001

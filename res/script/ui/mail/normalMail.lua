@@ -1,6 +1,6 @@
 --
 -- ui/mail/normalMail.lua
--- 主建筑更多信息
+-- 普通邮件
 --===================================
 require "ui/frame/popFrame"
 require "ui/UI"
@@ -9,7 +9,7 @@ UI_normalMail = class("UI_normalMail", UI)
 
 
 --init
-function UI_normalMail:init(Info,mailType_,mailIndex)
+function UI_normalMail:init(Info,mailType_,mailIndex,parent)
 	
 	-- ui
 	-- ===============================
@@ -24,11 +24,22 @@ function UI_normalMail:init(Info,mailType_,mailIndex)
 	
 	Panel_cont:getChildByName("Label_info"):setString(Info.content)
 	
+	local heroIcon = Panel_cont:getChildByName("Image_heroIcon")
 	if Info.isSystem == 1 then
-		Panel_cont:getChildByName("Image_heroIcon"):loadTexture(config.dirUI.common .. "systemHeadPic.png")
+		heroIcon:loadTexture(config.dirUI.common .. "systemHeadPic.png")
 	else
-		Panel_cont:getChildByName("Image_heroIcon"):loadTexture(config.dirUI.heroHeadpic .. Info.heroIconSid .. ".png")
+		heroIcon:loadTexture(config.dirUI.heroHeadpic .. Info.heroIconSid .. ".png")
 	end
+
+	local function popPlayerInfo(sender, eventType)
+		hp.uiHelper.btnImgTouched(sender, eventType)
+		if eventType==TOUCH_EVENT_ENDED then
+			require "ui/common/playerInfo"
+			local ui_ = UI_playerInfo.new(Info.sendId)
+			parent:addUI(ui_)
+		end
+	end
+	heroIcon:addTouchEventListener(popPlayerInfo)
 	
 	Panel_item:getChildByName("Panel_replyCont"):getChildByName("Label_reply"):setString( hp.lang.getStrByID(7921))
 	Panel_item:getChildByName("Panel_blockCont"):getChildByName("Label_block"):setString( hp.lang.getStrByID(7922))
@@ -38,15 +49,13 @@ function UI_normalMail:init(Info,mailType_,mailIndex)
 	local replyBtn1 = Panel_item:getChildByName("Panel_replyCont"):getChildByName("Image_replyBtn")
 
 	if Info.isSystem == 1 then
-		replyBtn:loadTexture(config.dirUI.common .. "button_gray.png")
-		replyBtn:setTouchEnabled(false)
-
-		blockBtn:loadTexture(config.dirUI.common .. "button_gray.png")
-		blockBtn:setTouchEnabled(false)
-
+		
+		Panel_item:getChildByName("Panel_replyCont"):setVisible(false)
+        Panel_item:getChildByName("Panel_blockCont"):setVisible(false)
+		
+		Panel_item:getChildByName("Panel_delCont"):setPositionX(220)
+		
 	else
-		replyBtnIco:setColor(cc.c3b(255,255,255))
-		--reply
 		
 		function replyBtnOnTouched(sender, eventType)
 			hp.uiHelper.btnImgTouched(sender, eventType)
@@ -84,7 +93,7 @@ function UI_normalMail:init(Info,mailType_,mailIndex)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			self:close()
-			hp.mailCenter.deleteMail(mailType_, {mailIndex})
+			player.mailCenter.deleteMail(mailType_, {mailIndex})
 		end
 	end
 	

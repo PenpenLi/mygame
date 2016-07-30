@@ -18,6 +18,8 @@ function UI_unionInvites:init()
 	self.label = {}
 	self.tabIcon = {}
 	self.tab = {}
+	self.tabText = {}
+	self.uiSmallTabRed = {}
 
 	self.chooseID = 0
 	self.index = 1
@@ -35,13 +37,14 @@ function UI_unionInvites:init()
 	self:initUI()
 
 	local uiFrame = UI_fullScreenFrame.new()
+	uiFrame:hideTopBackground()
+	uiFrame:setTopShadePosY(776)
 	uiFrame:setTitle(hp.lang.getStrByID(1800))
 	-- addCCNode
 	-- ===============================
 	self:addChildUI(uiFrame)
 	self:addCCNode(self.wigetRoot)
 
-	hp.uiHelper.uiAdaption(self.top)
 	hp.uiHelper.uiAdaption(self.item1)
 	hp.uiHelper.uiAdaption(self.item2)
 
@@ -52,6 +55,7 @@ function UI_unionInvites:initUI()
 	self.wigetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "unionInvites.json")
 
 	local content_ = self.wigetRoot:getChildByName("Panel_29874")
+	local back_ = self.wigetRoot:getChildByName("Panel_8012")
 	for i = 1, 3 do
 		self.uiTab[i] = content_:getChildByName("ImageView_801"..imageList_[i])
 		self.label[i] = self.uiTab[i]:getChildByName("Label_"..tostring(i))
@@ -65,21 +69,23 @@ function UI_unionInvites:initUI()
 	self.colorSelected = self.label[3]:getColor()
 	self.colorUnselected = self.label[1]:getColor()
 
-	self.tab[1] = content_:getChildByName("ImageView_30314")
+	self.tab[1] = back_:getChildByName("ImageView_30314")
 	self.tab[1]:setTag(1)
-	self.tab[1]:getChildByName("Label_30316"):setString(hp.lang.getStrByID(1843))
 	self.tab[1]:addTouchEventListener(self.onSmallTabTouched)
-	self.tab[2] = content_:getChildByName("ImageView_30314_Copy0")
+	self.tab[2] = back_:getChildByName("ImageView_30314_Copy0")
 	self.tab[2]:setTag(2)
-	self.tab[2]:getChildByName("Label_30316"):setString(hp.lang.getStrByID(1828))
 	self.tab[2]:addTouchEventListener(self.onSmallTabTouched)
+	self.tabText[1] = content_:getChildByName("Label_30316")
+	self.tabText[1]:setString(hp.lang.getStrByID(1843))
+	self.tabText[2] = content_:getChildByName("Label_30317")
+	self.tabText[2]:setString(hp.lang.getStrByID(1828))
+	self.uiSmallTabRed[1] = back_:getChildByName("Image_43")
+	self.uiSmallTabRed[2] = back_:getChildByName("Image_44")
 
 	self.listView = self.wigetRoot:getChildByName("ListView_29885")
-	self.top = self.listView:getItem(0):clone()
-	self.top:retain()
-	self.item1 = self.listView:getItem(1):clone()
+	self.item1 = self.listView:getItem(0):clone()
 	self.item1:retain()
-	self.item2 = self.listView:getItem(2):clone()
+	self.item2 = self.listView:getItem(1):clone()
 	self.item2:retain()
 	self.listView:removeAllItems()
 	self.listView:setClippingType(1)
@@ -90,16 +96,20 @@ function UI_unionInvites:tabPage(id_)
 	self.listView:removeAllItems()
 
 	if id_ == 1 then
+		self.uiSmallTabRed[1]:setVisible(true)
+		self.uiSmallTabRed[2]:setVisible(false)
 		self.tab[1]:setColor(self.colorSelected)
-		self.tab[1]:getChildByName("Label_30316"):setColor(self.colorSelected)
-		self.tab[2]:setColor(self.colorUnselected)
-		self.tab[2]:getChildByName("Label_30316"):setColor(self.colorUnselected)
+		self.tabText[1]:setColor(self.colorSelected)
+		self.tab[2]:setColor(self.colorSelected)
+		self.tabText[2]:setColor(self.colorUnselected)
 		self:requestSent()
 	else
-		self.tab[1]:setColor(self.colorUnselected)
-		self.tab[1]:getChildByName("Label_30316"):setColor(self.colorUnselected)
+		self.uiSmallTabRed[2]:setVisible(true)
+		self.uiSmallTabRed[1]:setVisible(false)
+		self.tab[1]:setColor(self.colorSelected)
+		self.tabText[1]:setColor(self.colorUnselected)
 		self.tab[2]:setColor(self.colorSelected)
-		self.tab[2]:getChildByName("Label_30316"):setColor(self.colorSelected)
+		self.tabText[2]:setColor(self.colorSelected)
 		self:requestInvites()
 	end
 end
@@ -123,6 +133,7 @@ function UI_unionInvites:requestSent()
 	cmdData.operation[1] = oper
 	local cmdSender = hp.httpCmdSender.new(onApplyResponse)
 	cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+	self:showLoading(cmdSender)
 end
 
 function UI_unionInvites:requestInvites()
@@ -144,16 +155,12 @@ function UI_unionInvites:requestInvites()
 	cmdData.operation[1] = oper
 	local cmdSender = hp.httpCmdSender.new(onInvitesResponse)
 	cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+	self:showLoading(cmdSender)
 end
 
 function UI_unionInvites:refreshPage1(info_)
 	if info_ == nil then
 		return
-	end
-
-	if table.getn(info_) ~= 0 then
-		local top_ = self.top:clone()
-		self.listView:pushBackCustomItem(top_)
 	end
 
 	self.index = 1
@@ -165,9 +172,11 @@ function UI_unionInvites:refreshPage1(info_)
 		local item_ = self.item1:clone()
 		local content_ = item_:getChildByName("Panel_30331")
 		local union_ = Alliance.parseUnionInfo(v)
-		content_:getChildByName("Label_30334"):setString(v.name)
 		content_:getChildByName("ImageView_30335"):getChildByName("ImageView_30336"):loadTexture(string.format("%s%s.png", config.dirUI.icon, union_.icon))
-		content_:getChildByName("Label_30337"):setString(union_.chairMan)
+		-- 会长
+		content_:getChildByName("Label_30337"):setString(hp.lang.getStrByID(1812).."："..union_.chairman)
+		-- 联盟名称
+		content_:getChildByName("Label_30334"):setString(string.format(hp.lang.getStrByID(3626), union_.name))
 
 		-- notice
 		local labelBg_ = item_:getChildByName("Panel_30324"):getChildByName("ImageView_30332")
@@ -203,11 +212,6 @@ function UI_unionInvites:refreshPage2(info_)
 		return
 	end
 
-	if table.getn(info_) ~= 0 then
-		local top_ = self.top:clone()
-		self.listView:pushBackCustomItem(top_)
-	end
-
 	self.index = 1
 	self.idMap = {}
 	self.itemMap = {}
@@ -217,9 +221,11 @@ function UI_unionInvites:refreshPage2(info_)
 		local item_ = self.item2:clone()
 		local content_ = item_:getChildByName("Panel_30331")
 		local union_ = Alliance.parseUnionInfo(v)
-		content_:getChildByName("Label_30334"):setString(v.name)
 		content_:getChildByName("ImageView_30335"):getChildByName("ImageView_30336"):loadTexture(string.format("%s%s.png", config.dirUI.icon, union_.icon))
-		content_:getChildByName("Label_30337"):setString(union_.chairMan)
+		-- 会长
+		content_:getChildByName("Label_30337"):setString(hp.lang.getStrByID(1812).."："..union_.chairman)
+		-- 联盟名称
+		content_:getChildByName("Label_30334"):setString(string.format(hp.lang.getStrByID(3626), union_.name))
 
 		-- notice
 		local labelBg_ = item_:getChildByName("Panel_30324"):getChildByName("ImageView_30332")
@@ -256,7 +262,8 @@ function UI_unionInvites:refreshPage2(info_)
 end
 
 function UI_unionInvites:removeItem()
-	self.listView:removeChild(self.itemMap[self.chooseID])
+	local index_ = self.listView:getIndex(self.itemMap[self.chooseID])
+	self.listView:removeItem(index_)
 end
 
 function UI_unionInvites:initCallBack()
@@ -264,6 +271,9 @@ function UI_unionInvites:initCallBack()
 	local function onViewTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
+			require "ui/union/manage/unionInfo"
+			local ui_ = UI_unionInfo.new(self.idMap[sender:getTag()])
+			self:addUI(ui_)
 		end
 	end
 
@@ -275,6 +285,7 @@ function UI_unionInvites:initCallBack()
 
 		local data = hp.httpParse(response)
 		if data.result == 0 then
+			local frist_ = player.getFristLeague()
 			if data.id ~= nil then
 				player.getAlliance():setUnionID(data.id)
 			end
@@ -282,10 +293,8 @@ function UI_unionInvites:initCallBack()
 			local uiMain_ = UI_unionMain.new()
 			self:addUI(uiMain_)
 			require "ui/union/invite/joinSuccess"
-			local ui_ = UI_joinSuccess.new()
+			local ui_ = UI_joinSuccess.new(frist_)
 			self:addModalUI(ui_)
-			player.clearFristLeague()
-			hp.msgCenter.sendMsg(hp.MSG.UNION_JOIN_SUCCESS)
 			self:close()
 		end
 	end
@@ -302,6 +311,7 @@ function UI_unionInvites:initCallBack()
 			cmdData.operation[1] = oper
 			local cmdSender = hp.httpCmdSender.new(onAgreeResponse)
 			cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+			self:showLoading(cmdSender, sender)
 		end
 	end
 
@@ -320,15 +330,27 @@ function UI_unionInvites:initCallBack()
 	local function onDeleteTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			local cmdData={operation={}}
-			local oper = {}
-			oper.channel = 16
-			oper.type = 36
-			oper.id = self.idMap[sender:getTag()]
-			self.chooseID = sender:getTag()
-			cmdData.operation[1] = oper
-			local cmdSender = hp.httpCmdSender.new(onDeleteResponse)
-			cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+			local function onConfirm()
+				local cmdData={operation={}}
+				local oper = {}
+				oper.channel = 16
+				oper.type = 36
+				oper.id = self.idMap[sender:getTag()]
+				self.chooseID = sender:getTag()
+				cmdData.operation[1] = oper
+				local cmdSender = hp.httpCmdSender.new(onDeleteResponse)
+				cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+				self:showLoading(cmdSender, sender)
+			end
+
+			require("ui/msgBox/msgBox")
+			local msgBox = UI_msgBox.new(hp.lang.getStrByID(5205), 
+   				hp.lang.getStrByID(5206), 
+   				hp.lang.getStrByID(1209), 
+   				hp.lang.getStrByID(2412), 
+      			onConfirm
+   				)
+   			self:addModalUI(msgBox)
 		end
 	end
 
@@ -347,15 +369,27 @@ function UI_unionInvites:initCallBack()
 	local function onRefuseTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			local cmdData={operation={}}
-			local oper = {}
-			oper.channel = 16
-			oper.type = 35
-			oper.id = self.idMap[sender:getTag()]
-			self.chooseID = sender:getTag()
-			cmdData.operation[1] = oper
-			local cmdSender = hp.httpCmdSender.new(onRefuseResponse)
-			cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+			local function onConfirm()
+				local cmdData={operation={}}
+				local oper = {}
+				oper.channel = 16
+				oper.type = 35
+				oper.id = self.idMap[sender:getTag()]
+				self.chooseID = sender:getTag()
+				cmdData.operation[1] = oper
+				local cmdSender = hp.httpCmdSender.new(onRefuseResponse)
+				cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+				self:showLoading(cmdSender, sender)
+			end
+
+			require("ui/msgBox/msgBox")
+			local msgBox = UI_msgBox.new(hp.lang.getStrByID(5207), 
+   				hp.lang.getStrByID(5208), 
+   				hp.lang.getStrByID(1209), 
+   				hp.lang.getStrByID(2412), 
+      			onConfirm
+   				)
+   			self:addModalUI(msgBox)
 		end
 	end
 
@@ -377,12 +411,12 @@ function UI_unionInvites:initCallBack()
 		elseif eventType==TOUCH_EVENT_ENDED then
 			if sender:getTag() == 1 then
 				require "ui/union/invite/unionCreate"
-				ui_ = UI_unionCreate.new()
+				local ui_ = UI_unionCreate.new()
 				self:addUI(ui_)
 				self:close()
 			elseif sender:getTag() == 2 then
 				require "ui/union/invite/unionJoin"
-				ui_ = UI_unionJoin.new()
+				local ui_ = UI_unionJoin.new()
 				self:addUI(ui_)
 				self:close()
 			end
@@ -391,15 +425,12 @@ function UI_unionInvites:initCallBack()
 
 	local function onSmallTabTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_BEGAN then
-			sender:setColor(self.colorSelected)
-			self.tab[sender:getTag()]:getChildByName("Label_30316"):setColor(self.colorSelected)
+			sender:setColor(self.colorUnselected)
 		elseif eventType==TOUCH_EVENT_MOVED then
 			if sender:hitTest(sender:getTouchMovePos())==true then
-				sender:setColor(self.colorSelected)
-				self.tab[sender:getTag()]:getChildByName("Label_30316"):setColor(self.colorSelected)
-			else
 				sender:setColor(self.colorUnselected)
-				self.tab[sender:getTag()]:getChildByName("Label_30316"):setColor(self.colorUnselected)
+			else
+				sender:setColor(self.colorSelected)
 			end
 		elseif eventType==TOUCH_EVENT_ENDED then
 			self:tabPage(sender:getTag())
@@ -417,15 +448,8 @@ end
 function UI_unionInvites:onMsg(msg_, param_)
 end
 
-function UI_unionInvites:close()
-	self.top:release()
+function UI_unionInvites:onRemove()
 	self.item1:release()
 	self.item2:release()
-	self.super.close(self)
-end
-
-function UI_unionInvites:heartbeat(dt_)
-	for i, v in ipairs(self.rollLabel) do
-		v.labelRoll(dt_)
-	end
+	self.super.onRemove(self)
 end

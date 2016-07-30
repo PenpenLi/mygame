@@ -2,29 +2,29 @@
 -- ui/hospital/hospital.lua
 -- 兵营信息
 --===================================
+require "ui/common/effect.lua"
 require "ui/fullScreenFrame"
 require "ui/buildingHeader"
 
 UI_hospital = class("UI_hospital", UI)
 
 local costMap = {5, 4, 6, 3, 2}
-local costOffSet = 0.4
+local costOffSet = {0.1,0.2,0.4,0.8}
 local unitGoldCost = 5
-local interval = 0
 
 --init
 function UI_hospital:init(building_)
 	-- data
 	-- ===============================
 	self.building = building_
-	self.chooseSoldier = {}
-	self.restSoldier = {}
-	self.healingNumber = 0
-	self.healingTime = 0
-	self.resource = {}
-	self.resourceCost = {0, 0, 0, 0, 0}
-	self.showStatus = false
-	self.hurtExist = false
+	self.chooseSoldier = {}	-- 选择的士兵数量
+	self.restSoldier = {}	-- 剩余可治疗的士兵数量
+	self.healingNumber = 0	-- 正在治疗的士兵总数
+	self.healingTime = 0	-- 剩余治疗时间
+	self.resource = {}		-- 剩余可用资源
+	self.resourceCost = {0, 0, 0, 0, 0}	-- 治疗当前选择士兵的资源消耗
+	self.showStatus = false				-- 显示状态
+	self.hurtExist = false				-- 是否存在伤兵
 
 	-- ui data
 	self.labelNum = {}
@@ -38,6 +38,7 @@ function UI_hospital:init(building_)
 	self:initUI()
 	local uiFrame = UI_fullScreenFrame.new()
 	local bInfo = building_.bInfo
+	uiFrame:setTopShadePosY(584)
 	uiFrame:setTitle(bInfo.name)
 	local uiHeader = UI_buildingHeader.new(building_)	
 
@@ -63,6 +64,8 @@ function UI_hospital:init(building_)
 	self:refreshSoldierShow()
 
 	self:refreshShow()
+
+	self:updateTrainShow()
 end
 
 function UI_hospital:refreshShow()
@@ -78,24 +81,24 @@ function UI_hospital:initUI()
 	local content = self.widgetRoot:getChildByName("Panel_23213")
 
 	-- 进度条
+	self.loadingBack = self.widgetRoot:getChildByName("Panel_22")
 	self.loadingContainer = self.widgetRoot:getChildByName("Panel_1345")
-	self.loadingBarHeal = self.loadingContainer:getChildByName("ImageView_1644"):getChildByName("LoadingBar_1640")
-	self.loadingContent = self.loadingBarHeal:getChildByName("ImageView_1641"):getChildByName("Label_1642")
-	self.loadingTime = self.loadingBarHeal:getChildByName("ImageView_1641"):getChildByName("Label_1643")
-	self.speedUp = self.loadingContainer:getChildByName("ImageView_1645"):getChildByName("ImageView_1639")
+	self.loadingBarHeal = self.loadingBack:getChildByName("ImageView_1644"):getChildByName("LoadingBar_1640")
+	self.loadingContent = self.loadingContainer:getChildByName("Label_1642")
+	self.loadingTime = self.loadingContainer:getChildByName("Label_1643")
+	self.speedUp = self.loadingContainer:getChildByName("ImageView_1639")
 	self.loadingContent:setString(hp.lang.getStrByID(1507))
 	self.speedUp:addTouchEventListener(self.onSpeedUpTouched)
 
 	-- 消耗
-	content:getChildByName("Label_23215"):setString(hp.lang.getStrByID(1500))
 	local resourceList = {"", "_Copy0", "_Copy1", "_Copy2", "_Copy3"}
 	for i, v in ipairs(resourceList) do
 		self.resourceText[i] = content:getChildByName("ImageView_23216"..resourceList[i]):getChildByName("Label_23217")
 	end
 
 	-- 上限和当前伤兵
-	self.loadingBar = content:getChildByName("ImageView_1644"):getChildByName("LoadingBar_1640")
-	self.loadingText = self.loadingBar:getChildByName("ImageView_1641"):getChildByName("Label_1642")
+	self.loadingBar = self.widgetRoot:getChildByName("Panel_8263"):getChildByName("ImageView_1644"):getChildByName("LoadingBar_1640")
+	self.loadingText = content:getChildByName("Label_1642")
 
 	-- 治疗人数
 	self.healNumber = content:getChildByName("ImageView_23234"):getChildByName("Label_23235")
@@ -105,16 +108,33 @@ function UI_hospital:initUI()
 	self.allSelect:setTag(0)
 	self.allSelect:getChildByName("Label_23242"):setString(hp.lang.getStrByID(1301))
 
+	--全选按钮闪光
+	local light1 = nil
+	self.light1 = light1
+	self.light1 = inLight(self.allSelect:getVirtualRenderer(),1)
+	self.allSelect:addChild(self.light1)
+	self.light1:setVisible(false)
+	
 	-- 立即治愈
 	self.soonHeal = content:getChildByName("ImageView_23241_Copy0")
 	self.soonHeal:getChildByName("Label_23242"):setString(hp.lang.getStrByID(1502))
-	self.goldNum = self.soonHeal:getChildByName("ImageView_23247"):getChildByName("Label_23249")
+	self.uiDiamond = content:getChildByName("ImageView_23247"):getChildByName("Label_23249")
 
 	-- 治疗
 	self.heal = content:getChildByName("ImageView_23241_Copy1")
 	self.heal:getChildByName("Label_23242"):setString(hp.lang.getStrByID(1503))
-	self.healTime = self.heal:getChildByName("ImageView_23247_Copy0"):getChildByName("Label_23249")
+	self.healTime = content:getChildByName("ImageView_23247_Copy0"):getChildByName("Label_23249")
 
+	--治疗按钮闪光
+	local light2 = nil
+	self.light2 = light2
+	self.light2 = inLight(self.heal:getVirtualRenderer(),1)
+	self.heal:addChild(self.light2)
+	self.light2:setVisible(false)
+	
+	
+	
+	
 	-- 士兵
 	self.listView = self.widgetRoot:getChildByName("ListView_list")
 	self.moreInfoContainer = self.listView:getChildByName("Panel_23315"):clone()
@@ -136,12 +156,12 @@ function UI_hospital:initUI()
 end
 
 function UI_hospital:initData()
-	for i = 1, player.getSoldierType() do
+	for i = 1, globalData.TOTAL_LEVEL do
 		self.chooseSoldier[i] = 0
-		self.restSoldier[i] = player.getHealableSoldierNum(i) - self.chooseSoldier[i]
+		self.restSoldier[i] = player.soldierManager.getHealableSoldierNum(i) - self.chooseSoldier[i]
 	end 
 
-	if player.getHurtArmy():getSoldierTotalNumber() - player.getHealingSoldierNumber() == 0 then
+	if player.soldierManager.getHurtArmy():getSoldierTotalNumber() - player.soldierManager.getHealingSoldierNumber() == 0 then
 		self.hurtExist = false
 	else
 		self.hurtExist = true
@@ -153,14 +173,16 @@ end
 function UI_hospital:updateResource()
 	self.resourceCost = {0, 0, 0, 0, 0}
 	for j, v in ipairs(self.resourceCost) do
-		for i = 1, player.getSoldierType() do
-			local soldierInfo = player.getArmyInfoByType(i)	
-			self.resourceCost[j] = math.floor(self.resourceCost[j] + self.chooseSoldier[i] * soldierInfo.costs[costMap[j]] * costOffSet)
+		for i = 1, globalData.TOTAL_LEVEL do
+			local soldierInfo = player.soldierManager.getArmyInfoByType(i)	
+			self.resourceCost[j] = math.floor(self.resourceCost[j] + self.chooseSoldier[i] * soldierInfo.costs[costMap[j]] * costOffSet[soldierInfo.level])
 		end
 	end
+end
 
+function UI_hospital:updateAvailableResource()
 	for i, v in ipairs(costMap) do
-		local resInfo_ = hp.gameDataLoader.getInfoBySid("resInfo", i)
+		local resInfo_ = hp.gameDataLoader.getInfoBySid("resInfo", v)
 		self.resource[i] = player.getResource(resInfo_.code) - self.resourceCost[i]
 	end
 end
@@ -178,23 +200,43 @@ function UI_hospital:initCallBack()
 	local function onAllSelectTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			for i = 1, player.getSoldierType() do
+			for i = 1, globalData.TOTAL_LEVEL do
 				self.chooseSoldier[i] = 0
-				self.restSoldier[i] = player.getHealableSoldierNum(i)
+				self.restSoldier[i] = player.soldierManager.getHealableSoldierNum(i)
 			end
+			self:updateResource()
 
 			if sender:getTag() == 0 then
-				for i = 1, player.getSoldierType() do
-					local MaxHealNumber_ = self:MaxHealNumber(i)
-					local hurtSoldier_ = player.getHealableSoldierNum(i)
-					if MaxHealNumber_ > hurtSoldier_ then
+				local notAll_ = false
+				local lackIndex_ = 1
+				for i = 1, globalData.TOTAL_LEVEL do
+					self:updateAvailableResource()
+					local MaxHealNumber_, index_ = self:MaxHealNumber(i)					
+					local hurtSoldier_ = player.soldierManager.getHealableSoldierNum(i)
+					if MaxHealNumber_ >= hurtSoldier_ then
 						self.chooseSoldier[i] = hurtSoldier_
 						self.restSoldier[i] = 0
 					else
+						notAll_ = true
+						lackIndex_ = index_
 						self.chooseSoldier[i] = MaxHealNumber_
 						self.restSoldier[i] = hurtSoldier_ - MaxHealNumber_
 					end
 					self:updateResource()
+				end
+				if notAll_ then
+					require("ui/msgBox/msgBox")
+					local msgBox = UI_msgBox.new(hp.lang.getStrByID(5194), 
+						hp.lang.getStrByID(5378), 
+						hp.lang.getStrByID(2028), 
+						hp.lang.getStrByID(5381),  
+						function()
+							require "ui/item/resourceItem"
+							local ui  = UI_resourceItem.new(costMap[lackIndex_]-1)
+							self:addUI(ui)
+						end
+						)
+					self:addModalUI(msgBox)
 				end
 				sender:setTag(1)
 			else
@@ -214,19 +256,20 @@ function UI_hospital:initCallBack()
 			if data.result == 0 then
 				if gold_ == 0 then
 					if data.cd == 0 then
-						player.healSoldierFinish(self.chooseSoldier)
+						player.soldierManager.healSoldierFinish(self.chooseSoldier)
 					else
 						local healData = {data.cd, data.cd, self.chooseSoldier[1], self.chooseSoldier[2], self.chooseSoldier[3], self.chooseSoldier[4]}
-						player.initSoldierHealingInfo(healData)
+						player.soldierManager.initSoldierHealingInfo(healData)
 						cdBox.initCDInfo(cdBox.CDTYPE.REMEDY, healData)
+						self:updateTrainShow()
 					end
 				else
-					player.healSoldierFinish(self.chooseSoldier)
+					player.soldierManager.healSoldierFinish(self.chooseSoldier)
 				end
 
 				self:initData()
 				self:refreshShow()
-				if player.getHurtArmy():getSoldierTotalNumber() - player.getHealingSoldierNumber() == 0 then
+				if player.soldierManager.getHurtArmy():getSoldierTotalNumber() - player.soldierManager.getHealingSoldierNumber() == 0 then
 					self.hurtExist = false
 					self:refreshSoldierShow()
 				end
@@ -250,6 +293,7 @@ function UI_hospital:initCallBack()
 			cmdData.operation[1] = oper
 			local cmdSender = hp.httpCmdSender.new(onFastTrainResponse)
 			cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+			self:showLoading(cmdSender)
 		end
 
 		if gold_ == 0 then
@@ -260,21 +304,35 @@ function UI_hospital:initCallBack()
 					self:addUI(ui)
 					self:close()
 				end
-				require "ui/common/successBox"
-				local box_ = UI_successBox.new(hp.lang.getStrByID(5156), hp.lang.getStrByID(5157), callBackConfirm)
-	  			self:addModalUI(box_)
+				require("ui/msgBox/msgBox")
+				local msgBox = UI_msgBox.new(hp.lang.getStrByID(5156), 
+					hp.lang.getStrByID(5157), 
+					hp.lang.getStrByID(2414), 
+					hp.lang.getStrByID(2412),  
+					callBackConfirm
+					)
+				self:addModalUI(msgBox)
 			else
 				onConfirm()
 			end
 		else
-			require("ui/msgBox/msgBox")
-			local msgBox = UI_msgBox.new(hp.lang.getStrByID(1502), 
-   				hp.lang.getStrByID(1508), 
-   				hp.lang.getStrByID(1209), 
-   				hp.lang.getStrByID(2412), 
-      			onConfirm
-   				)
-   			self:addModalUI(msgBox)
+			local diamond_ = tonumber(self.uiDiamond:getString())
+			if diamond_ > player.getResource("gold") then
+				local function buyDiamond()
+					cclog_("购买钻石")
+				end
+				require("ui/msgBox/msgBox")
+				UI_msgBox.showCommonMsg(self, 1)
+	   		else
+				require("ui/msgBox/msgBox")
+				local msgBox = UI_msgBox.new(hp.lang.getStrByID(1502), 
+	   				hp.lang.getStrByID(1508), 
+	   				hp.lang.getStrByID(1209), 
+	   				hp.lang.getStrByID(2412), 
+	      			onConfirm
+	   				)
+	   			self:addModalUI(msgBox)
+	   		end
 		end		
 	end
 
@@ -296,7 +354,14 @@ function UI_hospital:initCallBack()
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			require "ui/hospital/soldierSelect"
-			ui_ = UI_soldierHeal.new(sender:getTag(), self.resource)
+			self:updateAvailableResource()
+			-- 还原当前士兵的资源数量
+			local resource_ = {}
+			local soldierInfo = player.soldierManager.getArmyInfoByType(sender:getTag())	
+			for i, v in ipairs(costMap) do
+				resource_[i] = self.resource[i] + self.chooseSoldier[sender:getTag()] * soldierInfo.costs[v] * costOffSet[soldierInfo.level]
+			end
+			local ui_ = UI_soldierHeal.new(sender:getTag(), resource_)
 			self:addModalUI(ui_)
 		end
 	end
@@ -334,9 +399,9 @@ function UI_hospital:refreshSoldierShow()
 		self.listView:pushBackCustomItem(container_)
 		local adampt = container_:getChildByName("Panel_adampt")
 		local index = 1
-		for i = 1, player.getSoldierType() do
-			local soldierInfo_ = player.getArmyInfoByType(i)
-			if player.getHurtArmy():getSoldierNumberByType(i) > 0 then
+		for i = 1, globalData.TOTAL_LEVEL do
+			local soldierInfo_ = player.soldierManager.getArmyInfoByType(i)
+			if player.soldierManager.getHurtArmy():getSoldierNumberByType(i) > 0 then
 
 				local soldier = adampt:getChildByName(string.format("%d", index))
 
@@ -365,12 +430,12 @@ function UI_hospital:refreshSoldierShow()
 				else
 					index = index + 1
 				end
-
-				-- hide redundant ui
-				for i = index, 3 do
-					adampt:getChildByName(string.format("%d", i)):setVisible(false)
-				end
 			end			
+		end
+
+		-- hide redundant ui
+		for i = index, 3 do
+			adampt:getChildByName(string.format("%d", i)):setVisible(false)
 		end
 	end
 
@@ -385,8 +450,16 @@ function UI_hospital:updateCost()
 	self:updateResource()
 
 	for j = 1, 5 do
-		self.resourceText[j]:setString(self.resourceCost[j])
+		local resInfo_ = hp.gameDataLoader.getInfoBySid("resInfo", costMap[j])
+		self.resourceText[j]:setString(hp.common.changeNumUnit(self.resourceCost[j]).."/"..hp.common.changeNumUnit(player.getResource(resInfo_.code)))
 	end
+
+	local res_ = self.resourceCost
+	local time_ = self:getHealingTime()
+
+	-- 立即训练钻石消耗
+	local resource_ = {0,res_[5],res_[4],res_[2],res_[1],res_[3]}	
+	self.uiDiamond:setString(player.quicklyMgr.getDiamondCost(resource_, time_))
 end
 
 function UI_hospital:updateHurt()
@@ -395,10 +468,10 @@ function UI_hospital:updateHurt()
 	for i, v in ipairs(buildList_) do
 		num_ = num_ + hp.gameDataLoader.getBuildingInfoByLevel("hospital", v.lv, "woundedSoldierMax", 0)
 	end
-	local hurtNum_ = player.getHurtArmy():getSoldierTotalNumber()
+	local hurtNum_ = player.soldierManager.getHurtArmy():getSoldierTotalNumber()
 	local percent_ = 0
 	if num_ ~= 0 then
-		percent_ = hp.common.round((hurtNum_ / num_) * 100)
+		percent_ = (hurtNum_ / num_) * 100
 	end
 	self.loadingText:setString(hurtNum_.."/"..num_)
 	self.loadingBar:setPercent(percent_)
@@ -415,7 +488,14 @@ end
 
 function UI_hospital:updateSoldier()
 	if self.hurtExist == false then
+		self.allSelect:setTouchEnabled(false)
+		self.allSelect:loadTexture(config.dirUI.common.."button_gray.png")
+		self.light1:setVisible(false)
 		return
+	else
+		self.allSelect:setTouchEnabled(true)
+		self.allSelect:loadTexture(config.dirUI.common.."button_blue.png")
+		self.light1:setVisible(true)
 	end
 
 	for i, v in ipairs(self.restSoldier) do
@@ -442,26 +522,22 @@ function UI_hospital:updateButtonStatus()
 		self.soonHeal:loadTexture(config.dirUI.common.."button_gray.png")
 		self.heal:setTouchEnabled(false)
 		self.soonHeal:setTouchEnabled(false)
-		self.healTime:setString(self:getHealingTime())
-		self.goldNum:setString(self:getGoldNeeded())
+		self.healTime:setString(hp.datetime.strTime(self:getHealingTime()))
+		self.light2:setVisible(false)
 	else
 		self.heal:loadTexture(config.dirUI.common.."button_blue.png")
 		self.soonHeal:loadTexture(config.dirUI.common.."button_blue.png")
 		self.heal:setTouchEnabled(true)
 		self.soonHeal:setTouchEnabled(true)
-		self.healTime:setString(self:getHealingTime())
-		self.goldNum:setString(self:getGoldNeeded())
+		self.healTime:setString(hp.datetime.strTime(self:getHealingTime()))
+		self.light2:setVisible(true)
 	end
-end
-
-function UI_hospital:getGoldNeeded()
-	return math.ceil(self.healingTime / 600) * 5
 end
 
 function UI_hospital:getHealingTime()
 	local time_ = 0
-	for i = 1, player.getSoldierType() do
-		local soldierInfo = player.getArmyInfoByType(i)
+	for i = 1, globalData.TOTAL_LEVEL do
+		local soldierInfo = player.soldierManager.getArmyInfoByType(i)
 		if soldierInfo.level > 1 then
 			time_ = time_ + soldierInfo.cd * self.chooseSoldier[i] * soldierInfo.remedyCDRate / 100
 		end
@@ -475,7 +551,7 @@ end
 
 function UI_hospital:onSoldierSelected(type_, num_)
 	self.chooseSoldier[type_] = num_
-	self.restSoldier[type_] = player.getHealableSoldierNum(type_) - num_
+	self.restSoldier[type_] = player.soldierManager.getHealableSoldierNum(type_) - num_
 	self:refreshShow()
 end
 
@@ -490,8 +566,8 @@ function UI_hospital:onHurtSoldierRefresh()
 		self:refreshSoldierShow()
 	end
 
-	for i = 1, player.getSoldierType() do
-		self.restSoldier[i] = player.getHealableSoldierNum(i) - self.chooseSoldier[i]
+	for i = 1, globalData.TOTAL_LEVEL do
+		self.restSoldier[i] = player.soldierManager.getHealableSoldierNum(i) - self.chooseSoldier[i]
 	end
 
 	self:updateSoldier()
@@ -502,6 +578,7 @@ function UI_hospital:onMsg(msg_, param_)
 		self:onSoldierSelected(param_[1], param_[2])
 	elseif msg_ == hp.MSG.HOSPITAL_HEAL_FINISH then
 		self:onSoldierHealingFinish()
+		self:updateTrainShow()
 	elseif msg_ == hp.MSG.HOSPITAL_HURT_REFRESH then
 		self:onHurtSoldierRefresh()
 	end
@@ -511,35 +588,27 @@ function UI_hospital:MaxHealNumber(type_)
 	local maxTrainNum = {}
 
 	-- resource limit
-	local soldierInfo = player.getArmyInfoByType(type_)
+	local soldierInfo = player.soldierManager.getArmyInfoByType(type_)
 	for i = 1, table.getn(self.resource) do
 		if soldierInfo.costs[costMap[i]] ~= 0 then
-			maxTrainNum[table.getn(maxTrainNum) + 1] = math.floor(self.resource[i]/soldierInfo.costs[costMap[i]]/costOffSet)
+			maxTrainNum[i] = math.floor(self.resource[i]/soldierInfo.costs[costMap[i]]/costOffSet[soldierInfo.level])
 		end
 	end
 
-	local min = hp.common.getMinNumber(maxTrainNum)
-	return min
+	local min, index_ = hp.common.getMinNumber(maxTrainNum)
+	return min, index_
 end
 
-function UI_hospital:close()
+function UI_hospital:onRemove()
 	self.moreInfoContainer:retain()
 	self.noHurt:retain()
 	self.soldierContainer:retain()
 	self.description:retain()
-	self.super.close(self)
+	self.super.onRemove(self)
 end
 
 function UI_hospital:heartbeat(dt_)
-	interval = interval + dt_
-	if interval < 1 then
-		return
-	end
-
-	interval = 0
-
 	local healingInfo_ = cdBox.getCDInfo(cdBox.CDTYPE.REMEDY)
-	print("healingInfo_",healingInfo_.cd)
 	if healingInfo_ ~= nil then
 		if healingInfo_.cd > 0 then
 			self:setShowStatus(true)
@@ -560,11 +629,13 @@ function UI_hospital:setShowStatus(show_)
 	self.showStatus = show_
 	if show_ == true then
 		self.loadingContainer:setVisible(true)
+		self.loadingBack:setVisible(true)
 		local size_ = self.listView:getSize()
 		size_.height = size_.height - self.loadingContainer:getSize().height
 		self.listView:setSize(size_)
 	else
 		self.loadingContainer:setVisible(false)
+		self.loadingBack:setVisible(false)
 		local size_ = self.listView:getSize()
 		size_.height = size_.height + self.loadingContainer:getSize().height
 		self.listView:setSize(size_)
@@ -574,6 +645,20 @@ end
 function UI_hospital:updateCDTime(info_)
 	local healingInfo_ = cdBox.getCDInfo(cdBox.CDTYPE.REMEDY)
 	self.loadingTime:setString(hp.datetime.strTime(healingInfo_.cd))
-	local percent_ = hp.common.round(100 - healingInfo_.cd / healingInfo_.total_cd * 100)
+	local percent_ = 100 - healingInfo_.cd / healingInfo_.total_cd * 100
 	self.loadingBarHeal:setPercent(percent_)
+end
+
+function UI_hospital:updateTrainShow()
+	local healingInfo_ = cdBox.getCDInfo(cdBox.CDTYPE.REMEDY)
+	if healingInfo_ ~= nil then
+		if healingInfo_.cd > 0 then
+			self:setShowStatus(true)
+			self:updateCDTime(healingInfo_)
+		else
+			self:setShowStatus(false)
+		end
+	else
+		self:setShowStatus(false)
+	end
 end

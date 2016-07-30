@@ -90,7 +90,7 @@ function UI_unionFightMain:initCallBack()
 	local function onMoreInfoTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			print("djsdkjfiw")
+			cclog_("djsdkjfiw")
 			
 			
 			
@@ -101,7 +101,7 @@ function UI_unionFightMain:initCallBack()
 	local function onSmallFightTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			require "ui/union/fight/unionSmallFight"
-			ui_ = UI_unionSmallFight.new(2)
+			local ui_ = UI_unionSmallFight.new(2)
 			self:addUI(ui_)
 		end
 	end
@@ -111,16 +111,16 @@ function UI_unionFightMain:initCallBack()
 			if player.getAlliance():getBigFight() == nil then
 				if player.getAlliance():getMyUnionInfo():getRank() >= 4 then
 					require "ui/union/fight/unionBigFight"
-					ui_ = UI_unionBigFight.new()
+					local ui_ = UI_unionBigFight.new()
 					self:addUI(ui_)
 				else
 					require "ui/union/fight/unionBigFightNoFight"
-					ui_ = UI_unionBigFightNoFight.new()
+					local ui_ = UI_unionBigFightNoFight.new()
 					self:addUI(ui_)
 				end
 			else
 				require "ui/union/fight/unionBigFightDetail"
-				ui_ = UI_unionBigFightDetail.new(player.getID())
+				local ui_ = UI_unionBigFightDetail.new(player.getID())
 				self:addUI(ui_)
 			end
 		end
@@ -131,9 +131,9 @@ function UI_unionFightMain:initCallBack()
 	self.onMoreInfoTouched = onMoreInfoTouched
 end
 
-function UI_unionFightMain:close()
+function UI_unionFightMain:onRemove()
 	player.getAlliance():unPrepareData(dirtyType.FIGHTBASEINFO, "UI_unionFightMain")
-	self.super.close(self)
+	self.super.onRemove(self)
 end
 
 function UI_unionFightMain:onMsg(msg_, param_)

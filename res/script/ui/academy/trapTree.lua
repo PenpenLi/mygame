@@ -22,7 +22,7 @@ function UI_trapTree:init()
 	-- ===============================
 	local uiFrame = UI_fullScreenFrame.new()
 	uiFrame:setTitle(hp.lang.getStrByID(9102))
-
+	uiFrame:setTopShadePosY(888)
 	local widgetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "trapTree.json")
 
 	--技能树
@@ -31,7 +31,7 @@ function UI_trapTree:init()
 	local skillPanel = treePanel:getChildByName("Panel_skill")
 	local linePanel = treePanel:getChildByName("Panel_line")
 
-	local colorLock = cc.c3b(128, 128, 128)
+	local colorLock = cc.c3b(64, 64, 64)
 	local colorUnlock = cc.c3b(255, 255, 255)
 	local imgLineLockH = config.dirUI.common .. "skillLine_lockH.png"
 	local imgLineLockV = config.dirUI.common .. "skillLine_lockV.png"
@@ -106,8 +106,7 @@ function UI_trapTree:init()
 							if id~=skillid then
 								if researchMgr.getResearchLv(id)<v%100 then
 									lockFlag = true
-								elseif skillid==211 or skillid==213 then
-									setUnlockLine(string.format("%d_", skillid))
+									break
 								end
 							end
 							--getSkillLv
@@ -122,6 +121,11 @@ function UI_trapTree:init()
 					skillNode:getChildByName("lock"):setVisible(false)
 					if skillid~=110 then
 						setUnlockLine(strSkill)
+						if skillid==211 then
+							setUnlockLine("211_")
+						elseif skillid==213 then
+							setUnlockLine("213_")
+						end
 					end
 				end
 

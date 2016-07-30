@@ -4,6 +4,7 @@
 --===================================
 require "ui/fullScreenFrame"
 require "ui/item/itemUsedFunc"
+require "ui/common/promotionInfo"
 
 
 UI_shopItem = class("UI_shopItem", UI)
@@ -29,18 +30,21 @@ function UI_shopItem:init(hType_, itemType_)
 	-- ===============================
 	local uiFrame = UI_fullScreenFrame.new()
 	uiFrame:setTitle(hp.lang.getStrByID(2800))
-
+	uiFrame:setTopShadePosY(656)
+	local promotionUI = UI_promotionInfo.new()
 	local rootWidget = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "shopItem.json")
 
 	-- addCCNode
 	-- ===============================
 	self:addChildUI(uiFrame)
+	self:addChildUI(promotionUI)
 	self:addCCNode(rootWidget)
 
 
 	--
 	-- ===============================
 	-- headerTab
+	-----------------------------
 	local headerTab = rootWidget:getChildByName("Panel_headTab")
 	local shopTab = headerTab:getChildByName("ImageView_shop")
 	local shopTabText = shopTab:getChildByName("Label_name")
@@ -94,46 +98,49 @@ function UI_shopItem:init(hType_, itemType_)
 	end
 
 	-- typeTab
-	local typeTab = rootWidget:getChildByName("Panel_typeTab")
-	local type1 = typeTab:getChildByName("Button_1")
-	local type2 = typeTab:getChildByName("Button_2")
-	local type3 = typeTab:getChildByName("Button_3")
-	local type4 = typeTab:getChildByName("Button_4")
-	local type5 = typeTab:getChildByName("Button_5")
-	local typeSelect = type1
-	type1:setTitleText(hp.lang.getStrByID(2803))
-	type2:setTitleText(hp.lang.getStrByID(2804))
-	type3:setTitleText(hp.lang.getStrByID(2805))
-	type4:setTitleText(hp.lang.getStrByID(2807))
-	type5:setTitleText(hp.lang.getStrByID(2808))
-	local function tabType(tabNode)
-			typeSelect:setBright(true)
-			typeSelect = tabNode
-			typeSelect:setBright(false)
+	-----------------------------
+	local typeSelected = nil
+	local typeTab = rootWidget:getChildByName("Panel_typeTabbg")
+	local typeText = rootWidget:getChildByName("Panel_typeTab_text")
+	local typeTabs = {}
+	local typeTexts = {}
+	local typeSelect = typeTab:getChildByName("Image_select")
 
-			self.itemType = typeSelect:getTag()
+	local unsColor = nil
+	local sColor = cc.c3b(255, 255, 255)
+	local function tabType(tabNode)
+			typeTexts[self.itemType]:setColor(unsColor)
+			typeSelected = tabNode
+			self.itemType = typeSelected:getTag()
+			typeTexts[self.itemType]:setColor(sColor)
+			typeSelect:setPosition(typeSelected:getPosition())
 	end
 	local function onTypeTabTouched(sender, eventType)
-		if sender==typeSelect then
+		if sender==typeSelected then
 			return
 		end
+		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			tabType(sender)
 			self:updateItemList()
-			player.guide.step(5005)
 		end
 	end
-	type1:addTouchEventListener(onTypeTabTouched)
-	type2:addTouchEventListener(onTypeTabTouched)
-	type3:addTouchEventListener(onTypeTabTouched)
-	type4:addTouchEventListener(onTypeTabTouched)
-	type5:addTouchEventListener(onTypeTabTouched)
-	typeSelect:setBright(false)
-	if typeSelect:getTag()~=self.itemType then
-		tabType(typeTab:getChildByTag(self.itemType))
+
+	for i=1,5 do
+		typeTabs[i] = typeTab:getChildByName("Image_" .. i)
+		typeTabs[i]:addTouchEventListener(onTypeTabTouched)
+		typeTexts[i] = typeText:getChildByName("Label_" .. i)
 	end
+	typeTexts[1]:setString(hp.lang.getStrByID(2803))
+	typeTexts[2]:setString(hp.lang.getStrByID(2804))
+	typeTexts[3]:setString(hp.lang.getStrByID(2805))
+	typeTexts[4]:setString(hp.lang.getStrByID(2807))
+	typeTexts[5]:setString(hp.lang.getStrByID(2808))
+	unsColor = typeTexts[1]:getColor()
+	tabType(typeTab:getChildByTag(self.itemType))
 
 	-- list
+	-----------------------------
 	local itemList = rootWidget:getChildByName("ListView_items")
 	local descItem = itemList:getChildByName("Panel_desc"):clone()
 	local item1 = itemList:getChildByName("Panel_item1"):clone()
@@ -160,19 +167,6 @@ function UI_shopItem:init(hType_, itemType_)
 	--
 	-- registMsg
 	self:registMsg(hp.MSG.ITEM_CHANGED)
-	self:registMsg(hp.MSG.GUIDE_STEP)
-
-
-	-- 进行新手引导绑定
-	-- ================================
-	local function bindGuideUI(step)
-		if step==5004 then
-			player.guide.bind2Node(step, meTab, onHeaderTabTouched)
-		elseif step==5005 then
-			player.guide.bind2Node(step, type5, onTypeTabTouched)
-		end
-	end
-	self.bindGuideUI = bindGuideUI
 end
 
 
@@ -200,9 +194,6 @@ function UI_shopItem:onMsg(msg_, itemInfo_)
 				itemNode:getChildByName("Panel_cont"):getChildByName("Label_num"):setString(strNum)
 			end
 		end
-	elseif msg_==hp.MSG.GUIDE_STEP then
-		self.bindGuideUI(itemInfo_)
-		self.bindGuideUI2(itemInfo_)
 	end
 end
 
@@ -262,38 +253,36 @@ function UI_shopItem:pushLoadingItem(loadingNumOnce)
 				--购买道具
 					player.expendResource("gold", operItemInfo.sale)
 					player.addItem(operItemInfo.sid, 1)
+
+					-- edit by huangwei
+					Scene.showMsg({3002, getItemInfoBySid(operItemInfo.sid).name, 1})
+					-- edit by huangwei end
 				elseif tag==2 then
 				-- 使用道具
 					player.expendItem(operItemInfo.sid, 1)
 					itemUsedFunc(operItemInfo, data)
 					player.guide.step(5006)
+
+					-- edit by huangwei
+					Scene.showMsg({3000, getItemInfoBySid(operItemInfo.sid).name, 1})
+					-- edit by huangwei end
+					
 					-- 宝石/材料宝箱提示获得的物品
-					if data.items ~= nil then
-						local typeSid=math.floor(operItemInfo.sid/10)
-						local isGem=false
-						local isMaterial=false
-						--宝石宝箱
-						if typeSid==2400 then
-							isGem=true
-						--材料宝箱
-						elseif typeSid==2405 then
-							isMaterial=true
-						end
-						if isGem then						
-							local gemInfo = hp.gameDataLoader.getInfoBySid("gem", data.items[1])
+					if data.items ~= nil then						
+						local gemInfo = hp.gameDataLoader.getInfoBySid("gem", data.items[1])
+						if gemInfo~=nil then
 							require("ui/smith/gemMaterialInfo")
 							local ui = UI_gemMaterialInfo.new(1,gemInfo)
 							self:addModalUI(ui)
-						elseif isMaterial then
+						else
 							local materialInfo = hp.gameDataLoader.getInfoBySid("equipMaterial", data.items[1])
-							require("ui/smith/gemMaterialInfo")
-							local ui = UI_gemMaterialInfo.new(2,materialInfo)
-							self:addModalUI(ui)
+							if materialInfo~=nil then
+								require("ui/smith/gemMaterialInfo")
+								local ui = UI_gemMaterialInfo.new(2,materialInfo)
+								self:addModalUI(ui)
+							end
 						end
 					end
-
-
-
 				end
 			end
 		end
@@ -302,7 +291,6 @@ function UI_shopItem:pushLoadingItem(loadingNumOnce)
 	end
 	-- 操作
 	local function onItemOperTouched(sender, eventType)
-
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			if operItemInfo~=nil then
@@ -316,12 +304,7 @@ function UI_shopItem:pushLoadingItem(loadingNumOnce)
 				if player.getResource("gold")<itemInfo.sale then
 					-- 金币不够
 					require("ui/msgBox/msgBox")
-					local msgBox = UI_msgBox.new(hp.lang.getStrByID(2826), 
-						hp.lang.getStrByID(2827), 
-						hp.lang.getStrByID(1209), 
-						hp.lang.getStrByID(2412)
-						)
-					self:addModalUI(msgBox)
+					UI_msgBox.showCommonMsg(self, 1)
 					return
 				end
 
@@ -371,7 +354,7 @@ function UI_shopItem:pushLoadingItem(loadingNumOnce)
 	local function bindGuideUI2(step)
 		if step==5006 then
 			itemList:visit()
-			player.guide.bind2Node(5006, firstOperBtn, onItemOperTouched)
+			player.guide.bind2Node111(5006, firstOperBtn, onItemOperTouched)
 		end
 	end
 	self.bindGuideUI2 = bindGuideUI2
@@ -424,6 +407,10 @@ function UI_shopItem:pushLoadingItem(loadingNumOnce)
 					itemCnt:getChildByName("Label_name"):setString(subItemInfo.name)
 					itemCnt:getChildByName("Label_num"):setString(itemInfo.parmeter2[i])
 				end
+
+				if i%2==0 then
+					itemTmp:getChildByName("Panel_frame"):setVisible(false)
+				end
 			end
 
 			local itemSize = openItem:getSize()
@@ -472,8 +459,8 @@ function UI_shopItem:pushLoadingItem(loadingNumOnce)
 			elseif self.loadingIndex~=0 then
 			-- 加载完成
 				self.loadingIndex = i
-				self.loadingFinished = true
-				break
+				--self.loadingFinished = true
+				--break
 			end
 
 			if i==totalNum then
@@ -505,8 +492,8 @@ function UI_shopItem:pushLoadingItem(loadingNumOnce)
 			elseif self.loadingIndex~=0 then
 			-- 加载完成
 				self.loadingIndex = i
-				self.loadingFinished = true
-				break
+				--self.loadingFinished = true
+				--break
 			end
 
 			if i==totalNum then

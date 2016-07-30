@@ -7,14 +7,31 @@ require "ui/frame/popFrame"
 
 UI_soldierInfo = class("UI_soldierInfo", UI)
 
+-- 通用
+local propCommon = {41,42,43,44,45}
+-- 按兵种
+local propByType = {
+	{1,2,3,4,5},
+	{11,12,13,14,15},
+	{21,22,23,24,25},
+	{31,32,33,34,35},
+}
+-- 加成来源
+local attrSource = {
+	globalData.ADDNFILTER.RESEARCH,
+	globalData.ADDNFILTER.HERO,
+	globalData.ADDNFILTER.BUILDBUFF
+}
+
+local sourceNameId = {1433,5483,1016}
 
 --init
 function UI_soldierInfo:init(type_)
 	-- data
 	-- ===============================	
-	self.soldierInfo = player.getArmyInfoByType(type_)
+	self.soldierInfo = player.soldierManager.getArmyInfoByType(type_)
 	self.type = type_
-	self.soldierNum = player.getCityArmy():getSoldierByType(type_):getNumber()
+	self.soldierNum = player.soldierManager.getCityArmy():getSoldierByType(type_):getNumber()
 	self.fireNumber = 0
 	self.percent = 0
 
@@ -42,7 +59,7 @@ function UI_soldierInfo:init(type_)
 			self.fire:loadTexture(config.dirUI.common.."button_gray.png")
 		else
 			self.fire:setTouchEnabled(true)
-			self.fire:loadTexture(config.dirUI.common.."button_blue.png")
+			self.fire:loadTexture(config.dirUI.common.."button_red.png")
 		end
 	end
 
@@ -95,7 +112,7 @@ function UI_soldierInfo:init(type_)
 
 		local data = hp.httpParse(response)
 		if data.result == 0 then
-			player.fireSoldier(type_, self.fireNumber)
+			player.soldierManager.fireSoldier(type_, self.fireNumber)
 		end
 
 		self:close()
@@ -112,15 +129,16 @@ function UI_soldierInfo:init(type_)
 		cmdData.operation[1] = oper
 		local cmdSender = hp.httpCmdSender.new(onFireResponse)
 		cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+		self:showLoading(cmdSender)
 	end
 
 	local function onFireSoldierTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType == TOUCH_EVENT_ENDED then
 			require("ui/msgBox/msgBox")
-			local msgBox = UI_msgBox.new("是否确定", 
-				"", 
-				hp.lang.getStrByID(2414), 
+			local msgBox = UI_msgBox.new(hp.lang.getStrByID(5003), 
+				hp.lang.getStrByID(5288), 
+				hp.lang.getStrByID(1025), 
 				hp.lang.getStrByID(2412),  
 				onFireConfirm
 				)
@@ -156,15 +174,18 @@ function UI_soldierInfo:updatUIData()
 
 	-- description 
 	local desc = self.wigetRoot:getChildByName("Panel_1211")
-	desc:getChildByName("Label_1212"):setString(string.format(hp.lang.getStrByID(1008), player.getTypeName(self.type)))
+	local typeName_ = player.soldierManager.getTypeName(self.type)
+	local level_ = player.getSoldierLevel(self.type)
+	local name_ = string.format(hp.lang.getStrByID(5355), level_)..typeName_
+	desc:getChildByName("Label_1212"):setString(string.format(hp.lang.getStrByID(1008), name_))
 
 	-- 克制
 	local strName = ""
 	for i,v in ipairs(self.soldierInfo.abnegate) do
 		if i == 1 then
-			strName = strName..player.getTypeName(v)
+			strName = strName..player.soldierManager.getTypeName(v)
 		else
-			strName = strName..","..player.getTypeName(v)
+			strName = strName..","..player.soldierManager.getTypeName(v)
 		end
 	end
 	desc:getChildByName("Label_1213"):setString(string.format(hp.lang.getStrByID(1005), strName))
@@ -173,9 +194,9 @@ function UI_soldierInfo:updatUIData()
 	local strName = ""
 	for i,v in ipairs(self.soldierInfo.abnegated) do
 		if i == 1 then
-			strName = strName..player.getTypeName(v)
+			strName = strName..player.soldierManager.getTypeName(v)
 		else
-			strName = strName..","..player.getTypeName(v)
+			strName = strName..","..player.soldierManager.getTypeName(v)
 		end
 	end
 	desc:getChildByName("Label_1214"):setString(string.format(hp.lang.getStrByID(1006), strName))
@@ -183,7 +204,7 @@ function UI_soldierInfo:updatUIData()
 	-- 战力描述
 	local fightValue = self.wigetRoot:getChildByName("Panel_1215")
 	-- 兵力
-	fightValue:getChildByName("Label_1216"):setString(string.format(hp.lang.getStrByID(1017), player.getTotalArmy():getSoldierByType(self.type):getNumber()))
+	fightValue:getChildByName("Label_1216"):setString(string.format(hp.lang.getStrByID(1017), player.soldierManager.getTotalArmy():getSoldierByType(self.type):getNumber()))
 	-- 单兵消耗
 	fightValue:getChildByName("Label_1217"):setString(string.format(hp.lang.getStrByID(1018), self.soldierInfo.charge))
 	-- 权利值
@@ -217,17 +238,62 @@ function UI_soldierInfo:updatUIData()
 	self.wigetRoot:getChildByName("Panel_5185"):getChildByName("ImageView_1244"):getChildByName("Label_1245"):setString(hp.lang.getStrByID(1013))
 	
 	-- 加成信息
-	local addContainer = self.wigetRoot:getChildByName("Panel_1246")
-	-- 英雄天赋
-	addContainer:getChildByName("Label_1280"):setString(hp.lang.getStrByID(1014))
-	addContainer:getChildByName("Label_1250"):setString(string.format(hp.lang.getStrByID(1021), "0"))
-	addContainer:getChildByName("Label_1251"):setString(string.format(hp.lang.getStrByID(1022), "0"))
-	-- 书院
-	addContainer:getChildByName("Label_1380"):setString(hp.lang.getStrByID(1015))
-	addContainer:getChildByName("Label_1350"):setString(string.format(hp.lang.getStrByID(1023), "0"))
-	-- 建筑奖励
-	addContainer:getChildByName("Label_1480"):setString(hp.lang.getStrByID(1016))
-	addContainer:getChildByName("Label_1450"):setString(string.format(hp.lang.getStrByID(1024), "0"))
+	local listView = self.wigetRoot:getChildByName("ListView_59")
+	local item1_ = listView:getChildByName("Panel_60"):clone()
+	local item2_ = listView:getChildByName("Panel_1246"):clone()
+	listView:removeAllItems()
+
+	for i, v in ipairs(attrSource) do
+		local num_ = 0
+		-- 来源
+		local title_ = item1_:clone()
+		listView:pushBackCustomItem(title_)
+		title_:getChildByName("Panel_62"):getChildByName("Label_1280"):setString(hp.lang.getStrByID(sourceNameId[i]))
+
+		-- 通用
+		for j, w in ipairs(propCommon) do			
+			local addn_ = player.helper.getAttrAddn(w, v)
+			if addn_ ~= 0 then
+				local item_ = item2_:clone()
+				listView:pushBackCustomItem(item_)
+				num_ = num_ + 1
+				local content_ = item_:getChildByName("Panel_65")
+
+				local info_ = hp.gameDataLoader.getInfoBySid("attr", w)
+				-- 描述
+				content_:getChildByName("Label_1250"):setString(info_.desc)
+				-- 加成
+				content_:getChildByName("Label_1251"):setString((addn_ / 100).."%")
+			end
+		end
+
+		-- 按兵种
+		for j, w in ipairs(propByType[self.type]) do			
+			local addn_ = player.helper.getAttrAddn(w, v)
+			if addn_ ~= 0 then
+				local item_ = item2_:clone()
+				listView:pushBackCustomItem(item_)
+				num_ = num_ + 1
+				local content_ = item_:getChildByName("Panel_65")
+
+				local info_ = hp.gameDataLoader.getInfoBySid("attr", w)
+				-- 描述
+				content_:getChildByName("Label_1250"):setString(info_.desc)
+				-- 加成
+				content_:getChildByName("Label_1251"):setString((addn_ / 100).."%")
+			end
+		end
+
+		-- 无
+		if num_ == 0 then
+			local item_ = item2_:clone()
+			listView:pushBackCustomItem(item_)
+			local content_ = item_:getChildByName("Panel_65")
+			-- 无
+			content_:getChildByName("Label_1250"):setString(hp.lang.getStrByID(5147))
+			content_:getChildByName("Label_1251"):setString("")
+		end
+	end
 
 	-- 开除
 	self.fire = self.wigetRoot:getChildByName("Panel_1208"):getChildByName("ImageView_1268")

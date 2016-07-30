@@ -22,8 +22,10 @@ function UI_buildUpgrade:init(param_)
 	local mustBuildComp = true
 	local buildingMgr = player.buildingMgr
 
+	local nextLv = 1
 	if uiType==1 then
 		-- 建造
+		nextLv = 1
 		b = {sid=param_.sid, bsid=block.sid, lv=1}
 		for i,v in ipairs(game.data.building) do
 			if b.sid==v.sid then
@@ -45,6 +47,8 @@ function UI_buildUpgrade:init(param_)
 		bInfo = building.bInfo
 		upInfo = building.upInfo
 		imgPath = building.imgPath
+		uiType = 2
+		nextLv = b.lv + 1
 	end
 	self.upInfo = upInfo
 
@@ -60,7 +64,7 @@ function UI_buildUpgrade:init(param_)
 			if data.result~=nil and data.result==0 then
 				if tag == 0 then
 					-- 更新建筑cd
-					cdBox.initCDInfo(cdBox.CDTYPE.BUILD, {data.cd, data.cd, uiType, block.sid, block.type})
+					cdBox.initCDInfo(cdBox.CDTYPE.BUILD, {data.cd, data.cd, uiType, b.sid, nextLv})
 				end
 				-- 消耗资源
 				for i,v in ipairs(upInfo.costs) do
@@ -81,9 +85,9 @@ function UI_buildUpgrade:init(param_)
 					building:upgradeBuilding()
 				end
 				
-				-- 新手指引--建造农场/升级主建筑/建造监狱
+				-- 新手指引--建造农场
 				self:closeAll()
-				player.guide.stepEx({2004, 3004, 7004})
+				player.guide.stepEx({2010, 4008})
 				return
 			end
 		end
@@ -117,13 +121,28 @@ function UI_buildUpgrade:init(param_)
 	-- 建筑时间
 	headCont:getChildByName("Label_oTimeName"):setString(hp.lang.getStrByID(2018))
 	headCont:getChildByName("Label_oTime"):setString(hp.datetime.strTime(upInfo.cd))
+	local freeCD = player.helper.getFreeCD()
+	if freeCD>0 then
+		headCont:getChildByName("Label_vipName"):setString(hp.lang.getStrByID(2057))
+		headCont:getChildByName("Label_vipTime"):setString("-"..hp.datetime.strTime(freeCD))
+	else
+		headCont:getChildByName("Label_vipName"):setVisible(false)
+		headCont:getChildByName("Label_vipTime"):setVisible(false)
+	end
 	headCont:getChildByName("Label_rTimeName"):setString(hp.lang.getStrByID(2019))
-	local realTime = player.helper.getBuildRealCD(upInfo.cd)
+	local realTime = player.helper.getBuildRealCD(upInfo.cd) - freeCD
+	if realTime<0 then
+		realTime = 0
+	end
 	headCont:getChildByName("Label_rTime"):setString(hp.datetime.strTime(realTime))
+	
 	-- 升级
 	local btnNow = headCont:getChildByName("ImageView_now")
 	local btnUpgrade = headCont:getChildByName("ImageView_upgrade")
-
+	-- 升级特效
+	local upgradeEff = hp.uiEffect.innerGlow(btnUpgrade, 1)
+	
+	
 	-- 请求加速队列
 	local function onSpeedQueue()
 		require("ui/item/speedItem")
@@ -212,15 +231,29 @@ function UI_buildUpgrade:init(param_)
 			end
 		end
 	end
-	btnNow:addTouchEventListener(onBtnTouched)
 	btnUpgrade:addTouchEventListener(onBtnTouched)
 	if uiType==1 then
-		btnNow:getChildByName("Label_now"):setString(hp.lang.getStrByID(2022))
+		--btnNow:getChildByName("Label_now"):setString(hp.lang.getStrByID(2022))
 		btnUpgrade:getChildByName("Label_upgrade"):setString(hp.lang.getStrByID(2023))
+		btnNow:setVisible(false)
 	else
 		btnNow:getChildByName("Label_now"):setString(hp.lang.getStrByID(2020))
-		btnUpgrade:getChildByName("Label_upgrade"):setString(hp.lang.getStrByID(2021))
+		btnUpgrade:getChildByName("Label_upgrade"):setString(hp.lang.getStrByID(2058))
+		btnNow:addTouchEventListener(onBtnTouched)
 	end
+	-- 花费钻石
+	local function calcDiamondCost()
+		local costItems_ = {}
+		for i, v in ipairs(upInfo.costSids) do
+			if v == -1 then
+				break
+			end
+			costItems_[i] = {v, upInfo.costNums[i]}
+		end
+		btnNow:getChildByName("ImageView_goldNum"):getChildByName("Label_num"):setString(player.quicklyMgr.getDiamondCost(upInfo.costs, realTime, costItems_))
+	end
+	calcDiamondCost()
+	self.calcDiamondCost = calcDiamondCost
 
 	-- list
 	----------
@@ -261,6 +294,26 @@ function UI_buildUpgrade:init(param_)
 	end
 
 	-- 前续建筑
+	local function goUpdateBuilding(sender, eventType)
+		hp.uiHelper.btnImgTouched(sender, eventType)
+		if eventType==TOUCH_EVENT_ENDED then
+			local building = game.curScene:getBuildingBySid(sender:getTag())
+			if building==nil then
+				require("ui/msgBox/msgBox")
+				local msgBox = UI_msgBox.new(hp.lang.getStrByID(1191), 
+					hp.lang.getStrByID(2060), 
+					hp.lang.getStrByID(1209)
+					)
+				self:addModalUI(msgBox)
+				return
+			else
+				local ui = UI_buildUpgrade.new({type=2, building=building})
+				self:closeAll()
+				self:addUI(ui)
+				ui:moveIn(2, 0.2)
+			end
+		end
+	end
 	if upInfo.mustBuildSid[1]~=-1 then
 		for i, mustSid in ipairs(upInfo.mustBuildSid) do
 			if mustSid~=-1 then
@@ -272,17 +325,42 @@ function UI_buildUpgrade:init(param_)
 				itemCont = item:getChildByName("Panel_cont")
 				itemCont:getChildByName("ImageView_icon"):loadTexture(config.dirUI.common .. "building_icon.png")
 				itemCont:getChildByName("Label_desc"):setString(bTmp.name .. " " .. string.format(hp.lang.getStrByID(2017), upInfo.mustBuildLv[i]))
-				itemCont:getChildByName("ImageView_buy"):setVisible(false)
-				itemCont:getChildByName("Label_buy"):setVisible(false)
 
-				if maxLv>=upInfo.mustBuildLv[i] then
-					itemCont:getChildByName("ImageView_isOK"):loadTexture(config.dirUI.common .. "right.png")
+				if uiType==1 then
+				-- 建造
+					itemCont:getChildByName("ImageView_buy"):setVisible(false)
+					itemCont:getChildByName("Label_buy"):setVisible(false)
+					if maxLv>=upInfo.mustBuildLv[i] then
+						itemCont:getChildByName("ImageView_isOK"):loadTexture(config.dirUI.common .. "right.png")
+					else
+						itemCont:getChildByName("ImageView_isOK"):loadTexture(config.dirUI.common .. "wrong.png")
+						self.disableNum = self.disableNum+1
+						mustBuildComp = false
+					end
 				else
-					itemCont:getChildByName("ImageView_isOK"):loadTexture(config.dirUI.common .. "wrong.png")
-					self.disableNum = self.disableNum+1
-					mustBuildComp = false
+				-- 升级
+					if maxLv>=upInfo.mustBuildLv[i] then
+						itemCont:getChildByName("ImageView_isOK"):loadTexture(config.dirUI.common .. "right.png")
+						itemCont:getChildByName("ImageView_buy"):setVisible(false)
+						itemCont:getChildByName("Label_buy"):setVisible(false)
+					else
+						itemCont:getChildByName("ImageView_isOK"):setVisible(false)
+						itemCont:getChildByName("Label_buy"):setString(hp.lang.getStrByID(2059))
+						local updateBtn = itemCont:getChildByName("ImageView_buy")
+						updateBtn:setTag(mustSid)
+						updateBtn:addTouchEventListener(goUpdateBuilding)
+						hp.uiEffect.innerGlow(updateBtn, 1)
+						self.disableNum = self.disableNum+1
+						mustBuildComp = false
+					end
 				end
 
+				--判断是否应该加底背景
+				if iIndex%2==0 then
+					item:getChildByName("Panel_frame"):setVisible(false)
+				else
+					item:getChildByName("Panel_frame"):setVisible(true)
+				end
 				iIndex = iIndex+1
 			end
 		end
@@ -296,22 +374,25 @@ function UI_buildUpgrade:init(param_)
 			self:addUI(ui)
 		end
 	end
-	local function onItenBuyBtnTouched(sender, eventType)
+	local function onItemBuyBtnTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			require("ui/item/commonItem")
-			local ui = UI_commonItem.new(upInfo.costSids[sender:getTag()], hp.lang.getStrByID(2839))
+			require("ui/item/buildingItem")
+			local ui = UI_buildingItem.new(upInfo.costSids[sender:getTag()], hp.lang.getStrByID(2839))
 			self:addUI(ui)
 		end
 	end
 	-- 资源需求
+	self.costItem = {}
 	local function setCostItem(itemNode)
 		local i = itemNode:getTag()
 		local needNum = upInfo.costs[i]
 		itemCont = itemNode:getChildByName("Panel_cont")
-		itemCont:getChildByName("ImageView_icon"):loadTexture(config.dirUI.common .. game.data.resType[i][1] .. ".png")
+		itemCont:getChildByName("ImageView_icon"):loadTexture(config.dirUI.common .. game.data.resType[i][1] .. "_big.png")
+		itemCont:getChildByName("ImageView_icon"):setScale(0.8)
 		local resNum = player.getResource(game.data.resType[i][1])
 		itemCont:getChildByName("Label_desc"):setString(string.format("%d / %d", resNum, needNum))
+
 		if resNum>=needNum then
 			itemCont:getChildByName("ImageView_isOK"):setVisible(true)
 			itemCont:getChildByName("ImageView_isOK"):loadTexture(config.dirUI.common .. "right.png")
@@ -326,14 +407,16 @@ function UI_buildUpgrade:init(param_)
 			buyTxt:setVisible(true)
 			buyBtn:setTag(i-1)
 			buyBtn:addTouchEventListener(onBuyBtnTouched)
+			if not self.costItem[i].effFlag then
+			-- 如果没有添加特效，添加特效
+				hp.uiEffect.innerGlow(buyBtn, 1)
+				self.costItem[i].effFlag = true
+			end
 			buyTxt:setString(hp.lang.getStrByID(2028))
 		end
 
 		return false
 	end
-
-	self.costItem = {}
-	self.setCostItem = setCostItem
 	for i,v in ipairs(upInfo.costs) do 
 		if v>0 then
 			if bFlag then
@@ -347,16 +430,25 @@ function UI_buildUpgrade:init(param_)
 			self.costItem[i] = {}
 			self.costItem[i].item = item
 			self.costItem[i].disableFlag = false
+			self.costItem[i].effFlag = false
 			if setCostItem(item)==false then
 				self.costItem[i].disableFlag = true
 				self.disableNum = self.disableNum+1
 			end
 			
+			--判断是否应该加底背景
+			if iIndex%2==0 then
+				item:getChildByName("Panel_frame"):setVisible(false)
+			else
+				item:getChildByName("Panel_frame"):setVisible(true)
+			end
 			iIndex = iIndex+1
 		end
 	end
+	self.setCostItem = setCostItem
 
 	-- 道具
+	self.itemItem = {}
 	local function setItemItem(itemNode)
 		local i = itemNode:getTag()
 		local needNum = upInfo.costNums[i]
@@ -379,14 +471,17 @@ function UI_buildUpgrade:init(param_)
 			buyBtn:setVisible(true)
 			buyTxt:setVisible(true)
 			buyBtn:setTag(i)
-			buyBtn:addTouchEventListener(onItenBuyBtnTouched)
+			buyBtn:addTouchEventListener(onItemBuyBtnTouched)
+			if not self.itemItem[i].effFlag then
+			-- 如果没有添加特效，添加特效
+				hp.uiEffect.innerGlow(buyBtn, 1)
+				self.itemItem[i].effFlag = true
+			end
 			buyTxt:setString(hp.lang.getStrByID(2028))
 		end
 
 		return false
 	end
-	self.itemItem = {}
-	self.setItemItem = setItemItem
 	for i,v in ipairs(upInfo.costSids) do 
 		if v>0 and upInfo.costNums[i]>0 then
 			if bFlag then
@@ -400,14 +495,22 @@ function UI_buildUpgrade:init(param_)
 			self.itemItem[i] = {}
 			self.itemItem[i].item = item
 			self.itemItem[i].disableFlag = false
+			self.itemItem[i].effFlag = false
 			if setItemItem(item)==false then
 				self.itemItem[i].disableFlag = true
 				self.disableNum = self.disableNum+1
 			end
 			
+			--判断是否应该加底背景
+			if iIndex%2==0 then
+				item:getChildByName("Panel_frame"):setVisible(false)
+			else
+				item:getChildByName("Panel_frame"):setVisible(true)
+			end
 			iIndex = iIndex+1
 		end
 	end
+	self.setItemItem = setItemItem
 
 	-- 建造 - 升级奖励
 	item = itemTitle:clone()
@@ -421,10 +524,12 @@ function UI_buildUpgrade:init(param_)
 	end
 	-- 经验
 	local itemCont = itemAward:getChildByName("Panel_cont")
+	itemAward:getChildByName("Panel_frame"):setVisible(false)
 	itemCont:getChildByName("Label_desc"):setString(string.format(hp.lang.getStrByID(2031), upInfo.addExp))
 	iIndex = iIndex+1
 	-- 战力
 	item = itemAward:clone()
+	item:getChildByName("Panel_frame"):setVisible(true)
 	listView:insertCustomItem(item, iIndex)
 	itemCont = item:getChildByName("Panel_cont")
 	itemCont:getChildByName("Label_desc"):setString(string.format(hp.lang.getStrByID(2032), upInfo.point))
@@ -493,7 +598,7 @@ function UI_buildUpgrade:init(param_)
 				prisonInfo = UI_prisonInfo.new(building_)
 				self:addModalUI(prisonInfo)
 			elseif bInfo.showtype == 14 then
-				require "ui/villa/villaInfo.lua"
+				require "ui/villa/villaInfo"
 				prisonInfo = UI_villaInfo.new(building_)
 				self:addModalUI(prisonInfo)
 			elseif bInfo.showtype == 15 then
@@ -508,11 +613,7 @@ function UI_buildUpgrade:init(param_)
 				require "ui/gymnos/gymnosInfo"
 				local moreInfoBox = UI_gymnosInfo.new(building_)
 				self:addModalUI(moreInfoBox)
-			end                      
-			
-			
-			
-			
+			end
 		end
 	end
 	btnMore:addTouchEventListener(onBtnMoreTouched)
@@ -520,15 +621,17 @@ function UI_buildUpgrade:init(param_)
 
 	local function checkUpdateEnabled()
 		if self.disableNum<=0 or (self.disableNum==1 and cdBox.getCD(cdBox.CDTYPE.BUILD)>0)then
-			btnUpgrade:loadTexture(config.dirUI.common .. "button_green.png")
+			btnUpgrade:loadTexture(config.dirUI.common .. "button_blue.png")
 			btnUpgrade:setTouchEnabled(true)
+			upgradeEff:setVisible(true)
 		else
 			btnUpgrade:loadTexture(config.dirUI.common .. "button_gray.png")
 			btnUpgrade:setTouchEnabled(false)
+			upgradeEff:setVisible(false)
 		end
 
 		if mustBuildComp == true then
-			btnNow:loadTexture(config.dirUI.common .. "button_blue.png")
+			btnNow:loadTexture(config.dirUI.common .. "button_green.png")
 			btnNow:setTouchEnabled(true)
 		else
 			btnNow:loadTexture(config.dirUI.common .. "button_gray.png")
@@ -544,19 +647,18 @@ function UI_buildUpgrade:init(param_)
 	self:addChildUI(uiFrame)
 	self:addCCNode(wigetRoot)
 
-
 	-- registMsg
 	-- =====================
 	self:registMsg(hp.MSG.RESOURCE_CHANGED)
 	self:registMsg(hp.MSG.ITEM_CHANGED)
 	self:registMsg(hp.MSG.GUIDE_STEP)
 
-
 	-- 进行新手引导绑定
 	-- ================================
 	local function bindGuideUI( step )
-		if step==2004 or step==3004 or step==7004 then
+		if step==2010 or step==4008 then
 			player.guide.bind2Node(step, btnUpgrade, onBtnTouched)
+			player.guide.getUI().uiLayer:runAction(cc.MoveBy:create(0.2, cc.p(-game.visibleSize.width, 0)))
 		end
 	end
 	self.bindGuideUI = bindGuideUI
@@ -590,6 +692,7 @@ function UI_buildUpgrade:onMsg(msg_, itemInfo_)
 				self.checkUpdateEnabled()
 			end
 		end
+		self.calcDiamondCost()
 	elseif msg_==hp.MSG.ITEM_CHANGED then
 		for k, item in pairs(self.itemItem) do
 			local itemNode = item.item
@@ -608,6 +711,7 @@ function UI_buildUpgrade:onMsg(msg_, itemInfo_)
 				break
 			end
 		end
+		self.calcDiamondCost()
 	elseif msg_==hp.MSG.GUIDE_STEP then
 		self.bindGuideUI(itemInfo_)
 	end

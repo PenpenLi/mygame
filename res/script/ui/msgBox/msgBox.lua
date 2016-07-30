@@ -3,13 +3,14 @@
 -- 消息框
 --===================================
 require "ui/frame/popFrame"
+require "ui/frame/popFrameRed"
 
 
 UI_msgBox = class("UI_msgBox", UI)
 
 
 --init
-function UI_msgBox:init(title_, msg_, okText_, cancelText_, onOK_, onCancel_)
+function UI_msgBox:init(title_, msg_, okText_, cancelText_, onOK_, onCancel_, color_)
 	-- data
 	-- ===============================
 	self.OK = false
@@ -20,7 +21,6 @@ function UI_msgBox:init(title_, msg_, okText_, cancelText_, onOK_, onCancel_)
 	-- ui
 	-- ===============================
 	local wigetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "msgBox.json")
-	local uiFrame = UI_popFrame.new(wigetRoot, title_)
 
 	local contNode = wigetRoot:getChildByName("Panel_cont")
 	local btnCancel = contNode:getChildByName("ImageView_cancel")
@@ -28,6 +28,10 @@ function UI_msgBox:init(title_, msg_, okText_, cancelText_, onOK_, onCancel_)
 	local okLabel = btnOk:getChildByName("Label_text")
 	local cancelLabel = btnCancel:getChildByName("Label_text")
 	local descLabel = contNode:getChildByName("Label_desc")
+
+	if color_ == "red" then
+		descLabel:setColor(cc.c3b(255, 255, 255))
+	end
 
 	if okText_~=nil then
 		okLabel:setString(okText_)
@@ -44,7 +48,6 @@ function UI_msgBox:init(title_, msg_, okText_, cancelText_, onOK_, onCancel_)
 		descLabel:setString(msg_)
 	end
 
-
 	local function onBtnTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
@@ -57,14 +60,40 @@ function UI_msgBox:init(title_, msg_, okText_, cancelText_, onOK_, onCancel_)
 	btnCancel:addTouchEventListener(onBtnTouched)
 	btnOk:addTouchEventListener(onBtnTouched)
 
+	local fontSize = descLabel:getFontSize()
+	local lineNum = descLabel:getVirtualRenderer():getStringNumLines()
+	local rootSize = wigetRoot:getSize()
+	local px, py = wigetRoot:getPosition()
+	
+	if lineNum>1 then
+		descLabel:setTextHorizontalAlignment(0)
+	end
+
+	local descHeight = fontSize * lineNum
+	rootSize.height = rootSize.height+descHeight
+	py = py-descHeight/2
+	wigetRoot:setSize(rootSize)
+	wigetRoot:setPosition(px, py)
+
+	px, py = descLabel:getPosition()
+	descLabel:setPosition(px, py+descHeight)
+
+	local popFrame = nil
+	if color_ == "red" then
+		popFrame = UI_popFrameRed.new(wigetRoot, title_)
+	else
+		popFrame = UI_popFrame.new(wigetRoot, title_)
+	end
 
 	-- addCCNode
 	-- ===============================
-	self:addChildUI(uiFrame)
+	self:addChildUI(popFrame)
 	self:addCCNode(wigetRoot)
 end
 
 function UI_msgBox:onRemove()
+	self.super.onRemove(self)
+	
 	if self.OK then
 		if self.onOk~=nil and type(self.onOk)=='function' then
 			self.onOk()
@@ -74,6 +103,25 @@ function UI_msgBox:onRemove()
 			self.onCancel()
 		end
 	end
+end
 
-	self.super.onRemove(self)
+
+-- 显示常用
+function UI_msgBox.showCommonMsg(parent_, tpye_)
+
+	if tpye_==1 then
+		local function onConfirm()
+			require "ui/goldShop/goldShop"
+			local ui = UI_goldShop.new()
+			parent_:addUI(ui)
+		end
+
+		local msgBox = UI_msgBox.new(hp.lang.getStrByID(2826), 
+			hp.lang.getStrByID(2827), 
+			hp.lang.getStrByID(1209), 
+			hp.lang.getStrByID(2412),
+			onConfirm
+			)
+		parent_:addModalUI(msgBox)
+	end
 end

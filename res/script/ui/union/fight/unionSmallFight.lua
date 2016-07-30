@@ -147,7 +147,7 @@ function UI_unionSmallFight:initCallBack()
 			local fight_ = createMySmallFight()
 			player.getAlliance():insertSmallFight(fight_)
 			require "ui/union/fight/unionSmallFightDetail"
-			ui_ = UI_unionSmallFightDetail.new(player.getID())
+			local ui_ = UI_unionSmallFightDetail.new(player.getID())
 			self:addUI(ui_)
 		end
 	end
@@ -155,7 +155,7 @@ function UI_unionSmallFight:initCallBack()
 	local function onCreateTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			print("create")
+			cclog_("create")
 			local cmdData={operation={}}
 			local oper = {}
 			oper.channel = 16
@@ -207,7 +207,7 @@ end
 
 function UI_unionSmallFight:onMsg(msg_, param_)
 	if msg_ == hp.MSG.UNION_DATA_PREPARED then
-		print(param_, self.tab)
+		cclog_(param_, self.tab)
 		if param_ == dirtyType.SMALFIGHT then
 			if self.tab == 2 then
 				self:refreshPage2()
@@ -216,11 +216,11 @@ function UI_unionSmallFight:onMsg(msg_, param_)
 	end
 end
 
-function UI_unionSmallFight:close()
+function UI_unionSmallFight:onRemove()
 	self.item1:release()
 	self.item2:release()
 	player.getAlliance():unPrepareData(dirtyType.SMALFIGHT, "UI_unionSmallFight")
-	self.super.close(self)
+	self.super.onRemove(self)
 end
 
 function UI_unionSmallFight:refreshPage1()
@@ -266,7 +266,7 @@ function UI_unionSmallFight:refreshPage1()
 					icon_[j]:loadTexture(config.dirUI.common..difficultyIcon[j])
 					path_ = config.dirUI.common..difficultyIcon[j]
 				end
-				print(path_)
+				cclog_(path_)
 			end
 			content_:getChildByName("Label_34_1"):setString(string.format(hp.lang.getStrByID(rewardName[type_]), reward_))
 		end
@@ -298,7 +298,7 @@ function UI_unionSmallFight:refreshPage1()
 	self.listView:removeAllItems()
 
 	if self.listViewHelper == nil then
-		self.listViewHelper = hp.uiHelper.listViewLoadHelper(self.listView, createItemByindex, 5, 3)
+		self.listViewHelper = hp.uiHelper.listViewLoadHelper(self.listView, createItemByindex, self.item1:getSize().height, 3)
 	end
 	self.listViewHelper.initShow()
 
@@ -308,7 +308,7 @@ function UI_unionSmallFight:refreshPage1()
 
 	-- for i, v in ipairs(self.smallFightInfoList) do
 	-- 	local item_ = createItemByindex(i)
-	-- 	print(item_)
+	-- 	cclog_(item_)
 	-- 	self.listView:pushBackCustomItem(item_)
 	-- end	
 end
@@ -414,8 +414,8 @@ function UI_unionSmallFight:updateFight()
 	for i, v in ipairs(self.defenseIDMap) do
 		local fightInfo_ = player.getAlliance():getSmallFightByID(v)
 		self.uiJoinNum[i]:setString(string.format(hp.lang.getStrByID(5037), table.getn(fightInfo_.members), fightInfo_.info.num))
-		local percent_ = hp.common.round(fightInfo_.power / fightInfo_.info.grade[3] * 100)
-		print(percent_)
+		local percent_ = fightInfo_.power / fightInfo_.info.grade[3] * 100
+		cclog_(percent_)
 		self.uiFightLoadingBar[i]:setPercent(percent_)
 	end
 end
@@ -430,7 +430,7 @@ function UI_unionSmallFight:tickUpdateInfo()
 			local restTime_= v.endTime - player.getServerTime()
 			if restTime_ >= 0 then
 				self.uiCountTime[i]:setString(hp.datetime.strTime(restTime_))
-				local percent_ = hp.common.round(100 - restTime_ / v.info.time * 100)
+				local percent_ = 100 - restTime_ / v.info.time * 100
 				self.uiLoadingBar[i]:setPercent(percent_)
 			end
 		end

@@ -6,11 +6,6 @@
 --
 --================================================
 
---
--- class: httpCmd
--- desc: http请求对象
---=====================================
-hp.httpCmd = class("httpCmd")
 
 hp.httpCmdType = 
 {
@@ -18,23 +13,304 @@ hp.httpCmdType =
 	SEND_BUFFER = 1
 }
 
--- ctor
-function hp.httpCmd:ctor(type_, cmd_, data_, sender_, tag_, timeout_)
-	self.type = type_
-	self.cmd = cmd_
-	self.data = data_
-	self.sender = sender_
-	self.tag = tag_
-	if timeout_==nil then
-		self.timeout = config.server.timeout
+
+--
+-- obj: httpCmdSequence
+-- desc: http请求序列 通过其心跳按顺序发送其中的请求
+--=====================================
+hp.httpCmdSequence = {}
+
+
+-- 私有数据
+-- ================================
+-- ********************************
+local sequenceID = 1 --ID
+
+local httpCmdQueue = {} --请求队列
+local queueHead = 1 --队列头
+local queueTail = 1 --队列尾
+
+local sendingCmd = nil --正在发送的 hp.httpCmd
+local sendingXhr = nil --正在发送请求的 XMLHttpRequest
+
+local RID = 0 --请求ID
+local sendTimes = 0 --请求发送次数
+local resendFlag = false --重新发送
+
+
+-- 私有函数
+-- ================================
+-- ********************************
+
+-- pushHttpCmd
+-- push 一个httpCmd到队列
+local function pushHttpCmd(httpCmd_)
+	httpCmdQueue[queueTail] = httpCmd_
+	queueTail = queueTail+1
+end
+
+-- popHttpCmd
+-- 从队列中取出一个 httpCmd
+local function popHttpCmd()
+	local httpCmd = nil
+	
+	if queueHead==queueTail then
+	-- 队列已空
+		if queueHead~=1 then
+			httpCmdQueue = {}
+			queueHead = 1
+			queueTail = 1
+		end
 	else
-		self.timeout = timeout_
+		httpCmd = httpCmdQueue[queueHead]
+		httpCmdQueue[queueHead] = nil
+		queueHead = queueHead + 1
 	end
 	
-	self.sendingTime = 0
-	self.loadingUI = nil
-	self.loadingNode = nil
+	return httpCmd
 end
+
+-- strEscape
+-- 字符串url编码 - 对中文和特殊字符转码
+local function strEscape(w)
+	pattern="[^%w%d%._%-%* ]"
+	s=string.gsub(w,pattern,function(c)
+		local c=string.format("%%%02X",string.byte(c))
+		return c
+	end)
+	s=string.gsub(s," ","+")
+	return s
+end
+
+-- cmdDataEncode
+-- 对发送请求的数据进行编码
+local function cmdDataEncode(v)
+	if v==nil then
+		return "null"
+	end
+
+	local vtype = type(v)
+	if vtype=='string' then
+		return strEscape(v)
+	end
+
+	if vtype=='number' then
+		if v>4294967295 then
+			return string.format("%.0f", v)
+		end
+		return tostring(v)
+	end
+	if vtype=='boolean' then
+		return tostring(v)
+	end
+	
+	return json.encode(v)
+end
+
+-- onResponseException
+-- 处理网络异常
+local function onResponseException( errCode )
+	game.sdkHelper.onDisconnect(errCode)
+end
+
+-- onHttpResponse
+-- 请求响应
+local function onHttpResponse()
+	if sendingCmd==nil then
+	-- 或许已经认为超时处理
+		return
+	end
+
+	local httpCmd = sendingCmd
+	if httpCmd.sequenceID~=sequenceID then
+	-- 已经过期的响应，不处理
+		sendingCmd = nil
+		sendingXhr = nil
+		return
+	end
+
+	-- 获取响应数据
+	local status = sendingXhr.status
+	local response = sendingXhr.response
+	sendingXhr:unregisterScriptHandler()
+	cclog("Http Status Code: %d", status)
+	cclog("Http response: %s", response)
+
+	if status~=200 or response==nil or string.len(response)<0 then
+	-- 响应网络超时或者异常
+		if player.isLogined() and sendTimes<3 then
+			-- 如果用户已经登录，重新发送3次
+			resendFlag = true
+		else
+			onResponseException(0)
+			sendingCmd = nil
+			sendingXhr = nil
+		end
+		return
+	end
+
+	sendingCmd = nil
+	sendingXhr = nil
+
+	-- 回调之前，关掉loading
+	if httpCmd.loadingUI~=nil then
+		httpCmd.loadingUI:hideLoading(httpCmd.loadingNode)
+		httpCmd.loadingUI = nil
+		httpCmd.loadingNode = nil
+	end
+
+	-- 解析json数据
+	local dataResponse = json.decode(response, 1)
+	local rstData = nil --网络请求返回数据
+	local heartData = dataResponse.heart--网络请求携带心跳数据
+	if dataResponse.rst~=nil then
+		rstData = dataResponse.rst
+	else
+		rstData = dataResponse
+	end
+	rstData.result = tonumber(rstData.result)
+	
+
+	if not player.isLogined() and rstData.result~=0 then
+	-- 如果玩家没有登录，一切异常都有onResponseException处理
+		onResponseException(rstData.result)
+		return
+	end
+
+	-- 调用回调
+	if httpCmd.sender~=nil and httpCmd.sender.callback~=nil then
+		httpCmd.sender.callback(status, rstData, httpCmd.tag)
+	end
+
+	if rstData.result==0 then
+	-- 进行玩家数据同步
+		if heartData~=nil then
+			player.synData(heartData)
+		end
+	elseif rstData.result==69 then
+	-- 网络cache超时
+		onResponseException(69)
+	else
+	-- 错误提示
+		if httpCmd.data.operation~=nil then
+			local oper_ = httpCmd.data.operation[1]
+			if oper_~=nil then
+				Scene.showHttpErrorMsg({result=rstData.result, channel=oper_.channel, type=oper_.type})
+			end
+		end
+	end
+end
+
+
+-- 对外接口
+-- ================================
+-- ********************************
+
+-- init
+function hp.httpCmdSequence.init()
+	if sequenceID then
+		sequenceID = sequenceID+1
+	else
+		sequenceID = 1
+	end
+
+	-- 清空队列
+	httpCmdQueue = {}
+	ueueHead = 1
+	ueueTail = 1
+
+	-- 
+	sendingCmd = nil
+	sendingXhr = nil
+
+	RID = 0
+	sendTimes = 0
+	resendFlag = false
+end
+
+
+-- heartbeat
+function hp.httpCmdSequence.heartbeat(dt)
+	local httpCmd = nil
+
+	if sendingCmd then
+	-- 当前有一个正在发送的请求
+		if resendFlag then
+		-- 请求需要重新发送
+			httpCmd = sendingCmd
+		else
+			return
+		end
+	else
+		httpCmd = popHttpCmd()
+		if httpCmd and httpCmd.data.operation then
+			-- 如果是一个操作请求，为操作附加RID
+			sendTimes = 0
+			RID = RID+1
+			if RID>=10 then
+				RID = 0
+			end
+			httpCmd.data.RID = RID
+		end
+	end
+
+	if httpCmd==nil then
+	-- 请求队列为空
+		return
+	end
+
+	-- 发送次数+1
+	sendTimes = sendTimes+1
+	resendFlag = false
+	sendingCmd = httpCmd
+	httpCmd.sequenceID = sequenceID
+
+	-- create XMLHttpRequest
+	sendingXhr = cc.XMLHttpRequest:new()
+	sendingXhr.responseType = cc.XMLHTTPREQUEST_RESPONSE_JSON
+	sendingXhr:setRequestHeader("Accept-Language", "zh-CN")
+	sendingXhr:setRequestHeader("Accept-Encoding", "gzip, deflate")
+	sendingXhr.timeout = httpCmd.timeout
+	sendingXhr:registerScriptHandler(onHttpResponse)
+	
+	-- 拼接url
+	local url = nil
+	if httpCmd.url==nil then
+		url = player.serverMgr.getMyServerAddress() .. httpCmd.cmd
+	else
+		url = httpCmd.url .. httpCmd.cmd
+	end
+
+	-- 编码 data
+	local data = ""
+	local bFirst = true
+	if player.h_p_key()~=nil then
+		data = "h_p_key=" .. player.h_p_key()
+		bFirst = false
+	end
+	for k, v in pairs(httpCmd.data) do
+		if bFirst then
+			data = data .. k .. "=" .. cmdDataEncode(v)
+			bFirst = false
+		else
+			data = data .. "&" .. k .. "=" .. cmdDataEncode(v)
+		end
+	end
+
+	-- send XMLHttpRequest
+	sendingXhr:open("POST", url)
+	sendingXhr:send(data)
+	cclog("HttpRequest.url === %s", url)
+	cclog("HttpRequest.data === %s", data)
+end
+
+-- httpParse
+-- 解析http响应
+function hp.httpParse(httpResponse)
+	return httpResponse
+end
+
+
 
 
 --
@@ -42,6 +318,33 @@ end
 -- desc: 用于发送http请求
 --=====================================
 hp.httpCmdSender = class("httpCmdSender")
+
+
+--
+-- createHttpCmd
+-- desc: 创建一个http请求
+--=====================================
+
+local function createHttpCmd( type_, cmd_, data_, sender_, tag_, timeout_, url_ )
+	local httpCmd = {}
+
+	httpCmd.type = type_
+	httpCmd.cmd = cmd_
+	httpCmd.data = data_
+	httpCmd.sender = sender_
+	httpCmd.tag = tag_
+	httpCmd.url = url_
+	if timeout_==nil then
+		httpCmd.timeout = config.server.timeout
+	else
+		httpCmd.timeout = timeout_
+	end
+	
+	httpCmd.loadingUI = nil
+	httpCmd.loadingNode = nil
+
+	return httpCmd
+end
 
 -- ctor
 function hp.httpCmdSender:ctor(callback_)
@@ -52,16 +355,16 @@ function hp.httpCmdSender:delete()
 	self.callback = nil
 end
 -- send
-function hp.httpCmdSender:send(type_, data_, cmd_, tag_, timeout_)
+function hp.httpCmdSender:send(type_, data_, cmd_, tag_, timeout_, url_)
 	if type_==hp.httpCmdType.SEND_INTIME then
 		-- 立即发送
-		hp.httpBufferCmd.flush() -- 先发送缓存请求
-		local httpCmd = hp.httpCmd.new(type_, cmd_, data_, self, tag_, timeout_)
+		--hp.httpBufferCmd.flush() -- 先发送缓存请求
+		local httpCmd = createHttpCmd(type_, cmd_, data_, self, tag_, timeout_, url_)
 		self.curCmd = httpCmd
-		hp.httpCmdSequence.pushCmd(httpCmd)
+		pushHttpCmd(httpCmd)
 	elseif type_==hp.httpCmdType.SEND_BUFFER then
 		-- 缓冲发送
-		hp.httpBufferCmd.addData(data_)
+		-- hp.httpBufferCmd.addData(data_)
 	end
 end
 -- bindLoadingUI
@@ -70,181 +373,10 @@ function hp.httpCmdSender:bindLoadingUI(ui_, loadingNode_)
 	self.curCmd.loadingNode = loadingNode_
 end
 
---
--- obj: httpCmdSequence
--- desc: http请求序列 通过其心跳按顺序发送其中的请求
---=====================================
-hp.httpCmdSequence = {}
-
--- init
-function hp.httpCmdSequence.init()
-	local sequence = {}
-	sequence.sequence = {}
-	sequence.head = 1
-	sequence.tail = 1
-	hp.httpCmdSequence.sequence = sequence
-	
-	hp.httpCmdSequence.xhr = nil
-	hp.httpCmdSequence.sendingCmd = nil
-end
--- pushCmd
-function hp.httpCmdSequence.pushCmd(httpCmd_)
-	local sequence = hp.httpCmdSequence.sequence
-	
-	sequence.sequence[sequence.tail] = httpCmd_
-	sequence.tail = sequence.tail + 1
-end
--- popCmd
-function hp.httpCmdSequence.popCmd()
-	local sequence = hp.httpCmdSequence.sequence
-	local httpCmd = nil
-	
-	if sequence.head==sequence.tail then
-		if sequence.head~=1 then
-			sequence.sequence = {}
-			sequence.head = 1
-			sequence.tail = 1
-		end
-	else
-		httpCmd = sequence.sequence[sequence.head]
-		sequence.head = sequence.head + 1
-	end
-	
-	return httpCmd
-end
--- heartbeat
-function hp.httpCmdSequence.heartbeat(dt)
-	local httpCmd = hp.httpCmdSequence.sendingCmd
-	
-	if httpCmd~=nil then
-		-- 上一个请求还未返回
-		httpCmd.sendingTime = httpCmd.sendingTime+dt
-		if httpCmd.sendingTime>httpCmd.timeout then
-			-- 超时
-			hp.httpCmdSequence.sendingCmd = nil
-			
-			--if httpCmd.sender~=nil and httpCmd.sender.callback~=nil then
-			--	httpCmd.sender.callback(-1, nil, httpCmd.tag)
-			--end
-			cclog("Http Status Code: %d", -1)
-			cclog("Http response: timeout")
-
-			hp.httpCmdSequence.exception()
-			--hp.httpCmdSequence.xhr:unregisterScriptHandler()
-			--hp.httpCmdSequence.xhr = nil
-		end
-		return
-	end
-	
-	httpCmd = hp.httpCmdSequence.popCmd()
-	if httpCmd==nil then
-		-- 请求队列为空
-		return
-	end
-	
-	-- send XMLHttpRequest
-	local xhr = cc.XMLHttpRequest:new()
-	hp.httpCmdSequence.sendingCmd = httpCmd
-	hp.httpCmdSequence.xhr = xhr
-	
-	-- 请求响应
-	local function onHttpResponse()
-		local httpCmd = hp.httpCmdSequence.sendingCmd
-		local xhr = hp.httpCmdSequence.xhr
-		if xhr then
-			local status = xhr.status
-			local response = xhr.response
-			cclog("Http Status Code: %d", status)
-			cclog("Http response: %s", response)
-			
-			hp.httpCmdSequence.sendingCmd = nil
-			hp.httpCmdSequence.xhr = nil
-			
-			if httpCmd.loadingUI~=nil then
-			-- 回调之前，关掉loading
-				httpCmd.loadingUI:hideLoading(httpCmd.loadingNode)
-				httpCmd.loadingUI = nil
-				httpCmd.loadingNode = nil
-			end
-			if httpCmd.sender~=nil and httpCmd.sender.callback~=nil then
-				httpCmd.sender.callback(status, response, httpCmd.tag)
-			end
-
-			-- 进行玩家数据同步
-			local data = json.decode(response, 1)
-			if data.heart~=nil then
-				player.synData(data.heart)
-			end
-		end
-	end
-	
-	xhr.responseType = cc.XMLHTTPREQUEST_RESPONSE_JSON
-	xhr:setRequestHeader("Accept-Language", "zh-CN")
-	xhr:setRequestHeader("Accept-Encoding", "gzip, deflate")
-	xhr.timeout = httpCmd.timeout
-	xhr:registerScriptHandler(onHttpResponse)
-	
-	local url = player.getServerAddress() .. httpCmd.cmd
-	local data = ""
-	local bFirst = true
-	if player.h_p_key()~=nil then
-		data = "h_p_key=" .. hp.httpCmdSequence.encode(player.h_p_key())
-		bFirst = false
-	end
-	for k, v in pairs(httpCmd.data) do
-		if bFirst then
-			data = data .. k .. "=" .. hp.httpCmdSequence.encode(v)
-			bFirst = false
-		else
-			data = data .. "&" .. k .. "=" .. hp.httpCmdSequence.encode(v)
-		end
-	end
-	xhr:open("POST", url)
-	xhr:send(data)
-	cclog("HttpRequest.url === %s", url)
-	cclog("HttpRequest.data === %s", data)
-end
-
-function hp.httpCmdSequence.exception()
-	hp.httpCmdSequence.init()
-
-	require "scene/login"
-	loginScene = SceneLogin.new()
-	loginScene.loginErr = "网络异常，请重新登录"   
-	loginScene:enter()
-	player.init()
-end
 
 
-local function escape(w)
-	pattern="[^%w%d%._%-%* ]"
-	s=string.gsub(w,pattern,function(c)
-		local c=string.format("%%%02X",string.byte(c))
-		return c
-	end)
-	s=string.gsub(s," ","+")
-	return s
-end
--- encode
-function hp.httpCmdSequence.encode(v)
-	if v==nil then
-		return "null"
-	end
 
-	local vtype = type(v) 
-	
-	if vtype=='string' then
-		return escape(v)
-	end
-
-	-- Handle booleans
-	if vtype=='number' or vtype=='boolean' then
-		return tostring(v)
-	end
-	
-	return json.encode(v)
-end
-
+--[[
 
 --
 -- obj: httpBufferCmd
@@ -288,20 +420,4 @@ function hp.httpBufferCmd.heartbeat(dt)
 	end
 end
 
-
--- httpParse
--- 解析http响应
-function hp.httpParse(httpResponse)
-	local data = json.decode(httpResponse, 1)
-	
-	if data.rst~=nil then
-		data = data.rst
-	end
-	data.result = tonumber(data.result)
-
-	if data.result==69 then
-		hp.httpCmdSequence.exception()
-	end
-
-	return data
-end
+]]--

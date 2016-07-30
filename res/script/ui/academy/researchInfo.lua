@@ -30,16 +30,15 @@ function UI_researchInfo:init(researchType_, researchId_)
 	local wigetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "researchInfo.json")
 	local uiFrame = UI_popFrame.new(wigetRoot, curInfo.name)
 
-
 	-- addCCNode
 	-- ===============================
 	self:addChildUI(uiFrame)
 	self:addCCNode(wigetRoot)
 
-
 	local contNode = wigetRoot:getChildByName("Panel_cont")
 	local btnInfo = contNode:getChildByName("ImageView_info")
 	local btnUp = contNode:getChildByName("ImageView_up")
+	
 	contNode:getChildByName("Label_desc"):setString(curInfo.desc)
 	btnInfo:getChildByName("Label_text"):setString(hp.lang.getStrByID(9107))
 	btnUp:getChildByName("Label_text"):setString(hp.lang.getStrByID(9108))
@@ -51,6 +50,11 @@ function UI_researchInfo:init(researchType_, researchId_)
 				local ui = UI_research.new(researchType_, researchId_)
 				self:addUI(ui)
 				self:close()
+			elseif sender==btnInfo then
+				--信息
+				require("ui/academy/techInfo")
+				local ui = UI_techInfo.new(researchId_)
+				self:addModalUI(ui)
 			end
 		end
 	end
@@ -58,6 +62,7 @@ function UI_researchInfo:init(researchType_, researchId_)
 
 	local imgNode = contNode:getChildByName("ImageView_research")
 	imgNode:loadTexture(config.dirUI.research .. researchId_ .. ".png")
+	imgNode:getChildByName("name"):setString(curInfo.name)
 	imgNode:getChildByName("progress"):setPercent(curLv*100/maxLv)
 	imgNode:getChildByName("desc"):setString(string.format("%d/%d", curLv, maxLv))
 
@@ -92,4 +97,7 @@ function UI_researchInfo:init(researchType_, researchId_)
 		btnUp:addTouchEventListener(onBtnTouched)
 	end
 
+	-- 渐入渐出
+	self:moveIn(1, 0.2)
+	uiFrame:setCloseEvent(function() self:moveOut(2, 0.2, 1) end)
 end

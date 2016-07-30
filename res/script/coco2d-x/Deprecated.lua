@@ -1,7 +1,7 @@
 require "Cocos2d.lua"
 --tip
 local function deprecatedTip(old_name,new_name)
-    --print("\n********** \n"..old_name.." was deprecated please use ".. new_name .. " instead.\n**********")
+    print("\n********** \n"..old_name.." was deprecated please use ".. new_name .. " instead.\n**********")
 end
 
 
@@ -138,7 +138,7 @@ end
 rawset(CCMenu,"createWithItem",CCMenuDeprecated.createWithItem)
 
 function CCMenuDeprecated.setHandlerPriority(self)
-    --print("\n********** \n".."setHandlerPriority was deprecated in 3.0. \n**********")
+    print("\n********** \n".."setHandlerPriority was deprecated in 3.0. \n**********")
 end
 rawset(CCMenu,"setHandlerPriority",CCMenuDeprecated.setHandlerPriority)
 --functions of CCMenu will be deprecated end

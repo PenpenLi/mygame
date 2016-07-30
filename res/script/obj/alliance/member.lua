@@ -27,7 +27,7 @@ function Member:ctor()
 	self.name = ""
 
 	-- 坐标
-	self.position = {x=1, y=1}
+	self.position = {x=1, y=1, k=1}
 
 	-- 头像
 	self.image = ""
@@ -37,6 +37,9 @@ function Member:ctor()
 
 	-- 杀敌
 	self.kill = 0
+
+	-- 新人
+	self.isNew = 0
 end
 
 function Member:init(info_)
@@ -45,10 +48,28 @@ function Member:init(info_)
 	self.name = info_[3]
 	self.position.x = info_[4]
 	self.position.y = info_[5]
+	self.position.k = info_[11]
 	self.image = info_[6]
 	self.sign = info_[7]
 	self.kill = info_[8]
 	self.power = info_[9]
+	self.isNew = info_[10]
+end
+
+function Member:clone()
+	local mem_ = Member.new({})
+	mem_.id = self.id
+	mem_.rank = self.rank
+	mem_.name = self.name
+	mem_.position.x = self.position.x
+	mem_.position.y = self.position.y
+	mem_.image = self.image
+	mem_.sign = self.sign
+	mem_.kill = self.kill
+	mem_.power = self.power
+	mem_.isNew = self.isNew
+	mem_.ksid = self.ksid
+	return mem_
 end
 
 function Member:getRank()
@@ -85,4 +106,8 @@ end
 
 function Member:getPower()
 	return self.power
+end
+
+function Member:getIsNew()
+	return self.isNew
 end

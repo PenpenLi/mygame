@@ -2,8 +2,8 @@
 -- scene/Scene.lua
 -- 场景基类
 --================================================
-require "obj/hintFrameMgr"
 require "ui/common/hintFrame"
+require "ui/common/httpErrorHint"
 
 Scene = Scene or class("Scene")
 
@@ -12,11 +12,11 @@ local HINT_FRAME_NUM_AT_ONE_TIME = 3
 --
 -- ctor
 -------------------------------
-function Scene:ctor()
+function Scene:ctor(...)
 	self.heartbeatInterval = config.interval.sceneHeartbeat
 	
 	self.super.init(self)
-	self:init()
+	self:init(...)
 end
 
 
@@ -30,8 +30,10 @@ function Scene:init()
 	self.scene = cc.Scene:create()
 	self.layer = cc.Layer:create()
 	self.msgLayer = cc.Layer:create()
+	self.noticeLayer = cc.Layer:create()
 	self.scene:addChild(self.layer)
 	self.scene:addChild(self.msgLayer)
+	self.scene:addChild(self.noticeLayer)
 
 	-- regist heartbeat
 	local tickCount = 0
@@ -48,30 +50,77 @@ function Scene:init()
 		if "enter" == event then
 			self:onEnter()
 			self.scene:scheduleUpdateWithPriorityLua(sceneTick, 1)
+
+			-- Android OS, catch Keypad event
+			if game.application:getTargetPlatform()==cc.PLATFORM_OS_ANDROID then
+				local function onKeypadEvent(event)
+					if event=="backClicked" or event==nil then
+						if self.quitDlg == nil then
+							require("ui/msgBox/warningMsgBox")
+							local function onCancel()
+								self.quitDlg = nil
+							end
+							self.quitDlg =  UI_warningMsgBox.new(hp.lang.getStrByID(6034), hp.lang.getStrByID(11),
+												hp.lang.getStrByID(6035), hp.lang.getStrByID(6036), game.over, onCancel)
+							self:addModalUI(self.quitDlg, 1000)
+						else
+							self:removeModalUI(self.quitDlg)
+							self.quitDlg = nil
+						end
+					end
+				end
+				self.layer:setKeypadEnabled(true)
+				self.layer:registerScriptKeypadHandler(onKeypadEvent)
+			end
+
+			-- 
+			-- [[ touchLayer ]]
+			-- 获取并处理地图上的点击事件
+			--==============================================
+			local touchLayer = cc.Layer:create()
+			self.scene:addChild(touchLayer)
+			local touchX = 0
+			local touchY = 0
+			local mvSp = 40*hp.uiHelper.RA_scale
+			local function touchLayerOnTouched(event, px, py)
+				if event=="began" then
+					touchX = px
+					touchY = py
+					touchLayer:removeAllChildren()
+				elseif event=="moved" then
+					local x = touchX-px
+					local y = touchY-py
+					if x>mvSp or x<-mvSp or y>mvSp or y<-mvSp then
+						touchX = px
+						touchY = py
+					else
+						return
+					end
+				elseif event=="ended" then
+					return true
+				elseif event=="cancelled" then
+					return true
+				end
+
+				local emitter = cc.ParticleSystemQuad:create(config.dirUI.particle .. "touch.plist")
+				emitter:setAnchorPoint(0, 0)
+				emitter:setPosition(px, py)
+				touchLayer:addChild(emitter)
+				return true --must
+			end
+			touchLayer:setTouchEnabled(true)
+			touchLayer:registerScriptTouchHandler(touchLayerOnTouched, false, 0, false)
 		elseif "exit" == event then
 			self.scene:unregisterScriptHandler()
 			if game.application:getTargetPlatform()==cc.PLATFORM_OS_ANDROID then
 				self.layer:unregisterScriptKeypadHandler()
+				self.layer:setKeypadEnabled(false)
 			end
 			self.scene:unscheduleUpdate()
 			self:onExit()
         end
 	end
 	self.scene:registerScriptHandler(onSceneEvent)
-
-	-- Android OS, catch Keypad event
-	if game.application:getTargetPlatform()==cc.PLATFORM_OS_ANDROID then
-		local function onKeypadEvent(event)
-			if event=="backClicked" or event==nil then
-				require("ui/msgBox/warningMsgBox")
-				local msgBox =  UI_warningMsgBox.new(hp.lang.getStrByID(6034), hp.lang.getStrByID(11),
-									hp.lang.getStrByID(6035), hp.lang.getStrByID(6036), game.over)
-				self:addModalUI(msgBox, 1000)
-			end
-		end
-		self.layer:setKeypadEnabled(true)
-		self.layer:registerScriptKeypadHandler(onKeypadEvent)
-	end
 
 	-- ui
 	self.uis = {} -- 数组，ui集合
@@ -82,18 +131,78 @@ function Scene:init()
 	-- hint msg init
 	self.hintFrames = {}
 	for i = 1, HINT_FRAME_NUM_AT_ONE_TIME do
-		ui_ = UI_hintFrame.new()
-		self:addMsgUI(ui_.wigetRoot)
+		local ui_ = UI_hintFrame.new()
+		self:addMsgUI(ui_.layer)
 		self.hintFrames[i] = ui_
 	end
-	hintFrameMgr.attachHintFrame(self.hintFrames)
+	self.hintFrameMgr = require("obj/hintFrameMgr")
+	self.hintFrameMgr.attachHintFrame(self.hintFrames)
+
+	-- http error hint
+	self.httpErrorFrames = {}
+	for i = 1, 1 do
+		local ui_ = UI_httpErrorHint.new()
+		self:addMsgUI(ui_.layer)
+		self.httpErrorFrames[i] = ui_
+	end
+	self.httpErrorHint = require("obj/hintFrameMgr1")
+	self.httpErrorHint.attachHintFrame(self.httpErrorFrames)
+
+	self:initSysNotice()
 end
 
+
+-- 系统公告
+function Scene:initSysNotice()
+	-- 位置参数
+	local marginTop = 220
+	local marginL = 100
+	local barHeight = 90
+
+	-- 背景
+	local noticeBar = cc.Sprite:create(config.dirUI.common .. "sys_notice_bar.png")
+	noticeBar:setAnchorPoint(0, 0)
+	noticeBar:setPosition(0, game.visibleSize.height-marginTop*hp.uiHelper.RA_scaleY)
+	noticeBar:setScaleX(hp.uiHelper.RA_scaleX)
+	noticeBar:setScaleY(hp.uiHelper.RA_scaleY)
+
+	-- 文字
+	local noticeClipper = cc.ClippingNode:create()
+	local noticeLabel = cc.Label:createWithTTF("", "font/main.ttf", math.ceil(26*hp.uiHelper.RA_scale))
+	noticeLabel:setTextColor(cc.c4b(107, 229, 225, 255))
+    local w = game.visibleSize.width - marginL*hp.uiHelper.RA_scaleX
+    local h = hp.uiHelper.RA_scaleY*barHeight
+    local stencilDraw = cc.DrawNode:create()
+    local ps = { cc.p( 0, 0), cc.p(w, 0), cc.p(w, h), cc.p(0, h) }
+    stencilDraw:drawPolygon(ps, table.getn(ps), cc.c4f(1,0,0,1), 0, cc.c4f(0,0,0,0))
+	noticeClipper:setStencil(stencilDraw)
+	noticeClipper:setPosition(marginL*hp.uiHelper.RA_scaleX, game.visibleSize.height-marginTop*hp.uiHelper.RA_scaleY)
+	noticeLabel:setAnchorPoint(0, 0.5)
+	noticeLabel:setPosition(w, h/2)
+	noticeClipper:addChild(noticeLabel)
+
+	noticeBar:setOpacity(0)
+
+	self.noticeLayer:addChild(noticeBar)
+	self.noticeLayer:addChild(noticeClipper)
+	self.noticeBar = noticeBar
+	self.noticeLabel = noticeLabel
+	self.noticeViewSize = cc.size(w, h)
+	self.noticeBarStatus = 0 -- 0:隐藏 1:显示
+	self:showSysNotice()
+
+	self:registMsg(hp.MSG.CHATINFO_NEW)
+end
 
 --
 -- preEnter
 ----------------------------
 function Scene:preEnter()
+	if self.quitDlg then
+	-- 关闭退出对话框
+		self:removeModalUI(self.quitDlg)
+		self.quitDlg = nil
+	end
 end
 
 
@@ -103,6 +212,24 @@ end
 function Scene:onEnter()
 end
 
+--
+-- onEnterAnim
+----------------------------
+function Scene:onEnterAnim()
+	-- 捕获所有触摸消息, 播放动画过程中，不允许点击
+	local animLayer = cc.Layer:create()
+	animLayer:setTouchEnabled(true)
+	animLayer:registerScriptTouchHandler(function(...) return true end)
+	local function onAnimFinished()
+		self:removeCCNode(animLayer)
+	end
+	local cloud = hp.sequenceAniHelper.createAnimSprite_byPng("clouds", 13, 0.1, false, onAnimFinished)
+	cloud:setScaleX(hp.uiHelper.RA_scaleX * 2)
+	cloud:setScaleY(hp.uiHelper.RA_scaleY * 2)
+	cloud:setAnchorPoint(0, 0)
+	animLayer:addChild(cloud)
+	self:addCCNode(animLayer)
+end
 
 --
 -- preExit
@@ -112,7 +239,8 @@ function Scene:preExit()
 	for i,v in ipairs(self.uis) do
 		v:onRemove()
 	end
-	hintFrameMgr.detachHintFrame()
+	self.hintFrameMgr.detachHintFrame()
+	self.httpErrorHint.detachHintFrame()
 
 	self.valid = false
 end
@@ -153,6 +281,7 @@ end
 -- enter
 ----------------------------
 function Scene:enter()
+	local tick_ = os.clock()
 	self:preEnter()
 	
 	if game.director:getRunningScene() == nil then
@@ -163,6 +292,7 @@ function Scene:enter()
 	end
 	
 	game.curScene = self
+	player.clockEnd("Scene:enter", tick_, 0.2)
 end
 
 --
@@ -237,6 +367,11 @@ function Scene:removeModalUI(ui_)
 	end
 end
 
+function Scene:closeAllUI()
+	self:removeAllModalUI()
+	self:removeAllUI()
+end
+
 --
 -- addMsgUI
 -- ui_ : ui/UI
@@ -278,9 +413,57 @@ end
 
 -- onMsg
 function Scene:onMsg(msg_, parm_)
+	if msg_==hp.MSG.CHATINFO_NEW then
+		if parm_.type==6 then
+			self:showSysNotice()
+		end
+	end
 end
 
 
 function Scene.showMsg(param_)	
-	hintFrameMgr.popHintFrame(param_)
+	game.curScene.hintFrameMgr.popHintFrame(param_)
+end
+
+function Scene.showHttpErrorMsg(param_)	
+	game.curScene.httpErrorHint.popHintFrame(param_)
+end
+
+-- 系统公告
+function Scene:showSysNotice()
+	local curNoticeInfo = player.chatRoom.curShowNotice()
+	if curNoticeInfo~=nil and self.noticeBarStatus==0 then
+		self.noticeBarStatus = 1
+		local noticeBar = self.noticeBar
+		local noticeLabel = self.noticeLabel
+		local noticeViewSize = self.noticeViewSize
+
+		local function resetNotice()
+			noticeBar:stopAllActions()
+			noticeBar:setOpacity(255)
+
+			noticeLabel:stopAllActions()
+			noticeLabel:setString(curNoticeInfo.text)
+			noticeLabel:setPosition(noticeViewSize.width, noticeViewSize.height/2)
+
+			local noticeLen = self.noticeLabel:getContentSize().width
+			local at = 5+noticeLen/(100*hp.uiHelper.RA_scaleX)
+			local mvAction = cc.MoveTo:create(at, cc.p(-noticeLen-20, self.noticeViewSize.height/2))
+			local function checkNextNotice()
+				curNoticeInfo = player.chatRoom.nextShowNotice()
+				if curNoticeInfo~=nil then
+					resetNotice()
+				else
+					local hideAct = cc.FadeOut:create(2)
+					noticeBar:runAction(hideAct)
+					noticeLabel:setString("")
+					self.noticeBarStatus = 0
+				end
+			end
+
+			local act = cc.Sequence:create(mvAction, cc.CallFunc:create(checkNextNotice))
+			noticeLabel:runAction(act)
+		end
+		resetNotice()
+	end
 end

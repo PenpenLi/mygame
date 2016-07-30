@@ -62,20 +62,26 @@ function UI_productionBuilding:init(building_)
 	local resPath = string.format("%s%s_big.png", config.dirUI.common, resType[1])
 	local itemTmp = item1
 	itemCont = itemTmp:getChildByName("Panel_cont")
-	local itemBg = itemCont:getChildByName("ImageView_bg")
-	itemBg:getChildByName("ImageView_res"):loadTexture(resPath)
-	itemBg:getChildByName("Label_name"):setString(hp.lang.getStrByID(2034))
-	itemBg:getChildByName("Label_num"):setString(math.floor(resInfo.resCount*(1+addn/10000)))
+	itemCont:getChildByName("ImageView_res"):loadTexture(resPath)
+	itemCont:getChildByName("Label_name"):setString(hp.lang.getStrByID(2034))
+	itemCont:getChildByName("Label_num"):setString(math.floor(resInfo.resCount*(1+addn/10000)))
 	-- 
 	local iIndex = 2
 	-- 每小时消耗
 	if b.sid==1002 then
+		local function onFoodUseTouched(sender, eventType)
+			hp.uiHelper.btnImgTouched(sender, eventType)
+			if eventType==TOUCH_EVENT_ENDED then
+				require "ui/common/foodUseDlg"
+				local dlg = UI_foodUseDlg.new()
+				self:addModalUI(dlg)
+			end
+		end
 		itemTmp = item2
 		itemCont = itemTmp:getChildByName("Panel_cont")
-		itemBg = itemCont:getChildByName("ImageView_bg")
-		itemBg:getChildByName("ImageView_res"):loadTexture(resPath)
-		itemBg:getChildByName("Label_name"):setString(hp.lang.getStrByID(2035))
-		itemBg:getChildByName("Label_num"):setString("100")
+		itemCont:getChildByName("Label_name"):setString(hp.lang.getStrByID(2035))
+		itemCont:getChildByName("Label_num"):setString(tostring(player.soldierManager.getTotalArmy():getCharge()))
+		itemCont:getChildByName("ImageView_help"):addTouchEventListener(onFoodUseTouched)
 		iIndex = iIndex+1
 	else
 		listView:removeItem(iIndex)
@@ -84,17 +90,20 @@ function UI_productionBuilding:init(building_)
 	itemTmp = item1:clone()
 	listView:insertCustomItem(itemTmp, iIndex)
 	itemCont = itemTmp:getChildByName("Panel_cont")
-	itemBg = itemCont:getChildByName("ImageView_bg")
-	itemBg:getChildByName("Label_name"):setString(hp.lang.getStrByID(2036))
-	itemBg:getChildByName("Label_num"):setString(player.getResource(resType[1]))
+	itemCont:getChildByName("ImageView_res"):loadTexture(config.dirUI.common .. "res_storage.png")
+	itemCont:getChildByName("Label_name"):setString(hp.lang.getStrByID(2036))
+	local res_ = player.getResource(resType[1])
+	local storage_ = player.helper.getResCapacity(resTypeNum)
+	itemCont:getChildByName("Label_num"):setString(res_.."/"..storage_)
 	-- 每小时总收入
 	iIndex = iIndex+1
 	itemTmp = item1:clone()
 	listView:insertCustomItem(itemTmp, iIndex)
 	itemCont = itemTmp:getChildByName("Panel_cont")
-	itemBg = itemCont:getChildByName("ImageView_bg")
-	itemBg:getChildByName("Label_name"):setString(hp.lang.getStrByID(2037))
-	itemBg:getChildByName("Label_num"):setString(helper.getResOutput(resTypeNum))
+	resPath = string.format("%s%s_income.png", config.dirUI.common, resType[1])
+	itemCont:getChildByName("ImageView_res"):loadTexture(resPath)
+	itemCont:getChildByName("Label_name"):setString(hp.lang.getStrByID(2037))
+	itemCont:getChildByName("Label_num"):setString(helper.getResOutput(resTypeNum))
 
 	-- 更多操作
 	itemCont = itemMore:getChildByName("Panel_cont")
@@ -128,6 +137,6 @@ function UI_productionBuilding:init(building_)
 	-- addCCNode
 	-- ===============================
 	self:addChildUI(uiFrame)
-	self:addChildUI(uiHeader)
 	self:addCCNode(wigetRoot)
+	self:addChildUI(uiHeader)
 end

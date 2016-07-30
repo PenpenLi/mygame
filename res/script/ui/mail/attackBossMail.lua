@@ -1,97 +1,145 @@
 --
 -- ui/mail/attackBossMail.lua
--- 主建筑更多信息
+-- 攻击boss邮件
 --===================================
-require "ui/frame/popFrame"
+
 require "ui/UI"
 
 UI_attackBossMail = class("UI_attackBossMail", UI)
 
 
---init
-function UI_attackBossMail:init(Info,mailType_,mailIndex)
-	
+-- init
+function UI_attackBossMail:init(mailInfo, mailType_, mailIndex)
+
 	-- ui
 	-- ===============================
-	local wigetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "attackBossMail.json")
+	local wigetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "bossMail.json")
+	local listRoot = wigetRoot:getChildByName("ListView_root")
 	
-	
-	
-	local Panel_item = wigetRoot:getChildByName("ListView"):getChildByName("Panel_item")
-	
+	-- 攻击物品，击杀物品，联盟礼包，资源（类型，数量），bossId，总血量，剩余血量，攻击血量
+	-- [21157,0,0,[2,1],10403,1200000,1200000,0]
+	-- [23251,24401,0,[3,24000],10401,600000,0,600000],1414657085,1],
 
-	local bossName = hp.gameDataLoader.getInfoBySid("boss", Info.bossSid ).name
+	-- data prepare
+	local annex = mailInfo.annex
+	local attRewards = annex[1]
+	local killRewards = annex[2]
+	local unionRewards = annex[3]
+	local res = annex[4]
+	local bossID = annex[5]
+	local bossMaxHp = annex[6]
+	local bossHp = annex[7]
+	local attHp = annex[8]
 
-
-	--head
-	Panel_item:getChildByName("Panel_cont"):getChildByName("Label_succeed"):setString(string.format( hp.lang.getStrByID(7901),bossName))
-	
-	Panel_item:getChildByName("Panel_cont_0"):getChildByName("Label_info"):setString(Info.content)
-	
-	
-	local img = hp.gameDataLoader.getInfoBySid("boss", Info.bossSid).headPic
-
-	local Panel_cont_1 = Panel_item:getChildByName("Panel_cont_1")
-	Panel_cont_1:getChildByName("Label_bossName"):setString(bossName)
-	Panel_cont_1:getChildByName("Image_boss"):loadTexture(config.dirUI.bossHead .. img)
-	
-	
-	local Panel_cont_2 = Panel_item:getChildByName("Panel_cont_2")
-	Panel_cont_2:getChildByName("Label_health"):setString( hp.lang.getStrByID(7902))
-	Panel_cont_2:getChildByName("Label_attPer"):setString(Info.attHealth .. "%")
-	
-	
-	
-	local Panel_framBar = Panel_item:getChildByName("Panel_framBar")
-	Panel_framBar:getChildByName("Label_HealthProcess"):setString(Info.remainHealth .. "%")
-	
-	local ProgressBar_health = Panel_framBar:getChildByName("ProgressBar_health")
-	
-
-	ProgressBar_health:setPercent( Info.remainHealth )
-	
-	local Panel_AddframBg = Panel_item:getChildByName("Panel_AddframBg")
-	local Panel_Addcont = Panel_item:getChildByName("Panel_Addcont")
-
-	if #Info.resArr > 0 then
-
-		local resTp = 0
-		local resNum = 0
-		for i,v in ipairs(Info.resArr) do
-			if v>0 then
-				resTp = i
-				resNum = v
-				break
-			end
-		end
-
-		local img = hp.gameDataLoader.getInfoBySid("resInfo", resTp).image
-		local resName = hp.gameDataLoader.getInfoBySid("resInfo", resTp).name
-		Panel_Addcont:getChildByName("Image_res"):loadTexture(config.dirUI.common .. img)
-		Panel_Addcont:getChildByName("Label_res"):setString(resName)
-		Panel_Addcont:getChildByName("Label_resNum"):setString("+" .. resNum)
-
+	-- title
+	-- ===============================
+	local panel_title = listRoot:getChildByName("Panel_title")
+	local content_title = panel_title:getChildByName("Panel_content")
+	if killRewards == 0 then
+		content_title:getChildByName("Label_title"):setString(hp.lang.getStrByID(8024))
 	else
-		Panel_AddframBg:setVisible(false)
-		Panel_Addcont:setVisible(false)
+		content_title:getChildByName("Label_title"):setString(hp.lang.getStrByID(8023))
 	end
 
+	-- res
+	-- ===============================
+	local resInfo = hp.gameDataLoader.getInfoBySid("resInfo", res[1] + 1)
+	local panel_res = listRoot:getChildByName("Panel_res")
+	local content_res = panel_res:getChildByName("Panel_content")
+	content_res:getChildByName("Label_text"):setString(hp.lang.getStrByID(7604))
+	content_res:getChildByName("Label_num"):setString(hp.lang.getStrByID(7606))
+	content_res:getChildByName("Label_resText"):setString(resInfo.name)
+	content_res:getChildByName("Label_resNum"):setString(res[2])
+	content_res:getChildByName("Image_icon"):loadTexture(config.dirUI.common .. resInfo.imageBig)
 
+	-- info
+	-- ===============================
+	local panel_info = listRoot:getChildByName("Panel_info")
+	-- bossInfo
+	local bossInfo = hp.gameDataLoader.getInfoBySid("boss", bossID)
+	local panel_bossInfoContent = panel_info:getChildByName("Panel_bossInfoContent")
+	local panel_bossInfoFrame = panel_info:getChildByName("Panel_bossInfoFrame")
+	panel_bossInfoContent:getChildByName("Label_title"):setString(hp.lang.getStrByID(7908))
+	panel_bossInfoContent:getChildByName("Label_name"):setString(bossInfo.name)
+	panel_bossInfoContent:getChildByName("Image_icon"):loadTexture(config.dirUI.bossHead .. bossInfo.headPic)
+	-- bossHp
+	local panel_bossHpContent = panel_info:getChildByName("Panel_bossHpContent")
+	local panel_bossHpFrame = panel_info:getChildByName("Panel_bossHpFrame")
+	panel_bossHpContent:getChildByName("Label_title"):setString(hp.lang.getStrByID(1028))
+	panel_bossHpContent:getChildByName("Label_hp"):setString(math.floor(bossHp / bossMaxHp * 100) .. "%")
+	panel_bossHpContent:getChildByName("Label_info"):setString(string.format(hp.lang.getStrByID(8025), math.floor(attHp / bossMaxHp * 100)))
+	panel_bossHpContent:getChildByName("ProgressBar_hp"):setPercent(bossHp / bossMaxHp * 100)
+	-- attRewards
+	local attRewardsInfo = hp.gameDataLoader.getInfoBySid("item", attRewards)
+	local panel_rewards1Content = panel_info:getChildByName("Panel_rewards1Content")
+	local panel_rewards1Frame = panel_info:getChildByName("Panel_rewards1Frame")
+	panel_rewards1Content:getChildByName("Label_title"):setString(hp.lang.getStrByID(8026))
+	panel_rewards1Content:getChildByName("Label_info"):setString(attRewardsInfo.name)
+	panel_rewards1Content:getChildByName("Image_icon"):loadTexture(config.dirUI.item .. attRewards .. ".png")
+	-- killRewards
+	local panel_rewards2Content = panel_info:getChildByName("Panel_rewards2Content")
+	local panel_rewards2Frame = panel_info:getChildByName("Panel_rewards2Frame")
+	local panel_rewards3Content = panel_info:getChildByName("Panel_rewards3Content")
+	local panel_rewards3Frame = panel_info:getChildByName("Panel_rewards3Frame")
+	if killRewards == 0 then
+		-- not kill
+		panel_rewards2Content:setVisible(false)
+		panel_rewards2Frame:setVisible(false)
+		panel_rewards3Content:setVisible(false)
+		panel_rewards3Frame:setVisible(false)
+		local size = panel_info:getSize()
+		local h = size.height / 3
+		size.height = size.height - h
+		panel_info:setSize(size)
+		panel_bossInfoContent:setPositionY(panel_bossInfoContent:getPositionY() - h)
+		panel_bossInfoFrame:setPositionY(panel_bossInfoFrame:getPositionY() - h)
+		panel_bossHpContent:setPositionY(panel_bossHpContent:getPositionY() - h)
+		panel_bossHpFrame:setPositionY(panel_bossHpFrame:getPositionY() - h)
+		panel_rewards1Content:setPositionY(panel_rewards1Content:getPositionY() - h)
+		panel_rewards1Frame:setPositionY(panel_rewards1Frame:getPositionY() - h)
+	else
+		local killRewardsInfo = hp.gameDataLoader.getInfoBySid("item", killRewards)
+		panel_rewards2Content:getChildByName("Label_title"):setString(hp.lang.getStrByID(8027))
+		panel_rewards2Content:getChildByName("Label_info"):setString(killRewardsInfo.name)
+		panel_rewards2Content:getChildByName("Image_icon"):loadTexture(config.dirUI.item .. killRewards .. ".png")
+		-- unionRewards
+		if unionRewards == 0 then
+			panel_rewards3Content:setVisible(false)
+			panel_rewards3Frame:setVisible(false)
+			local size = panel_info:getSize()
+			local h = size.height / 3
+			size.height = size.height - h
+			panel_info:setSize(size)
+			panel_bossInfoContent:setPositionY(panel_bossInfoContent:getPositionY() - h)
+			panel_bossInfoFrame:setPositionY(panel_bossInfoFrame:getPositionY() - h)
+			panel_bossHpContent:setPositionY(panel_bossHpContent:getPositionY() - h)
+			panel_bossHpFrame:setPositionY(panel_bossHpFrame:getPositionY() - h)
+			panel_rewards1Content:setPositionY(panel_rewards1Content:getPositionY() - h)
+			panel_rewards1Frame:setPositionY(panel_rewards1Frame:getPositionY() - h)
+			panel_rewards2Content:setPositionY(panel_rewards2Content:getPositionY() - h)
+			panel_rewards2Frame:setPositionY(panel_rewards2Frame:getPositionY() - h)
+		else
+			local unionRewardsInfo = hp.gameDataLoader.getInfoBySid("unionGift", unionRewards)
+			panel_rewards3Content:getChildByName("Label_title"):setString(hp.lang.getStrByID(8028))
+			panel_rewards3Content:getChildByName("Label_info"):setString(unionRewardsInfo.name)
+			panel_rewards3Content:getChildByName("Image_icon"):loadTexture(config.dirUI.unionGift .. unionRewardsInfo.type .. ".png")
+		end
+	end
 
-	--del
-	Panel_item:getChildByName("Panel_delCont"):getChildByName("Label_delete"):setString( hp.lang.getStrByID(1221))
-		
-	local delBtn = Panel_item:getChildByName("Panel_delCont"):getChildByName("ImageView_delete")
+	-- del
+	-- ===============================
+	local panel_oper = listRoot:getChildByName("Panel_oper")
+	local content_oper = panel_oper:getChildByName("Panel_content")
+	content_oper:getChildByName("Label_delete"):setString(hp.lang.getStrByID(1221))
+
 	function delBtnOnTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			self:close()
-			hp.mailCenter.deleteMail(mailType_, {mailIndex})
+			player.mailCenter.deleteMail(mailType_, {mailIndex})
 		end
 	end
-	
-	delBtn:addTouchEventListener(delBtnOnTouched)
-	
+	content_oper:getChildByName("Image_delete"):addTouchEventListener(delBtnOnTouched)
 	
 	-- addCCNode
 	-- ===============================

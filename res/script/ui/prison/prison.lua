@@ -24,6 +24,7 @@ function UI_prison:init(building_)
 	-- ===============================
 	local uiFrame = UI_fullScreenFrame.new()
 	uiFrame:setTitle(bInfo.name)
+	uiFrame:setTopShadePosY(670)
 	local uiHeader = UI_buildingHeader.new(building_)
 	local wigetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "prison.json")
 
@@ -45,9 +46,11 @@ function UI_prison:init(building_)
 		if uiType==1 then
 			require "ui/prison/killHero"
 			curChildUI = UI_killHero.new(building_, prisonMgr)
+			uiFrame:setBottomShadePosY(220)
 		else
 			require "ui/prison/induceHero"
 			curChildUI = UI_induceHero.new(building_, prisonMgr)
+			uiFrame:setBottomShadePosY(262)
 		end
 		self:addChildUI(curChildUI)
 	end
@@ -97,7 +100,10 @@ function UI_prison:init(building_)
 	tabKill:addTouchEventListener(onTabTouched)
 	tabInduce:addTouchEventListener(onTabTouched)
 
-	prisonMgr.getHero()
+	local rst, cmdSender = prisonMgr.getHero()
+	if rst then
+		self:showLoading(cmdSender, nil)
+	end
 end
 
 -- heartbeat

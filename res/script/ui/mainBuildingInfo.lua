@@ -22,8 +22,7 @@ function UI_mainBuildingInfo:init(building_)
 	
 	local ListView_info = wigetRoot:getChildByName("ListView_info")
 	
-	local contNode = ListView_info:getChildByName("Panel_cont")
-	local moreInfo = contNode:getChildByName("Label_moreInfo")
+	local moreInfo = ListView_info:getChildByName("Panel_desc"):getChildByName("Panel_cont"):getChildByName("Label_moreInfo")
 	moreInfo:setString(bInfo.moreDesc)
 	
 	

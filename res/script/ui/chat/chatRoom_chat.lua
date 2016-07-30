@@ -32,6 +32,7 @@ function UI_chatRoom_chat:init(type_, playerInfo_)
 	self:addCCNode(widgetRoot)
 
 	-- 编辑框
+	local chatList = widgetRoot:getChildByName("ListView_chatList")
 	local panelCont = widgetRoot:getChildByName("Panel_cont")
 	local editBoxLabel = panelCont:getChildByName("Label_editBox")
 	local editBoxCtrl = hp.uiHelper.labelBind2EditBox(editBoxLabel)
@@ -43,7 +44,8 @@ function UI_chatRoom_chat:init(type_, playerInfo_)
 		if eventType==TOUCH_EVENT_ENDED then
 			local text = editBoxCtrl:getString()
 			if string.len(text)>0 then
-				if hp.chatRoom.sendChat(text, chatType, playerId) then
+				chatList:visit()
+				if player.chatRoom.sendChat(text, chatType, playerId) then
 					editBoxCtrl.setString("")
 				end
 			end
@@ -51,7 +53,6 @@ function UI_chatRoom_chat:init(type_, playerInfo_)
 	end
 	btnSend:addTouchEventListener(onBtnTouched)
 
-	local chatList = widgetRoot:getChildByName("ListView_chatList")
 	local chatModel = chatList:getItem(0)
 	local chatModelMe = chatList:getItem(1):clone()
 	chatModelMe:retain()
@@ -59,14 +60,25 @@ function UI_chatRoom_chat:init(type_, playerInfo_)
 	chatList:setItemModel(chatModel)
 	chatList:removeAllItems()
 	local function onChatItemTouched(sender, eventType)
+		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			local chatInfo = hp.chatRoom.getChatInfoByID(chatType, playerId, sender:getTag())
+			local chatInfo = player.chatRoom.getChatInfoByID(chatType, playerId, sender:getTag())
 			require("ui/chat/chatOper")
 			local ui = UI_chatOper.new(chatInfo)
 			self:addModalUI(ui)
 		end
 	end
 	local function addChatInfo(chatInfo, setPos_)
+		local needToBottom = false
+		if setPos_ then
+			chatList:refreshView()
+			local listCont = chatList:getInnerContainer()
+			local x, y = listCont:getPosition()
+			if y>-80 then
+				needToBottom = true
+			end
+		end
+
 		if player.getID()==chatInfo.srcId then
 			chatList:pushBackCustomItem(chatModelMe:clone())
 		else
@@ -79,8 +91,13 @@ function UI_chatRoom_chat:init(type_, playerInfo_)
 		local nameLabel = itemCont:getChildByName("Label_name")
 		local chatLabel = itemCont:getChildByName("Label_text")
 		local timeLabel = itemCont:getChildByName("Label_time")
-		itemCont:setTag(chatInfo.id)
-		itemCont:addTouchEventListener(onChatItemTouched)
+
+		if player.getID()~=chatInfo.srcId then
+			itemCont:setTag(chatInfo.id)
+			imgHead:setTag(chatInfo.id)
+			itemCont:addTouchEventListener(onChatItemTouched)
+			imgHead:addTouchEventListener(onChatItemTouched)
+		end
 
 		--vip
 		if chatInfo.vipLv<=0 then
@@ -92,26 +109,35 @@ function UI_chatRoom_chat:init(type_, playerInfo_)
 		imgHead:loadTexture(config.dirUI.heroHeadpic .. chatInfo.srcIcon .. ".png")
 		local nameText = chatInfo.srcName
 		if string.len(chatInfo.srcUnion)>0 then
-			nameText = "[" .. chatInfo.srcUnion .. "]" .. nameText
+		-- 联盟
+			nameText = hp.lang.getStrByID(21) .. chatInfo.srcUnion .. hp.lang.getStrByID(22) .. nameText
+		end
+		if string.len(chatInfo.srcTitle)>0 then
+		-- 称号
+			nameText = hp.lang.getStrByID(21) .. chatInfo.srcTitle .. hp.lang.getStrByID(22) .. nameText
+		end
+		if player.serverMgr.getMyServerID()~=chatInfo.srcServerId then
+		-- 不同的国家
+			local serverInfo = player.serverMgr.getServerBySid(chatInfo.srcServerId)
+			nameText = hp.lang.getStrByID(21) .. serverInfo.name .. hp.lang.getStrByID(22) .. nameText
 		end
 		nameLabel:setString(nameText)
 		chatLabel:setString(chatInfo.text)
 		timeLabel:setString(os.date("%c", chatInfo.time))
 
-		if setPos_ then
-			chatList:visit()
+		if needToBottom then
+			chatList:refreshView()
 			chatList:scrollToBottom(0.2, false)
 		end
 	end
 	self.addChatInfo = addChatInfo
 
-	local chatInfos = hp.chatRoom.getChatInfos(chatType, playerId)
+	local chatInfos = player.chatRoom.getChatInfos(chatType, playerId)
 	for i,v in ipairs(chatInfos) do
 		addChatInfo(v)
 	end
-	chatList:visit()
-	chatList:scrollToBottom(0.2, false)
-	self.chatList = chatList
+	chatList:refreshView()
+	chatList:scrollToBottom(0.01, false)
 
 	-- registMsg
 	self:registMsg(hp.MSG.CHATINFO_NEW)

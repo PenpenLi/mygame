@@ -73,7 +73,7 @@ function UI_unionBigFight:initCallBack()
 			local fight_ = createMyBigFight()
 			player.getAlliance():insertBigFight(fight_)
 			require "ui/union/fight/unionBigFightDetail"
-			ui_ = UI_unionBigFightDetail.new(player.getID())
+			local ui_ = UI_unionBigFightDetail.new(player.getID())
 			self:addUI(ui_)
 			self:close()
 		end
@@ -98,9 +98,9 @@ function UI_unionBigFight:initCallBack()
 	self.onMoreInfoTouched = onMoreInfoTouched
 end
 
-function UI_unionBigFight:close()
+function UI_unionBigFight:onRemove()
 	self.item:release()
-	self.super.close(self)
+	self.super.onRemove(self)
 end
 
 function UI_unionBigFight:refreshShow()

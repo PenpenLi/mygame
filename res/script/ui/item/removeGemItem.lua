@@ -23,7 +23,7 @@ function UI_removeGemItem:init(equip_, pos_, useCallback_)
 	-- ===============================
 	local uiFrame = UI_fullScreenFrame.new()
 	uiFrame:setTitle(hp.lang.getStrByID(3511))
-
+	uiFrame:setTopShadePosY(888)
 	local rootWidget = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "commonItem.json")
 
 	-- addCCNode
@@ -178,13 +178,18 @@ function UI_removeGemItem:pushLoadingItem(loadingNumOnce)
 					player.expendResource("gold", operItemInfo.sale) --消耗金币
 					if operItemInfo.sid~=20500 then
 						player.addItem(self.equip.gems[self.pos], 1) --添加回收宝石
+						Scene.showMsg({3001, getItemInfoBySid(operItemInfo.sid).name, 1})
+					else
+						Scene.showMsg({3003, itemInfoFree.name, 1})
 					end
+					
 				elseif tag==2 then
 				-- 使用
 					if operItemInfo.sid~=20500 then
 						player.expendItem(operItemInfo.sid, 1) --消耗道具
 						player.addItem(self.equip.gems[self.pos], 1) --添加回收宝石
 					end
+					Scene.showMsg({3000, getItemInfoBySid(operItemInfo.sid).name, 1})
 				end
 				-- 使用回调
 				self.equip.gems[self.pos] = 0
@@ -240,12 +245,7 @@ function UI_removeGemItem:pushLoadingItem(loadingNumOnce)
 				if player.getResource("gold")<itemInfo.sale then
 					-- 金币不够
 					require("ui/msgBox/msgBox")
-					local msgBox = UI_msgBox.new(hp.lang.getStrByID(2826), 
-						hp.lang.getStrByID(2827), 
-						hp.lang.getStrByID(1209), 
-						hp.lang.getStrByID(2412)
-						)
-					self:addModalUI(msgBox)
+					UI_msgBox.showCommonMsg(self, 1)
 					return
 				end
 

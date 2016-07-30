@@ -1,7 +1,7 @@
 --
 -- ui/embassy/embassyInfo.lua
--- 使馆更多信息
--- 借用 forgeInfo
+-- 浣块鏇村淇℃伅
+-- 鍊熺敤 forgeInfo
 --===================================
 require "ui/frame/popFrame"
 
@@ -16,20 +16,17 @@ function UI_embassyInfo:init(building_)
 
 	-- ui
 	-- ===============================
-	-- 借用 forgeInfo
+	-- 鍊熺敤 forgeInfo
 	local wigetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "forgeInfo.json")
 	local uiFrame = UI_popFrame.new(wigetRoot, bInfo.name)
 
-	
-	
 	local ListView_info = wigetRoot:getChildByName("ListView_info")
 	
-	local contNode = ListView_info:getChildByName("Panel_cont")
-	local moreInfo = contNode:getChildByName("Label_moreInfo")
+	local moreInfo = ListView_info:getChildByName("Panel_desc"):getChildByName("Panel_cont"):getChildByName("Label_moreInfo")
 	moreInfo:setString(bInfo.moreDesc)
 	
 	
-	--第一部分
+	--绗竴閮ㄥ垎
 	
 	local head = ListView_info:getChildByName("Panel_tittle")
 	local item1 = ListView_info:getChildByName("Panel_item1")
@@ -93,7 +90,7 @@ function UI_embassyInfo:init(building_)
 	
 	
 	
-	--第二部分
+	--绗簩閮ㄥ垎
 	
 	local addHead = head:clone()
 	addHead:getChildByName("Panel_cont"):getChildByName("Label_head"):setString(hp.lang.getStrByID(6203))

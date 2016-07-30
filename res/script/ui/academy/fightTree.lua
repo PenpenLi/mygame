@@ -22,7 +22,7 @@ function UI_fightTree:init()
 	-- ===============================
 	local uiFrame = UI_fullScreenFrame.new()
 	uiFrame:setTitle(hp.lang.getStrByID(9101))
-
+	uiFrame:setTopShadePosY(888)
 	local widgetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "fightTree.json")
 
 	--技能树
@@ -31,7 +31,7 @@ function UI_fightTree:init()
 	local skillPanel = treePanel:getChildByName("Panel_skill")
 	local linePanel = treePanel:getChildByName("Panel_line")
 
-	local colorLock = cc.c3b(128, 128, 128)
+	local colorLock = cc.c3b(64, 64, 64)
 	local colorUnlock = cc.c3b(255, 255, 255)
 	local imgLineLockH = config.dirUI.common .. "skillLine_lockH.png"
 	local imgLineLockV = config.dirUI.common .. "skillLine_lockV.png"
@@ -52,7 +52,7 @@ function UI_fightTree:init()
 
 	-- 技能点击响应
 	local function onSkillTouched(sender, eventType)
-		hp.uiHelper.btnImgTouched(sender, eventType)
+		--hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			require("ui/academy/researchInfo")
 			local ui = UI_researchInfo.new(researchType, sender:getTag())
@@ -106,11 +106,9 @@ function UI_fightTree:init()
 							if id~=skillid then
 								if researchMgr.getResearchLv(id)<v%100 then
 									lockFlag = true
-								elseif skillid==112 or skillid==114 or skillid==124 or skillid==126 or skillid==130 or skillid==132 then
-									setUnlockLine(string.format("%d_%d", id, skillid))
+									break
 								end
 							end
-							--getSkillLv
 						end
 					end
 				end
@@ -126,6 +124,14 @@ function UI_fightTree:init()
 							setUnlockLine("111_112")
 						elseif skillid==114 then
 							setUnlockLine("111_114")
+						elseif skillid==124 then
+							setUnlockLine("121_124")
+						elseif skillid==126 then
+							setUnlockLine("121_126")
+						elseif skillid==130 then
+							setUnlockLine("127_130")
+						elseif skillid==132 then
+							setUnlockLine("127_132")
 						end
 					end
 				end

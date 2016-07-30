@@ -1,6 +1,6 @@
-﻿--
+--
 -- ui/mail/battleDetail.lua
--- 主建筑更多信息
+-- 战报详情
 --===================================
 require "ui/frame/popFrame"
 require "ui/UI"

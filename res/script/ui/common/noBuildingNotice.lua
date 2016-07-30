@@ -7,7 +7,7 @@ require "ui/frame/popFrame"
 UI_noBuildingNotice = class("UI_noBuildingNotice", UI)
 
 --init
-function UI_noBuildingNotice:init(text_, buildingID_, level_, callBack_)
+function UI_noBuildingNotice:init(text_, buildingID_, level_, title_, callBack_)
 	-- data
 	-- ===============================
 	self.text = text_
@@ -22,7 +22,12 @@ function UI_noBuildingNotice:init(text_, buildingID_, level_, callBack_)
 	-- ===============================
 	self:initUI()
 
-	local popFrame = UI_popFrame.new(self.wigetRoot, hp.lang.getStrByID(1191))
+	local popFrame = nil
+	if title_ ~= nil then
+		popFrame = UI_popFrame.new(self.wigetRoot, title_)
+	else
+		popFrame = UI_popFrame.new(self.wigetRoot, hp.lang.getStrByID(1191))
+	end
 	-- addCCNode
 	-- ===============================
 	self:addChildUI(popFrame)
@@ -36,7 +41,7 @@ function UI_noBuildingNotice:initUI()
 	content_:getChildByName("Label_4"):setString(self.text)
 
 	local okButton = content_:getChildByName("Image_5")
-	okButton:getChildByName("Label_6"):setString(hp.lang.getStrByID(1209))
+	okButton:getChildByName("Label_6"):setString(hp.lang.getStrByID(5200))
 	okButton:addTouchEventListener(self.onOKTouched)
 
 	-- 图片

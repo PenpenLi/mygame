@@ -6,15 +6,16 @@ require "ui/frame/popFrame"
 
 UI_unionShopCatalogBuyPop = class("UI_unionShopCatalogBuyPop", UI)
 
-local starImage_ = {"kd_favorite.png", "lock.png"}
+local starImage_ = {"alliance_69.png", "alliance_70.png"}
 
 --init
-function UI_unionShopCatalogBuyPop:init(sid_)
+function UI_unionShopCatalogBuyPop:init(sid_, closeCallBack_)
 	-- data
 	-- ===============================
 	self.item = hp.gameDataLoader.getInfoBySid("item", sid_)
 	self.sid = sid_
 	self.starred = 2
+	self.closeCallBack = closeCallBack_
 
 	-- call back
 	self:initCallBack()
@@ -57,7 +58,7 @@ function UI_unionShopCatalogBuyPop:initCallBack()
 			hp.msgCenter.sendMsg(hp.MSG.UNION_SHOP_STAR_CLICK, {self.sid, num_})
 			self:changeFavorite()
 			require "ui/common/successBox"
-			ui_ = UI_successBox.new(hp.lang.getStrByID(idList_[1]), hp.lang.getStrByID(idList_[2]))
+			local ui_ = UI_successBox.new(hp.lang.getStrByID(idList_[1]), hp.lang.getStrByID(idList_[2]))
 			self:addModalUI(ui_)
 		end
 	end
@@ -77,6 +78,7 @@ function UI_unionShopCatalogBuyPop:initCallBack()
 			cmdData.operation[1] = oper
 			local cmdSender = hp.httpCmdSender.new(onStarResponse)
 			cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+			self:showLoading(cmdSender, sender)
 		end
 	end
 
@@ -125,7 +127,7 @@ function UI_unionShopCatalogBuyPop:updateInfo(info_)
 			self.starred = 1
 		end
 	end
-	content_:getChildByName("Label_219_0_1"):setString(nameList_)
+	content_:getChildByName("Label_219_0_1"):setString(hp.lang.getStrByID(1178)..nameList_)
 
 	-- 自己是否申请过
 	self:changeFavorite()
@@ -168,12 +170,7 @@ function UI_unionShopCatalogBuyPop:initUI()
 	content_:getChildByName("Label_219_0_1"):setString(hp.lang.getStrByID(1178))
 end
 
-function UI_unionShopCatalogBuyPop:calcMaxNumber()
-	local num_ = 0
-	num_ = math.floor(player.getAlliance():getMyUnionInfoBase().contribute / self.item.societySale)
-	return num_
-end
-
-function UI_unionShopCatalogBuyPop:close()
-	self.super.close(self)
+function UI_unionShopCatalogBuyPop:onRemove()
+	self.closeCallBack()
+	self.super.onRemove(self)
 end

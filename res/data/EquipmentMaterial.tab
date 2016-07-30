@@ -1,5 +1,5 @@
 材料id	材料名称	材料类型	材料等级	材料说明	附加属性类型	属性数值(万分位)	合成下一等级ID
-sid	name	mtype	level		key	value	
+sid	name	mtype	level		key	value	nextSid
 sid	name	type	level	desc	key	value	nextSid
 INT	STRING	INT	INT	STRING	INT	INT	INT
 1001	珊瑚 Lv.1	1	0	可在铁匠铺中用来制造装备。	107	5000	1002

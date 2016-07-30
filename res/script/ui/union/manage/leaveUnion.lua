@@ -3,6 +3,7 @@
 -- 离开工会
 --===================================
 require "ui/frame/popFrame"
+require "ui/frame/popFrameRed"
 
 UI_leaveUnion = class("UI_leaveUnion", UI)
 
@@ -20,7 +21,7 @@ function UI_leaveUnion:init(tab_)
 	-- ===============================
 	self:initUI()
 
-	local popFrame = UI_popFrame.new(self.wigetRoot, hp.lang.getStrByID(1884))
+	local popFrame = UI_popFrameRed.new(self.wigetRoot, hp.lang.getStrByID(1884))
 	-- addCCNode
 	-- ===============================
 	self:addChildUI(popFrame)
@@ -36,7 +37,7 @@ function UI_leaveUnion:initUI()
 	content_:getChildByName("Label_1_0_1"):setString(hp.lang.getStrByID(1882))
 
 	local leave_ = content_:getChildByName("Image_10")
-	leave_:getChildByName("Label_11"):setString(hp.lang.getStrByID(1883))
+	leave_:getChildByName("Label_11"):setString(hp.lang.getStrByID(1841))
 	leave_:addTouchEventListener(self.onLeaveTouched)
 end
 
@@ -50,9 +51,8 @@ function UI_leaveUnion:initCallBack()
 		if data.result == 0 then
 			self:closeAll()
 			player.getAlliance():setUnionID(0)
-			player.getAlliance():leaveUnion()
 			require "ui/common/successBox"
-			ui_ = UI_successBox.new(hp.lang.getStrByID(1888), hp.lang.getStrByID(1889))
+			local ui_ = UI_successBox.new(hp.lang.getStrByID(1841), hp.lang.getStrByID(1889))
 			game.curScene:addModalUI(ui_)
 		end
 	end
@@ -65,12 +65,13 @@ function UI_leaveUnion:initCallBack()
 		cmdData.operation[1] = oper
 		local cmdSender = hp.httpCmdSender.new(onExitResponse)
 		cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+		self:showLoading(cmdSender, sender)
 	end
 
 	local function onConfirm1Touched(sender, eventType)
 		require "ui/msgBox/msgBox"
-		ui_ = UI_msgBox.new(hp.lang.getStrByID(1885), hp.lang.getStrByID(1887), hp.lang.getStrByID(1209),
-			hp.lang.getStrByID(2412), onConfirm2Touched)
+		local ui_ = UI_msgBox.new(hp.lang.getStrByID(1841), hp.lang.getStrByID(1887), hp.lang.getStrByID(1841),
+			hp.lang.getStrByID(2412), onConfirm2Touched, nil, "red")
 		self:addModalUI(ui_)
 	end
 
@@ -79,8 +80,8 @@ function UI_leaveUnion:initCallBack()
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			require "ui/msgBox/msgBox"
-			ui_ = UI_msgBox.new(hp.lang.getStrByID(1885), hp.lang.getStrByID(1886), hp.lang.getStrByID(1209),
-				hp.lang.getStrByID(2412), onConfirm1Touched)
+			local ui_ = UI_msgBox.new(hp.lang.getStrByID(1841), hp.lang.getStrByID(1886), hp.lang.getStrByID(1841),
+				hp.lang.getStrByID(2412), onConfirm1Touched, nil, "red")
 			self:addModalUI(ui_)
 		end
 	end	
@@ -88,6 +89,6 @@ function UI_leaveUnion:initCallBack()
 	self.onLeaveTouched = onLeaveTouched
 end
 
-function UI_leaveUnion:close()
-	self.super.close(self)
+function UI_leaveUnion:onRemove()
+	self.super.onRemove(self)
 end

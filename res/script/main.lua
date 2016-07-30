@@ -8,22 +8,29 @@ cc.FileUtils:getInstance():addSearchPath("res/script/coco2d-x");
 require "config"
 require "init"
 require "game"
+require "gameUpdater"
 
 
 -- cclog
 cclog = function(...)
-    print(string.format(...))
+    if config.debug>=1 then
+        print(string.format(...))
+    end
 end
 
 cclog_ = function(...)
-    print(...)
+    if config.debug>=1 then
+        print(...)
+    end
 end
 
 -- for CCLuaEngine traceback
 function __G__TRACKBACK__(msg)
     cclog("----------------------------------------")
     cclog("LUA ERROR: " .. tostring(msg) .. "\n")
-    cclog(debug.traceback())
+    if config.debug>=2 then
+        cclog(debug.traceback())
+    end
     cclog("----------------------------------------")
 end
 

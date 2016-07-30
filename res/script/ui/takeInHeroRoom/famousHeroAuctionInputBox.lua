@@ -20,13 +20,13 @@ function UI_famousHeroAuctionInputBox:init(sid)
 	local editLabel = panelCont:getChildByName("img_editbox"):getChildByName("Label_edit")
 	
 	--大标题
-	panelCont:getChildByName("Labe_title"):setString(string.format(hp.lang.getStrByID(6037), "赵子龙"))
+	panelCont:getChildByName("Labe_title"):setString(string.format(hp.lang.getStrByID(6037), heroInfo.name))
 	
 	--拼接3段不同颜色文字
 	local acutionTitle1 = panelCont:getChildByName("Label_acutionTitle1")
 	acutionTitle1:setString(hp.lang.getStrByID(6038))
-	acutionTitle1:getChildByName("Label_acutionTitle2"):setString(hp.lang.getStrByID(6018))
 	acutionTitle1:getChildByName("Label_acutionTitle2"):setString(string.format("%d",heroInfo.lowPrice))
+	acutionTitle1:getChildByName("Label_acutionTitle3"):setString(hp.lang.getStrByID(6018))
 	
 	--简介
 	panelCont:getChildByName("Label_intro"):setString(string.format(hp.lang.getStrByID(6039)))
@@ -139,7 +139,7 @@ function UI_famousHeroAuctionInputBox:init(sid)
 				
 				--通知刷新
 				hp.msgCenter.sendMsg(hp.MSG.FAMOUS_HERO_LIST_UPDATE)
-				--print("竞价完成 刷新 传递 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+				--cclog_("竞价完成 刷新 传递 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
 			end
 			
 		end
@@ -184,7 +184,7 @@ function UI_famousHeroAuctionInputBox:init(sid)
 					onAuctionHero(curPri)
 					
 				end
-				--print("use " .. curPri .. " price buy .....................................!!!!!!!")
+				--cclog_("use " .. curPri .. " price buy .....................................!!!!!!!")
 				
 			end
 			
@@ -218,10 +218,12 @@ function UI_famousHeroAuctionInputBox:init(sid)
 				end
 				
 			elseif curPri < heroInfo.lowPrice then
-			--低于最低竞拍价格
-				msgbox = UI_msgBox.new(msgTips,hp.lang.getStrByID(6031),msgIs)
-				self:addModalUI(msgbox)
-			
+				--低于最低竞拍价格
+				--UI_msgBox.showCommonMsg(self, 1)
+				require("ui/msgBox/msgBox")
+					local msgBox = UI_msgBox.new(hp.lang.getStrByID(1191), hp.lang.getStrByID(6047))
+				self:addModalUI(msgBox)
+				return
 			end
 
 

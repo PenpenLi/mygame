@@ -9,6 +9,7 @@ UI_unionCreate = class("UI_unionCreate", UI)
 local tabID = 1
 local titleID_ = {1806, 1827, 1828}
 local imageList_ = {"3", "4", "5"}
+local NAME_LEN = 8
 
 --init
 function UI_unionCreate:init()
@@ -31,6 +32,8 @@ function UI_unionCreate:init()
 	-- addCCNode
 	-- ===============================
 	self:addChildUI(uiFrame)
+	uiFrame:hideTopBackground()
+	uiFrame:setTopShadePosY(888)
 	self:addCCNode(self.wigetRoot)
 
 	self:registMsg(hp.MSG.UNION_CHOOSE_ICON)
@@ -65,11 +68,13 @@ function UI_unionCreate:initUI()
 	local searchingUnionName_ = content_:getChildByName("Label_7")
 	self.inputText = hp.uiHelper.labelBind2EditBox(searchingUnionName_)
 	self.inputText.setDefaultText(hp.lang.getStrByID(1255))
+	self.inputText.setMaxLength(NAME_LEN)
 
 	-- 选择工会图标
 	local content_ = self.listView:getChildByName("Panel_29886_Copy0"):getChildByName("Panel_29900")
 	-- 图标
 	self.icon = content_:getChildByName("ImageView_29941"):getChildByName("ImageView_29942")
+	self.icon:addTouchEventListener(self.onIconChooseTouched)
 	-- 按钮
 	local chooseIcon_ = content_:getChildByName("ImageView_29943")
 	chooseIcon_:addTouchEventListener(self.onIconChooseTouched)
@@ -97,6 +102,7 @@ function UI_unionCreate:initUI()
 	local label_ = content_:getChildByName("Label_29921")
 	label_:setString(hp.lang.getStrByID(5121))
 	self.desc = hp.uiHelper.labelBind2EditBox(label_)
+	self.desc.setString(hp.lang.getStrByID(5121))
 end
 
 function UI_unionCreate:initCallBack()
@@ -104,7 +110,7 @@ function UI_unionCreate:initCallBack()
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			require "ui/union/invite/unionIcon"
-			ui_ = UI_unionIcon:new()
+			local ui_ = UI_unionIcon:new()
 			self:addUI(ui_)
 		end
 	end
@@ -116,38 +122,49 @@ function UI_unionCreate:initCallBack()
 
 		local data = hp.httpParse(response)
 		if data.result == 0 then
+			local frist_ = player.getFristLeague()
 			player.getAlliance():setUnionID(data.id)
 			require "ui/union/unionMain"
 			local ui_ = UI_unionMain.new()
 			self:addUI(ui_)
-			require "ui/common/successBox"
-			local title_ = hp.lang.getStrByID(1810)
-			local text_ = string.format(hp.lang.getStrByID(1811), self.inputText:getString())
-			local box_ = UI_successBox.new(title_, text_)
-			self:addModalUI(box_)
-			player.clearFristLeague()
-			hp.msgCenter.sendMsg(hp.MSG.UNION_JOIN_SUCCESS)
+			if frist_ == 0 then
+				require "ui/union/invite/joinSuccess"
+				local ui_ = UI_joinSuccess.new(frist_, true)
+				self:addModalUI(ui_)
+			else
+				require "ui/common/successBox"
+				local title_ = hp.lang.getStrByID(1810)
+				local text_ = string.format(hp.lang.getStrByID(1811), self.inputText:getString())
+				local box_ = UI_successBox.new(title_, text_)
+				self:addModalUI(box_)
+			end
 			self:close()
-		else
-			require "ui/common/successBox"
-			local box_ = UI_successBox.new("失败", "失败，自己检查一下!")
-			self:addModalUI(box_)
 		end
 	end
 
 	local function onCreateBtnTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			local cmdData={operation={}}
-			local oper = {}
-			oper.channel = 16
-			oper.type = 1
-			oper.img = tostring(self.image)
-			oper.name = self.inputText:getString()
-			oper.notice = self.desc.getString()
-			cmdData.operation[1] = oper
-			local cmdSender = hp.httpCmdSender.new(onCreateResponse)
-			cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+			local name_ = self.inputText:getString()
+			cclog_("string.len(name_)", string.len(name_), name_)
+			if name_ == "" then
+				require "ui/common/successBox"
+				local box_ = UI_successBox.new(hp.lang.getStrByID(5211), hp.lang.getStrByID(5212))
+				self:addModalUI(box_)
+			else
+				local cmdData={operation={}}
+				local oper = {}
+				oper.channel = 16
+				oper.type = 1
+				oper.img = tostring(self.image)
+				oper.name = self.inputText:getString()
+				oper.notice = self.desc.getString()
+				cclog_("oper.noticeoper.noticeoper.noticeoper.notice",oper.notice)
+				cmdData.operation[1] = oper
+				local cmdSender = hp.httpCmdSender.new(onCreateResponse)
+				cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+				self:showLoading(cmdSender, sender)
+			end
 		end
 	end
 
@@ -169,13 +186,13 @@ function UI_unionCreate:initCallBack()
 		elseif eventType==TOUCH_EVENT_ENDED then
 			if sender:getTag() == 2 then
 				require "ui/union/invite/unionJoin"
-				ui_ = UI_unionJoin.new()
-				print("UI_unionJoin")
+				local ui_ = UI_unionJoin.new()
+				cclog_("UI_unionJoin")
 				self:addUI(ui_)
 				self:close()
 			elseif sender:getTag() == 3 then
 				require "ui/union/invite/unionInvites"
-				ui_ = UI_unionInvites.new()
+				local ui_ = UI_unionInvites.new()
 				self:addUI(ui_)
 				self:close()
 			end

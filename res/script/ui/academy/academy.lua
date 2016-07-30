@@ -28,9 +28,9 @@ function UI_academy:init(building_)
 	local contMore = listNode:getChildByName("Panel_moreInfo"):getChildByName("Panel_cont")
 	local btnMore = contMore:getChildByName("ImageView_more")
 	
-	contCombat:getChildByName("Label_name"):setString(hp.lang.getStrByID(9101))
-	contTrap:getChildByName("Label_name"):setString(hp.lang.getStrByID(9102))
-	contEconomics:getChildByName("Label_name"):setString(hp.lang.getStrByID(9103))
+	contCombat:getChildByName("BitmapLabel_name"):setString(hp.lang.getStrByID(9101))
+	contTrap:getChildByName("BitmapLabel_name"):setString(hp.lang.getStrByID(9102))
+	contEconomics:getChildByName("BitmapLabel_name"):setString(hp.lang.getStrByID(9103))
 	btnMore:getChildByName("Label_more"):setString(hp.lang.getStrByID(1030))
 	
 	local function onItemTouched(sender, eventType)

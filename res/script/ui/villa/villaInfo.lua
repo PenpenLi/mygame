@@ -24,13 +24,11 @@ function UI_villaInfo:init(building_)
 	
 	local ListView_info = wigetRoot:getChildByName("ListView_info")
 	
-	local contNode = ListView_info:getChildByName("Panel_cont")
-	local moreInfo = contNode:getChildByName("Label_moreInfo")
+	local moreInfo = ListView_info:getChildByName("Panel_desc"):getChildByName("Panel_cont"):getChildByName("Label_moreInfo")
 	moreInfo:setString(bInfo.moreDesc)
 	
 	
 	--
-	
 	local head = ListView_info:getChildByName("Panel_tittle")
 	local item1 = ListView_info:getChildByName("Panel_item1")
 	local item2 = ListView_info:getChildByName("Panel_item2")
@@ -51,7 +49,7 @@ function UI_villaInfo:init(building_)
 	itemTittleCont:getChildByName("Label_col_1"):setString( hp.lang.getStrByID(7404) )
 	
 	local img = "silver.png"
-	--print(img)
+	--cclog_(img)
 	itemTittleCont:getChildByName("Image_1"):loadTexture(config.dirUI.common .. img)
 	itemTittleCont:getChildByName("Image_2"):loadTexture(config.dirUI.common .. img)
 	

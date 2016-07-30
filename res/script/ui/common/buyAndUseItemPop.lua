@@ -7,7 +7,7 @@ require "ui/frame/popFrame"
 UI_buyAndUseItem = class("UI_buyAndUseItem", UI)
 
 --init
-function UI_buyAndUseItem:init(itemID_, num_, callBack_, param_)
+function UI_buyAndUseItem:init(itemID_, num_, callBack_, param_, httpParam_, httpCallBack_)
 	-- data
 	-- ===============================
 	self.callBack = callBack_
@@ -17,6 +17,8 @@ function UI_buyAndUseItem:init(itemID_, num_, callBack_, param_)
 	self.buy = false
 	self.param = param_
 	self.gold = 0
+	self.httpParam = httpParam_
+	self.httpCallBack = httpCallBack_
 
 	-- call back
 	self:initCallBack()
@@ -25,7 +27,7 @@ function UI_buyAndUseItem:init(itemID_, num_, callBack_, param_)
 	-- ===============================
 	self:initUI()
 
-	local popFrame = UI_popFrame.new(self.wigetRoot, hp.lang.getStrByID(5064))
+	local popFrame = UI_popFrame.new(self.wigetRoot, hp.lang.getStrByID(2406))
 	-- addCCNode
 	-- ===============================
 	self:addChildUI(popFrame)
@@ -65,18 +67,11 @@ function UI_buyAndUseItem:initCallBack()
 	local function onGetTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			if self.buy == true then
-				if player.getResource("gold")<self.itemInfo.sale then
-					-- 金币不够
-					require("ui/msgBox/msgBox")
-					local msgBox = UI_msgBox.new(hp.lang.getStrByID(2826), 
-						hp.lang.getStrByID(2827), 
-						hp.lang.getStrByID(1209), 
-						hp.lang.getStrByID(2412)
-						)
-					self:addModalUI(msgBox)
-					return
-				end
+			if player.getResource("gold")<self.gold then
+				-- 金币不够
+				require("ui/msgBox/msgBox")
+				UI_msgBox.showCommonMsg(self, 1)
+				return				
 			end
 			
 			if self.callBack ~= nil then
@@ -90,16 +85,16 @@ function UI_buyAndUseItem:initCallBack()
 					local data = hp.httpParse(response)
 					if data.result == 0 then
 						if tag == 1 then
+							cclog_("tag",1,"gold",self.itemInfo.sale)
 							player.expendResource("gold", self.itemInfo.sale)
 						elseif tag == 2 then
-							player.expendItem(ITEM_SID, 1)
+							cclog_("tag",2,"item",self.sid)
+							player.expendItem(self.sid, 1)
 						end
-						player.setPosition(data.x, data.y)
-
-						if game.curScene.mapLevel == 2 then
-							game.curScene:objAppearOnMap()
+						if self.httpCallBack ~= nil then
+							self.httpCallBack()
 						end
-						self:closeAll()
+						self:close()
 					end
 				end
 
@@ -107,15 +102,21 @@ function UI_buyAndUseItem:initCallBack()
 				local oper = {}
 				oper.channel = 14
 				oper.type = 1
-				oper.sid = ITEM_SID
+				oper.sid = self.sid
+				local tag_ = 1
 				if self.buy == true then
 					oper.gold = self.itemInfo.sale
 				else
 					oper.gold = 0
+					tag_ = 2
+				end
+				-- 附加参数
+				for i, v in pairs(self.httpParam) do
+					oper[i] = v
 				end
 				cmdData.operation[1] = oper
 				local cmdSender = hp.httpCmdSender.new(onBuyItemHttpResponse)
-				cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper, 1)
+				cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper, tag_)
 			end
 			self:close()
 		end

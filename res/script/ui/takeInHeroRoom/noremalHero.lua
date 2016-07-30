@@ -27,17 +27,30 @@ function UI_noremalHero:init(bInfo)
 	btn_getHero:getChildByName("Label_getHero"):setString(hp.lang.getStrByID(6004))
 	Label_tips:setString(hp.lang.getStrByID(6008))
 	
+	--招募新英雄按钮闪光
+	require "ui/common/effect.lua"
+	local light = nil
+	self.light = light
+	self.light = inLight(btn_getHero:getVirtualRenderer(),1)
+	btn_getHero:addChild(self.light)
 	
 	--若当前已有英雄 按钮变灰
-	if not player.hero.isValid() then
-		Label_info:setString(hp.lang.getStrByID(6006))
-		btn_getHero:loadTexture(config.dirUI.common .. "button_green.png")
-		btn_getHero:setTouchEnabled(true)
-	else
-		Label_info:setString(hp.lang.getStrByID(6007))
-		btn_getHero:loadTexture(config.dirUI.common .. "button_gray.png")
-		btn_getHero:setTouchEnabled(false)
+	local function checkHeroIsValid()
+		if not player.hero.isValid() then
+			Label_info:setString(hp.lang.getStrByID(6006))
+			btn_getHero:loadTexture(config.dirUI.common .. "button_green.png")
+			btn_getHero:setTouchEnabled(true)
+			self.light:setVisible(true)
+		else
+			Label_info:setString(hp.lang.getStrByID(6007))
+			btn_getHero:loadTexture(config.dirUI.common .. "button_gray.png")
+			btn_getHero:setTouchEnabled(false)
+			self.light:setVisible(false)
+		end
 	end
+	
+	self.checkHeroIsValid = checkHeroIsValid
+	self.checkHeroIsValid()
 	
 	-- 获取英雄 网络请求回调
 	local function onGetHeroHttpResponse(status, response, tag)
@@ -46,8 +59,7 @@ function UI_noremalHero:init(bInfo)
 			if data.result~=nil and data.result==0 then
 				require "ui/msgBox/msgBox"
 				self:addModalUI(UI_msgBox.new(hp.lang.getStrByID(6034),hp.lang.getStrByID(6040),
-					hp.lang.getStrByID(6035),hp.lang.getStrByID(6036)))
-			
+					hp.lang.getStrByID(1209)))
 			end
 		end
 	end
@@ -90,6 +102,14 @@ function UI_noremalHero:init(bInfo)
 	btn_moreInfo:addTouchEventListener(btn_moreInfo_callback)
 	
 	
+	self:registMsg(hp.MSG.HERO_INFO_CHANGE)
+
+end
 
 
+
+function UI_noremalHero:onMsg(msg_, param_)
+	if msg_==hp.MSG.HERO_INFO_CHANGE then
+		self.checkHeroIsValid()
+	end
 end

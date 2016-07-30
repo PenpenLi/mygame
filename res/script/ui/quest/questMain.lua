@@ -6,7 +6,6 @@ require "ui/fullScreenFrame"
 
 UI_questMain = class("UI_questMain", UI)
 
-local interval = 0
 local speedupcode = {11,12,13}
 
 --init
@@ -27,10 +26,15 @@ function UI_questMain:init()
 	self:initUI()
 
 	local uiFrame = UI_fullScreenFrame.new()
+	uiFrame:setTopShadePosY(766)
 	uiFrame:setTitle(hp.lang.getStrByID(1410))
+
+	require "ui/common/promotionInfo"
+	local promotion_ = UI_promotionInfo.new()
 	-- addCCNode
 	-- ===============================
 	self:addChildUI(uiFrame)
+	self:addChildUI(promotion_)
 	self:addCCNode(self.wigetRoot)
 
 	-- call back
@@ -40,25 +44,45 @@ function UI_questMain:init()
 			local tag_ = sender:getTag()
 			if tag_ == 1 then
 				require "ui/quest/empireQuest"
-				ui_ = UI_empireQuest.new()
+				local ui_ = UI_empireQuest.new()
 				self:addUI(ui_)
 				player.guide.step(4003)
 			elseif tag_ == 2 then
 				require "ui/quest/dailyQuest"
-				ui_ = UI_dailyQuest.new(1)
+				local ui_ = UI_dailyQuest.new(1)
 				self:addUI(ui_)				
 			elseif tag_ == 3 then
-				require "ui/quest/dailyQuest"
-				ui_ = UI_dailyQuest.new(2)
-				self:addUI(ui_)				
+				if player.getAlliance():getUnionID() ~= 0 then
+					require "ui/quest/dailyQuest"
+					local ui_ = UI_dailyQuest.new(2)
+					self:addUI(ui_)
+				elseif table.getn(player.questManager.getDailyTasks(2)) ~= 0 then
+					require "ui/quest/dailyQuest"
+					local ui_ = UI_dailyQuest.new(2)
+					self:addUI(ui_)
+				else
+					local function onConfirm()
+						require "ui/union/invite/unionJoin"
+						local ui_ = UI_unionJoin.new()
+						self:addUI(ui_)
+					end
+					require("ui/msgBox/msgBox")
+					local msgBox = UI_msgBox.new(hp.lang.getStrByID(5236), 
+						hp.lang.getStrByID(5237), 
+						hp.lang.getStrByID(1209), 
+						hp.lang.getStrByID(2412),  
+						onConfirm,nil,"red"
+						)
+					game.curScene:addModalUI(msgBox)
+				end
 			elseif tag_ == 4 then
 				if player.vipStatus.isActive() == true then
 					require "ui/quest/dailyQuest"
-					ui_ = UI_dailyQuest.new(3)
+					local ui_ = UI_dailyQuest.new(3)
 					self:addUI(ui_)
 				else
 					require "ui/quest/activateVIP"
-					ui_ = UI_activateVIP.new()
+					local ui_ = UI_activateVIP.new()
 					self:addModalUI(ui_)
 				end				
 			end
@@ -74,11 +98,14 @@ function UI_questMain:init()
 	self:updateUIShow()
 
 	-- 消息注册
-	self:registMsg(hp.MSG.MISSION_MAIN_STATUS_CHANGE)
-	self:registMsg(hp.MSG.MISSION_DAILY_STATUS_CHANGE)
-	self:registMsg(hp.MSG.MISSION_DAILY_RECIEVE_CHANGE)
-	self:registMsg(hp.MSG.GUIDE_STEP)
+	self:registMsg(hp.MSG.MISSION_COMPLETE)
+	self:registMsg(hp.MSG.MISSION_COLLECT)	
+	self:registMsg(hp.MSG.MISSION_DAILY_COLLECTED)
+	self:registMsg(hp.MSG.MISSION_DAILY_COMPLETE)
+	self:registMsg(hp.MSG.MISSION_DAILY_START)
 	self:registMsg(hp.MSG.MISSION_DAILY_REFRESH)
+	self:registMsg(hp.MSG.GUIDE_STEP)
+	self:registMsg(hp.MSG.MISSION_DAILY_QUICKFINISH)
 
 
 	-- 进行新手引导绑定
@@ -86,7 +113,7 @@ function UI_questMain:init()
 	local function bindGuideUI( step )
 		if step==4003 then
 			self.wigetRoot:getChildByName("ListView_15172"):visit()
-			player.guide.bind2Node(step, self.backgroud[1], OnQuestBtnTouched)
+			player.guide.bind2Node111(step, self.backgroud[1], OnQuestBtnTouched)
 		end
 	end
 	self.bindGuideUI = bindGuideUI
@@ -105,7 +132,7 @@ function UI_questMain:updateUIShow()
 		else
 			self:setShowState(false, i)
 		end
-		local timeNum_ = player.getResetTime(i - 1) - player.getServerTime()
+		local timeNum_ = player.questManager.getResetTime(i - 1) - player.getServerTime()
 		if timeNum_ < 0 then
 			timeNum_ = 0
 		end
@@ -127,8 +154,6 @@ function UI_questMain:initUI()
 
 		-- 内容
 		local container = listView:getChildByName(rootName_[i]):getChildByName("Panel_15176")
-		-- 标题
-		container:getChildByName("ImageView_15157"):getChildByName("Label_15158"):setString(hp.lang.getStrByID(title_[i]))
 
 		-- 头像图片
 		-- container:getChildByName("ImageView_15155"):getChildByName("ImageView_15156"):loadTexture()
@@ -145,7 +170,7 @@ function UI_questMain:initUI()
 			-- 进度条
 			self.progressCon[i] = container:getChildByName("ImageView_111")
 			self.progress[i] = container:getChildByName("ImageView_111"):getChildByName("LoadingBar_1640")
-			self.proText[i] = self.progress[i]:getChildByName("ImageView_1641"):getChildByName("Label_1642")	
+			self.proText[i] = self.progress[i]:getChildByName("Label_1642")	
 		end
 
 		-- 有任务完成提示
@@ -157,21 +182,21 @@ function UI_questMain:initUI()
 end
 
 function UI_questMain:updateCheckStatus()
-	if table.getn(player.getBranchReward()) ~= 0 or player.getMainReward() ~= nil then
+	if table.getn(player.questManager.getBranchReward()) ~= 0 or player.questManager.getMainReward() ~= nil then
 		self.check[1]:setVisible(true)
 	else
 		self.check[1]:setVisible(false)
 	end
 
 	for i = 2, 4 do
-		self.check[i]:setVisible(player.rewardNotCollected(i - 1))
+		self.check[i]:setVisible(player.questManager.rewardNotCollected(i - 1))
 	end
 end
 
 function UI_questMain:updateRecievable()
 	for i = 2, 4 do
 		local num_ = 0
-		for j, v in ipairs(player.getDailyTasks(i - 1)) do
+		for j, v in ipairs(player.questManager.getDailyTasks(i - 1)) do
 			if v.flag == 3 then
 				num_ = num_ + 1
 			end
@@ -181,11 +206,12 @@ function UI_questMain:updateRecievable()
 end
 
 function UI_questMain:onMsg(msg_, parm_)
-	if msg_ == hp.MSG.MISSION_MAIN_STATUS_CHANGE then
+	if msg_ == hp.MSG.MISSION_COMPLETE or msg_ == hp.MSG.MISSION_COLLECT then
+		-- 帝国任务完成或者领取之后触发
 		self:updateCheckStatus()
-	elseif msg_ == hp.MSG.MISSION_DAILY_STATUS_CHANGE then
+	elseif msg_ == hp.MSG.MISSION_DAILY_COLLECTED or msg_ == hp.MSG.MISSION_DAILY_COMPLETE then
 		self:updateCheckStatus()		
-	elseif (msg_ == hp.MSG.MISSION_DAILY_RECIEVE_CHANGE) or (msg_ == hp.MSG.MISSION_DAILY_REFRESH) then
+	elseif (msg_ == hp.MSG.MISSION_DAILY_START) or (msg_ == hp.MSG.MISSION_DAILY_REFRESH) or (msg_ == hp.MSG.MISSION_DAILY_QUICKFINISH) then
 		self:updateRecievable()
 	elseif msg_==hp.MSG.GUIDE_STEP then
 		self.bindGuideUI(parm_)
@@ -193,13 +219,6 @@ function UI_questMain:onMsg(msg_, parm_)
 end
 
 function UI_questMain:heartbeat(dt_)
-	interval = interval + dt_
-	if interval < 1 then
-		return
-	end
-
-	interval = 0
-
 	-- 刷新时间
 	self:updateUIShow()
 end
@@ -207,7 +226,7 @@ end
 function UI_questMain:updateCDTime(index_)
 	local cdInfo_ = cdBox.getCDInfo(speedupcode[index_ - 1])
 	self.proText[index_]:setString(hp.datetime.strTime(cdInfo_.cd))
-	local percent_ = hp.common.round(100 - cdInfo_.cd / cdInfo_.total_cd * 100)
+	local percent_ = 100 - cdInfo_.cd / cdInfo_.total_cd * 100
 	self.progress[index_]:setPercent(percent_)
 end
 

@@ -1,6 +1,6 @@
 --
 -- ui/watchtower/watchtowerInfo.lua
--- 哨塔更多信息
+-- 鍝ㄥ鏇村淇℃伅
 --===================================
 require "ui/frame/popFrame"
 
@@ -21,13 +21,13 @@ function UI_watchtowerInfo:init(building_)
 	
 	
 	local ListView_info = wigetRoot:getChildByName("ListView_info")
-	
-	local contNode = ListView_info:getChildByName("Panel_cont")
-	local moreInfo = contNode:getChildByName("Label_moreInfo")
+	local xx1 = ListView_info:getChildByName("Panel_desc")
+	local xx2 = xx1:getChildByName("Panel_cont")
+	local moreInfo = xx2:getChildByName("Label_moreInfo")
 	moreInfo:setString(bInfo.moreDesc)
 	
 	
-	--第一部分
+	--绗竴閮ㄥ垎
 	
 	local head = ListView_info:getChildByName("Panel_tittle")
 	local item1 = ListView_info:getChildByName("Panel_item1")
@@ -59,7 +59,7 @@ function UI_watchtowerInfo:init(building_)
 		
 		local item = nil
 		
-		if building_.build.lv == i then
+		if (building_.build.lv+1)/2 == i then
 			item = selected
 		elseif i % 2 == 0 then
 			item = item1:clone()

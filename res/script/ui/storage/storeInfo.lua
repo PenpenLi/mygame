@@ -1,6 +1,6 @@
 --
 -- ui/storage/storeInfo
--- 仓库更多信息
+-- 浠撳簱鏇村淇℃伅
 --===================================
 require "ui/frame/popFrame"
 
@@ -22,12 +22,11 @@ function UI_storeInfo:init(building_)
 	
 	local ListView_info = wigetRoot:getChildByName("ListView_info")
 	
-	local contNode = ListView_info:getChildByName("Panel_cont")
-	local moreInfo = contNode:getChildByName("Label_moreInfo")
+	local moreInfo = ListView_info:getChildByName("Panel_desc"):getChildByName("Panel_cont"):getChildByName("Label_moreInfo")
 	moreInfo:setString(bInfo.moreDesc)
 	
 	
-	--第一部分
+	--绗竴閮ㄥ垎
 	
 	local head = ListView_info:getChildByName("Panel_tittle")
 	local item1 = ListView_info:getChildByName("Panel_item1")

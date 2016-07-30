@@ -15,6 +15,7 @@ local listView = nil
 local interval = 0
 local labelNum = {}
 local totalSoldierNum = nil
+local topContainer2 = nil
 
 --init
 function UI_barracks:init(building_)
@@ -39,11 +40,12 @@ function UI_barracks:init(building_)
 
 	local widgetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "barracks.json")
 	topContainer = widgetRoot:getChildByName("Panel_1345")
-	local speedup = topContainer:getChildByName("ImageView_1645"):getChildByName("ImageView_1639")
+	topContainer2 = widgetRoot:getChildByName("Panel_30")
+	local speedup = topContainer:getChildByName("ImageView_1639")
 	self.speedup = speedup
-	trainProgress = topContainer:getChildByName("ImageView_1644"):getChildByName("LoadingBar_1640")
-	trainText = trainProgress:getChildByName("ImageView_1641"):getChildByName("Label_1642")
-	cdTime = trainProgress:getChildByName("ImageView_1641"):getChildByName("Label_1643")
+	trainProgress = topContainer2:getChildByName("ImageView_1644"):getChildByName("LoadingBar_1640")
+	trainText = topContainer:getChildByName("Label_1642")
+	cdTime = topContainer:getChildByName("Label_1643")
 	listView = widgetRoot:getChildByName("ListView_list")
 	local container = listView:getChildByName("Panel_horContainer")
 	totalSoldierNum = listView:getChildByName("Panel_adampt1"):getChildByName("Panel_adampt2"):getChildByName("ImageView_troops"):getChildByName("Label_troops")
@@ -60,6 +62,8 @@ function UI_barracks:init(building_)
 			require "ui/barrack/soldierTrain"
 			local ui_ = UI_soldierTrain.new(sender:getTag())
 			self:addModalUI(ui_)
+
+			player.guide.stepEx({5005})
 		end
 	end
 
@@ -79,6 +83,8 @@ function UI_barracks:init(building_)
 			require("ui/item/speedItem")
 			local ui  = UI_speedItem.new(cdBox.CDTYPE.BRANCH)
 			self:addUI(ui)
+			
+			player.guide.stepEx({6003})
 		end
 	end
 
@@ -91,11 +97,13 @@ function UI_barracks:init(building_)
 	-- clone container and load image,data
 
 	local index = 1
-	local soldierType = player.getSoldierType()
+	local soldierType = globalData.TOTAL_LEVEL
 	listView:removeLastItem()
 
-	for i = 1, player.getSoldierType() do
-		local soldierInfo_ = player.getArmyInfoByType(i)
+	local gongjian_item = nil
+
+	for i = 1, globalData.TOTAL_LEVEL do
+		local soldierInfo_ = player.soldierManager.getArmyInfoByType(i)
 
 		local soldier = adampt:getChildByName(string.format("%d", index))
 
@@ -105,6 +113,9 @@ function UI_barracks:init(building_)
 
 		-- set clickEvent
 		soldierImage:addTouchEventListener(memuItemOnTouched)
+		if i==2 then
+			gongjian_item = soldierImage
+		end
 
 		-- set tag
 		soldierImage:setTag(soldierInfo_.type)
@@ -130,6 +141,10 @@ function UI_barracks:init(building_)
 		adampt:getChildByName(string.format("%d", i)):setVisible(false)
 	end
 
+	if index == 1 then
+		listView:removeLastItem()
+	end
+
 	listView:pushBackCustomItem(moreInfoContainer)
 
 	-- 界面初始化显示内容
@@ -148,13 +163,26 @@ function UI_barracks:init(building_)
 
 	self:updateSoldierNum()
 	self:updateTrainShow()
+
+
+	-- 进行新手引导绑定
+	-- =========================================
+	self:registMsg(hp.MSG.GUIDE_STEP)
+	local function bindGuideUI( step )
+		if step==5005 then
+			player.guide.bind2Node(step, gongjian_item, memuItemOnTouched)
+		elseif step==6003 then
+			player.guide.bind2Node(step, speedup, onSpeedQueue)
+		end
+	end
+	self.bindGuideUI = bindGuideUI
 end
 
 function UI_barracks:updateSoldierNum()
 	local num_ = 0
-	if player.getCityArmy() ~= nil then
-		for i = 1, player.getSoldierType() do			
-			local temp = player.getCityArmy():getSoldierNumberByType(i)
+	if player.soldierManager.getCityArmy() ~= nil then
+		for i = 1, globalData.TOTAL_LEVEL do			
+			local temp = player.soldierManager.getCityArmy():getSoldierNumberByType(i)
 			num_ = num_ + temp
 			labelNum[i]:setString(tostring(temp))
 		end	
@@ -171,6 +199,7 @@ function UI_barracks:setShowState(show_)
 	if show_ == true then
 		self.speedup:setTouchEnabled(true)
 		topContainer:setVisible(show_)
+		topContainer2:setVisible(show_)
 		local size_ = listView:getSize()
 		size_.height = size_.height - topContainer:getSize().height
 		listView:setSize(size_)
@@ -180,6 +209,7 @@ function UI_barracks:setShowState(show_)
 		size_.height = size_.height + topContainer:getSize().height
 		listView:setSize(size_)
 		topContainer:setVisible(show_)
+		topContainer2:setVisible(show_)
 	end
 end
 
@@ -187,7 +217,7 @@ function UI_barracks:updateTrainShow()
 	local cdInfo = cdBox.getCDInfo(cdBox.CDTYPE.BRANCH)
 	if cdInfo.cd > 0 then
 		self:setShowState(true)
-		local soldierInfo = player.getArmyInfoByType(cdInfo.type)
+		local soldierInfo = player.soldierManager.getArmyInfoByType(cdInfo.type)
 		local trainNum_ = soldierInfo.name.."x"..cdInfo.number
 		trainText:setString(trainNum_)
 		self:updateCDTime()
@@ -209,7 +239,7 @@ function UI_barracks:updateCDTime()
 		local total = cdInfo.total_cd
 		local cd = cdInfo.cd
 		if total ~= 0 then
-			local percent = 100 - math.floor(cd / total * 100)
+			local percent = 100 - cd / total * 100
 			trainProgress:setPercent(percent)
 		end
 	end
@@ -218,7 +248,7 @@ end
 function UI_barracks:heartbeat(dt)
 	interval = interval + dt
 	if interval < 1 then
-		return
+		-- return
 	end
 
 	interval = 0
@@ -232,7 +262,9 @@ function UI_barracks:heartbeat(dt)
 end
 
 function UI_barracks:onMsg(msg_, parm_)
-	if msg_ == hp.MSG.BARRACK_TRAIN then
+	if msg_==hp.MSG.GUIDE_STEP then
+		self.bindGuideUI(parm_)
+	elseif msg_ == hp.MSG.BARRACK_TRAIN then
 		self:updateTrainShow()
 	elseif msg_ == hp.MSG.BARRACK_TRAIN_FIN then
 		self:updateSoldierNum()

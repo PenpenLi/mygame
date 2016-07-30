@@ -1,8 +1,10 @@
+
 --
 -- ui/mail/mail.lua
 -- 邮件主界面
 --===================================
 require "ui/fullScreenFrame"
+require "ui/common/promotionInfo"
 
 
 UI_mail = class("UI_mail", UI)
@@ -18,6 +20,21 @@ function UI_mail:init()
 	local selectedMail = {} -- 选中的邮件
 	local selectAllFlag = false
 
+	local readColor = cc.c3b(146, 146, 146)
+	local unreadColor = cc.c3b(255, 181, 85)
+	local colorSelected = cc.c3b(122, 108, 96)
+	local colorNormal = cc.c3b(245, 241, 223)
+
+	for i=1,4 do
+		if player.mailCenter.getUnreadMailNum(i) > 0 then
+			self.curMailType = i
+			break
+		end
+	end
+	
+
+	
+	
 	--  
 	local function resetSelected(index)
 		for i, v in ipairs(selectedMail) do
@@ -34,7 +51,10 @@ function UI_mail:init()
 	-- ui
 	-- ===============================
 	local uiFrame = UI_fullScreenFrame.new(true)
+	uiFrame:setTopShadePosY(710)
 	uiFrame:setTitle(hp.lang.getStrByID(9001))
+
+	local promotionUI = UI_promotionInfo.new()
 
 	local widgetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "mail.json")
 	-- title
@@ -60,11 +80,11 @@ function UI_mail:init()
 	local operPanel = widgetRoot:getChildByName("Panel_oper")
 	local btnSelectAll = operPanel:getChildByName("ImageView_checkBox")
 	local btnDelete = operPanel:getChildByName("ImageView_delete")
-	local btnCancel = operPanel:getChildByName("ImageView_cancel")
+	local btnHasRead = operPanel:getChildByName("ImageView_cancel")
 	local btnClose = operPanel:getChildByName("ImageView_close")
 	operPanel:getChildByName("Label_checkAll"):setString(hp.lang.getStrByID(9007))
 	operPanel:getChildByName("Label_delete"):setString(hp.lang.getStrByID(1848))
-	operPanel:getChildByName("Label_cancel"):setString(hp.lang.getStrByID(2412))
+	operPanel:getChildByName("Label_cancel"):setString(hp.lang.getStrByID(9012))
 	local function operSetVisible( visible )
 		if visible then
 			operFrame:setVisible(true)
@@ -78,6 +98,13 @@ function UI_mail:init()
 			operPanel:setPosition(-10000, -10000)
 		end
 	end
+
+	local setUnreadInfo
+	local function selectedHasRead()
+		player.mailCenter.readMails(self.curMailType, selectedMail)
+		setUnreadInfo(self.curMailType)
+	end
+
 	function operOnTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
@@ -90,8 +117,9 @@ function UI_mail:init()
 					btnSelectAll:getChildByName("ImageView_checked"):setVisible(true)
 				end
 			elseif sender==btnDelete then
-				hp.mailCenter.deleteMail(self.curMailType, selectedMail)
-			elseif sender==btnCancel then
+				player.mailCenter.deleteMail(self.curMailType, selectedMail)
+			elseif sender==btnHasRead then
+				selectedHasRead()
 				self.unselectAll()
 				operSetVisible(false)
 			elseif sender==btnClose then
@@ -102,7 +130,7 @@ function UI_mail:init()
 	end
 	btnSelectAll:addTouchEventListener(operOnTouched)
 	btnDelete:addTouchEventListener(operOnTouched)
-	btnCancel:addTouchEventListener(operOnTouched)
+	btnHasRead:addTouchEventListener(operOnTouched)
 	btnClose:addTouchEventListener(operOnTouched)
 
 
@@ -118,11 +146,12 @@ function UI_mail:init()
 	local function loadMoreOnTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			hp.mailCenter.loadMail(self.curMailType)
+			player.mailCenter.loadMail(self.curMailType)
 		end
 	end
 	moreBtn:addTouchEventListener(loadMoreOnTouched)
-
+	
+	
 	-- 邮件点击，弹出邮件内容
 	local function mailItemOnTouched(sender, eventType)
 		if #mailQueue<=0 then
@@ -180,44 +209,64 @@ function UI_mail:init()
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			if self.curMailType==3 then
-				hp.mailCenter.unsaveMail(sender:getTag())
+				player.mailCenter.unsaveMail(sender:getTag())
 			else
-				hp.mailCenter.saveMail(self.curMailType, sender:getTag())
+				player.mailCenter.saveMail(self.curMailType, sender:getTag())
 			end
 		end
 	end
 
-	local readColor = cc.c3b(160, 160, 160)
-	local unreadColor = cc.c3b(33, 0, 0)
 	-- 设置邮件显示内容
 	local function setMailItemInfo( itemNode, index, mailInfo, first )
 		itemNode:setVisible(true)
 		local itemCont = itemNode:getChildByName("Panel_cont")
-		local titleNode = itemCont:getChildByName("Label_title")
+		local titleNode = itemCont:getChildByName("Image_titleBg"):getChildByName("Label_title")
 		local descNode = itemCont:getChildByName("Label_desc")
 		local timeNode = itemCont:getChildByName("Label_time")
+
 		itemCont:setTag(index)
 		itemCont:addTouchEventListener(mailItemOnTouched)
+
 		if mailInfo.state==0 then
+			-- 未读
 			titleNode:setColor(unreadColor)
-			descNode:setColor(unreadColor)
-			--timeNode:setColor(unreadColor)
+			descNode:setColor(colorNormal)
 		else
+			-- 已读
 			titleNode:setColor(readColor)
 			descNode:setColor(readColor)
-			--timeNode:setColor(readColor)
 		end
 
 		local index_ = string.find(mailInfo.title,"|")
 		local mailTitle = mailInfo.title
 
 		if index_ ~= nil then
-			mailTitle = string.gsub(mailTitle,"|","\n")
+			mailTitle = string.gsub(mailTitle,"|"," ")
 		end
 
-		titleNode:setString(mailTitle)
-		descNode:setString(hp.common.utf8_strSub(mailInfo.content, 40))
-		timeNode:setString(os.date("%c", mailInfo.datetime))
+		-- 邮件基本信息
+		if mailInfo.type == 4 then
+			-- 战报邮件
+			titleNode:setString(hp.lang.getStrByID(9013))
+			descNode:setString(hp.common.utf8_strSub(mailTitle, 40))
+		elseif mailInfo.type == 2 then
+			local title = ""
+			if mailInfo.annex[2] ~= "" and #mailInfo.annex[2] > 0 then
+				title = string.format(hp.lang.getStrByID(8010), mailInfo.annex[2])
+			end
+			titleNode:setString(title .. mailInfo.sendName)
+			descNode:setString(hp.common.utf8_strSub(mailTitle, 40))
+		elseif mailInfo.type == 19 or mailInfo.type == 20 then
+			local str1 = ""
+			local str2 = ""
+			str1, str2 = hp.common.splitString(mailTitle, " ")
+			titleNode:setString(hp.common.utf8_strSub(str1, 30))
+			descNode:setString(hp.common.utf8_strSub(str2, 40))
+		else
+			titleNode:setString(hp.common.utf8_strSub(mailTitle, 30))
+			descNode:setString(hp.common.utf8_strSub(mailInfo.content, 40))
+		end
+		timeNode:setString(os.date("%Y/%m/%d", mailInfo.datetime))
 		local checkImg = itemCont:getChildByName("ImageView_checkBox")
 		local saveImg = itemCont:getChildByName("ImageView_save")
 		checkImg:setTag(index)
@@ -236,7 +285,7 @@ function UI_mail:init()
 	-- 根据类型加载邮件
 	local function loadMailList()
 		operSetVisible(false)
-		mailQueue = hp.mailCenter.getMailQueue(self.curMailType)
+		mailQueue = player.mailCenter.getMailQueue(self.curMailType)
 		selectedMail = {}
 
 		local oldItems = mailList:getItems()
@@ -263,9 +312,9 @@ function UI_mail:init()
 				mailList:removeItem(i-1)
 			end
 		end
-
-		if hp.mailCenter.isLoadFinished(self.curMailType) and hp.mailCenter.haveNewer(self.curMailType)==false then
-		-- 如果没有更新的，并且邮件已经加载完成
+		
+		if not player.mailCenter.haveLoaded(self.curMailType) or (player.mailCenter.isLoadFinished(self.curMailType) and player.mailCenter.haveNewer(self.curMailType)==false) then
+		-- 如果没有加载过数据 或者 （没有更新的，并且邮件已经加载完成）
 			mailMore:setVisible(false)
 		else
 			mailMore:setVisible(true)
@@ -284,25 +333,28 @@ function UI_mail:init()
 	savedTab:getChildByName("Label_name"):setString(hp.lang.getStrByID(9004))
 	unionTab:getChildByName("Label_name"):setString(hp.lang.getStrByID(9005))
 	local tabSelected = nil
-	local colorSelected = cc.c3b(255, 255, 255)
-	local colorNormal = cc.c3b(217, 206, 190)
+
 	local function setSelectedTab(tab_)
+		-- 取消上一次选择
 		if tabSelected~=nil then
-			tabSelected:setScale(0.9*hp.uiHelper.RA_scale)
-			tabSelected:setColor(colorNormal)
+			tabSelected:getChildByName("ImageView_icon"):setColor(colorSelected)
+			tabSelected:getChildByName("Label_name"):setColor(colorSelected)
+			tabSelected:getChildByName("Image_checked"):setVisible(false)
+
 		end
-
-
+		-- 当前选择
 		tabSelected = tab_
-		tabSelected:setScale(hp.uiHelper.RA_scale)
-		tabSelected:setColor(colorSelected)
+		tabSelected:getChildByName("ImageView_icon"):setColor(colorNormal)
+		tabSelected:getChildByName("Label_name"):setColor(colorNormal)
+		tabSelected:getChildByName("Image_checked"):setVisible(true)
+
 		self.curMailType = tabSelected:getTag()
 
 		-- 加载邮件
 		loadMailList()
 		if #mailQueue==0 then
 		-- 如果队列为空，或者有更新的邮件
-			hp.mailCenter.loadMail(self.curMailType)
+			player.mailCenter.loadMail(self.curMailType)
 		end
 	end
 	local function tabOnTouched(sender, eventType)
@@ -331,9 +383,9 @@ function UI_mail:init()
 	savedTab:addTouchEventListener(tabOnTouched)
 	unionTab:addTouchEventListener(tabOnTouched)
 	-- 设置未读个数
-	local function setUnreadInfo(mailType_)
+	function setUnreadInfo(mailType_)
 		local numNode = nil
-		local unreadNum = hp.mailCenter.getUnreadMailNum(mailType_)
+		local unreadNum = player.mailCenter.getUnreadMailNum(mailType_)
 		if mailType_==1 then
 			numNode = mailTab:getChildByName("ImageView_num")
 		elseif mailType_==2 then
@@ -393,10 +445,15 @@ function UI_mail:init()
 	-- addCCNode
 	-- ===============================
 	self:addChildUI(uiFrame)
+	self:addChildUI(promotionUI)
 	self:addCCNode(widgetRoot)
 
-
-	setSelectedTab(mailTab)
+	
+	local tabs_ = {mailTab,noticeTab,savedTab,unionTab}
+	
+	mailTab:setColor(colorNormal)
+	
+	setSelectedTab(tabs_[self.curMailType])
 
 	-- registMsg
 	self:registMsg(hp.MSG.MAIL_CHANGED)
@@ -410,7 +467,7 @@ function UI_mail:onMsg(msg_, parm_)
 
 		if msgType==4 then
 			if parm_.mailType==self.curMailType then
-				local mailQueue = hp.mailCenter.getMailQueue(self.curMailType)
+				local mailQueue = player.mailCenter.getMailQueue(self.curMailType)
 				self.setMailItemInfo(self.mailList:getItem(parm_.index-1), parm_.index, mailQueue[parm_.index], false)
 			end
 		elseif msgType==5 then

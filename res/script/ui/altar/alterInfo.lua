@@ -75,6 +75,9 @@ function UI_altarInfo:initUI()
 		cloneInfo:getChildByName("Panel_text"):getChildByName("Label_def"):setString(altarInfos[i].defanceRate.."%")
 		cloneInfo:getChildByName("Panel_text"):getChildByName("Label_life"):setString(altarInfos[i].lifeRate.."%")
 		cloneInfo:getChildByName("Panel_text"):getChildByName("Label_speed"):setString(altarInfos[i].speedRate.."%")
+		if i%2~=0 then
+			cloneInfo:getChildByName("Panel_bg"):getChildByName("ImageView_line"):setVisible(false)
+		end
 		ListView_items:pushBackCustomItem(cloneInfo)
 		-- 当前选中效果
 		if self.building.build.lv == level then
@@ -83,6 +86,7 @@ function UI_altarInfo:initUI()
 			bgImage:setPosition(cc.p(320, 15))			
 			cloneInfo:getChildByName("Panel_bg"):addChild(bgImage)
 		end
+
 	end
 	adjustHeight(Panel_info, {Panel_bg, PanelTitle}, ListView_items, totalLevel)
 

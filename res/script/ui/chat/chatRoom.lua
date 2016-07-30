@@ -25,8 +25,9 @@ function UI_chatRoom:init()
 	self.tickCount = 0
 	-- fun
 	local loadFriendList
+	friendMgr.friendSync()
 
-	if hp.chatRoom.getChannelType()==1 then
+	if player.chatRoom.getChannelType()==1 then
 		UI_chatRoom.g_uiType = 1
 		UI_chatRoom.g_param1 = 1
 		UI_chatRoom.g_param2 = nil
@@ -35,6 +36,8 @@ function UI_chatRoom:init()
 	-- ui
 	-- ===============================
 	local widgetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "chatRoom.json")
+	self.widgetRoot = widgetRoot
+	self.isFrame = true
 
 	-- addCCNode
 	-- ===============================
@@ -87,15 +90,13 @@ function UI_chatRoom:init()
 	end
 	-- 好友面板
 	local leftCont = widgetRoot:getChildByName("Panel_leftCont")
+	local leftXX = widgetRoot:getChildByName("Panel_folderXX")
 	local leftSz = leftCont:getSize()
-	local onLineLable = leftCont:getChildByName("Image_numbg"):getChildByName("Label_num")
-	onLineLable:setString(0)
-	local reqNumBg = leftCont:getChildByName("Image_numbg_req")
-	local reqLable = reqNumBg:getChildByName("Label_num")
-	reqNumBg:setVisible(false)
+	local totalLable = leftCont:getChildByName("Label_tNum")
+	local onLineLable = leftCont:getChildByName("Label_onlineNum")
+
 	leftCont:getChildByName("Label_title"):setString(hp.lang.getStrByID(3607))
 	leftCont:getChildByName("Label_friends"):setString(hp.lang.getStrByID(3607))
-	leftCont:getChildByName("Label_online"):setString(hp.lang.getStrByID(3608))
 	leftCont:getChildByName("Label_add"):setString(hp.lang.getStrByID(3609))
 	leftCont:getChildByName("Label_requests"):setString(hp.lang.getStrByID(3610))
 
@@ -104,26 +105,25 @@ function UI_chatRoom:init()
 		self.folderState = state
 		if self.folderState then
 			widgetRoot:setPosition(leftSz.width, 0)
-			curChildUI.layer:setPosition(leftSz.width, 0)
+			local sz = leftXX:getSize()
+			sz.width = game.visibleSize.width
+			leftXX:setSize(sz)
 			loadFriendList()
 		else
 			widgetRoot:setPosition(0, 0)
-			curChildUI.layer:setPosition(0, 0)
+			local sz = leftXX:getSize()
+			sz.width = leftSz.width
+			leftXX:setSize(sz)
 		end
 	end
 
 	-- 设置子界面
 	local titleIcon = panelCont:getChildByName("Image_icon")
 	local titleTxt = panelCont:getChildByName("Label_text")
-	local settingBtn = panelCont:getChildByName("Image_settingBtn")
 	local function setChildUI(uiType, param1, param2)
 		if (uiType==2 or uiType==3) and uiType==curUIType then
 			setFolderState(false)
 			return
-		end
-
-		if curChildUI~=nil then
-			self:removeChildUI(curChildUI)
 		end
 
 		if uiType==1 then
@@ -134,37 +134,54 @@ function UI_chatRoom:init()
 			
 			if param1==1 then
 			--区域聊天
-				hp.chatRoom.setChannelType(1)
+				player.chatRoom.setChannelType(1)
 				setCurTab(1)
 				titleIcon:loadTexture(config.dirUI.common .. "chat_province_a_icon.png")
-				titleIcon:setScale(1)
+				titleIcon:setScale(hp.uiHelper.RA_scale)
 				titleTxt:setString("我的区域")
-				settingBtn:setVisible(false)
 				require "ui/chat/chatRoom_chat"
-				curChildUI = UI_chatRoom_chat.new(1)
+				childUI = UI_chatRoom_chat.new(1)
 			elseif param1==2 then
 			--公会聊天
-				hp.chatRoom.setChannelType(2)
+				local alliance = player.getAlliance()
+				if alliance:getUnionID() == 0 then
+					local function onConfirm()
+						require "ui/union/invite/unionJoin"
+						ui_ = UI_unionJoin.new()
+						self:addUI(ui_)
+						self:close()
+					end
+					require("ui/msgBox/msgBox")
+					local msgBox = UI_msgBox.new(hp.lang.getStrByID(5236), 
+						hp.lang.getStrByID(5237), 
+						hp.lang.getStrByID(1209), 
+						hp.lang.getStrByID(2412),  
+						onConfirm,nil,"red"
+						)
+					game.curScene:addModalUI(msgBox)
+					return
+				end
+
+				local allianceInfo = alliance:getBaseInfo()
+				player.chatRoom.setChannelType(2)
 				setCurTab(2)
-				titleIcon:loadTexture(config.dirUI.icon .. "9.png")
-				titleIcon:setScale(1)
-				titleTxt:setString("我的公会")
-				settingBtn:setVisible(true)
+				titleIcon:loadTexture(config.dirUI.icon .. allianceInfo.icon .. ".png")
+				titleIcon:setScale(0.6 * hp.uiHelper.RA_scale)
+				titleTxt:setString(allianceInfo.name)
 				require "ui/chat/chatRoom_chat"
-				curChildUI = UI_chatRoom_chat.new(2)
+				childUI = UI_chatRoom_chat.new(2)
 			else
 			--私聊
 				setCurTab(0)
 				titleIcon:loadTexture(config.dirUI.heroHeadpic .. param2.icon .. ".png")
-				titleIcon:setScale(0.5)
+				titleIcon:setScale(0.5 * hp.uiHelper.RA_scale)
 				if string.len(param2.union)>0 then
-					titleTxt:setString("[" .. param2.union .. "]" .. param2.name)
+					titleTxt:setString(hp.lang.getStrByID(21) .. param2.union .. hp.lang.getStrByID(22) .. param2.name)
 				else
 					titleTxt:setString(param2.name)
 				end
-				settingBtn:setVisible(false)
 				require "ui/chat/chatRoom_chat"
-				curChildUI = UI_chatRoom_chat.new(3, param2)
+				childUI = UI_chatRoom_chat.new(3, param2)
 			end
 		elseif uiType==2 then
 		-- 搜索
@@ -172,22 +189,25 @@ function UI_chatRoom:init()
 			titleIcon:loadTexture(config.dirUI.common .. "chaticon_addFriend.png")
 			titleIcon:setScale(1)
 			titleTxt:setString(hp.lang.getStrByID(3609))
-			settingBtn:setVisible(false)
 			require "ui/chat/chatRoom_search"
-			curChildUI = UI_chatRoom_search.new()
+			childUI = UI_chatRoom_search.new()
 		elseif uiType==3 then
 		-- 好友邀请
 			setCurTab(0)
 			titleIcon:loadTexture(config.dirUI.common .. "chaticon_wait.png")
 			titleIcon:setScale(1)
 			titleTxt:setString(hp.lang.getStrByID(3610))
-			settingBtn:setVisible(false)
 			require "ui/chat/chatRoom_invites"
-			curChildUI = UI_chatRoom_invites.new()
+			childUI = UI_chatRoom_invites.new()
 		end
 
-		setFolderState(false)
+		if curChildUI~=nil then
+			self:removeChildUI(curChildUI)
+		end
+		curChildUI = childUI
 		self:addChildUI(curChildUI)
+
+		setFolderState(false)
 		curUIType = uiType
 	end
 	setChildUI(UI_chatRoom.g_uiType, UI_chatRoom.g_param1, UI_chatRoom.g_param2)
@@ -249,10 +269,17 @@ function UI_chatRoom:init()
 			friendMgr.sendDelete(fInfo.id)
 		end
 	end
+
+	local itemTouchPos = nil
 	local function onFriendItemTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_BEGAN then
 			isMoved = false
+			itemTouchPos = sender:getTouchStartPos()
 		elseif eventType==TOUCH_EVENT_MOVED then
+			local pos = sender:getTouchMovePos()
+			if math.abs(pos.x-itemTouchPos.x)<20 and math.abs(pos.y-itemTouchPos.y)<20 then
+				return
+			end
 			if isMoved then
 				return
 			else
@@ -283,7 +310,6 @@ function UI_chatRoom:init()
 				local fInfo = friendMgr.getFriendInfo(sender:getTag(), 1)
 				setChildUI(1, 3, fInfo)
 			end
-		else
 		end
 	end
 
@@ -299,7 +325,7 @@ function UI_chatRoom:init()
 			nodeCont:getChildByName("Image_online"):loadTexture(config.dirUI.common .. "offline_icon.png")
 		end
 		if string.len(friendInfo.union)>0 then
-			nodeCont:getChildByName("Label_name"):setString("[" .. friendInfo.union .. "]" .. friendInfo.name)
+			nodeCont:getChildByName("Label_name"):setString(hp.lang.getStrByID(21) .. friendInfo.union .. hp.lang.getStrByID(22) .. friendInfo.name)
 		else
 			nodeCont:getChildByName("Label_name"):setString(friendInfo.name)
 		end
@@ -323,6 +349,7 @@ function UI_chatRoom:init()
 			setFriendInfo(itemNode, friendInfo)
 		end
 		totalNum = totalNum+1
+		totalLable:setString("/" .. totalNum)
 	end
 	local function deleteFriendItem(friendInfo)
 		if not friendLoaded then
@@ -340,7 +367,7 @@ function UI_chatRoom:init()
 				onLineLable:setString(onLineNum)
 			end
 			totalNum = totalNum-1
-
+			totalLable:setString("/" .. totalNum)
 		end
 	end
 	self.addFriendItem = addFriendItem
@@ -363,13 +390,23 @@ function UI_chatRoom:init()
 	end
 
 	-- 设置未处理邀请个数
+	local reqNumBg = leftCont:getChildByName("Image_numbg_req")
+	local reqLable = reqNumBg:getChildByName("Label_num")
+	local reqNumBg1 = btnFold:getChildByName("Image_numBg")
+	local reqLable1 = btnFold:getChildByName("Label_num")
+	reqNumBg:setVisible(false)
 	local function getRecvInviteNum()
 		local num = table.getn(friendMgr.getFriends(2))
 		if num>0 then
 			reqNumBg:setVisible(true)
+			reqNumBg1:setVisible(true)
+			reqLable1:setVisible(true)
 			reqLable:setString(num)
+			reqLable1:setString(num)
 		else
 			reqNumBg:setVisible(false)
+			reqLable1:setVisible(false)
+			reqNumBg1:setVisible(false)
 		end
 		
 	end
@@ -379,9 +416,8 @@ function UI_chatRoom:init()
 
 	-- 搜索好友、好友邀请
 	------------------------------------
-	local leftFrame = widgetRoot:getChildByName("Panel_leftFrame")
-	local addFriendBg = leftFrame:getChildByName("Image_titleBg2")
-	local invitesBg = leftFrame:getChildByName("Image_titleBg3")
+	local addFriendBg = widgetRoot:getChildByName("Panel_frame2")
+	local invitesBg = widgetRoot:getChildByName("Panel_frame3")
 	local function onBgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			if sender==addFriendBg then

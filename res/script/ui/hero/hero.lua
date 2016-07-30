@@ -21,11 +21,17 @@ function UI_hero:init(hero_)
 	local heroInfo = hero_.getBaseInfo()
 	local constInfo = hero_.getConstInfo()
 	local skillList = hero_.getSkillList()
+
+	-- function
+	-- ===============================
+	local downEquip
 	
 	-- ui
 	-- ===============================
 	local uiFrame = UI_fullScreenFrame.new(true)
 	uiFrame:setTitle("")
+	uiFrame:hideTopShade()
+	--uiFrame:hideBottomShade()
 
 	local widgetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "hero.json")
 	local adampt = widgetRoot:getChildByName("Panel_adampt")
@@ -40,15 +46,39 @@ function UI_hero:init(hero_)
 	attrDemo:retain()
 	local skillInfoFramePanel = widgetRoot:getChildByName("Panel_skillInfo_frame")
 	skillInfoFramePanel:setVisible(false)
+	--第三个饰品解锁按钮(铁匠铺21级解锁)
+	local lockImage=adampt:getChildByName("ImageView_lock")
+	-- 点击锁按钮
+	local function onLockBtnTouched(sender, eventType)
+		hp.uiHelper.btnImgTouched(sender, eventType)
+		if eventType==TOUCH_EVENT_ENDED then
+			-- 提示21级铁匠铺解锁
+			require("ui/msgBox/msgBox")
+			local msgBox = UI_msgBox.new(hp.lang.getStrByID(1191), 
+					hp.lang.getStrByID(2915),
+					hp.lang.getStrByID(5200))
+			self:addModalUI(msgBox)
+		end
+	end
+	
+	if player.buildingMgr.getBuildingMaxLvBySid(1011)>=21 then
+		lockImage:setVisible(false)
+	else
+		lockImage:addTouchEventListener(onLockBtnTouched)
+	end
 
 	local skillDemo = widgetRoot:getChildByName("Panel_skill_demo")
 	
 	--header
-	local headerFrame = widgetRoot:getChildByName("ImageView_Frame")
+	local headerFrame = widgetRoot:getChildByName("Panel_head")
 
+	-- 整体大背景
+	if constInfo.sex == 1 then
+		local bg=widgetRoot:getChildByName("Panel_bg"):getChildByName("ImageView_background")
+		bg:loadTexture(config.dirUI.common .."ui_hero_back1.png")
+	end
 
-
-	local heroIcon = heroPanel:getChildByName("ImageView_hero")
+	local heroIcon = widgetRoot:getChildByName("ListView_hero"):getItem(0):getChildByName("Panel_cont"):getChildByName("ImageView_hero")
 	heroIcon:loadTexture(config.dirUI.hero .. heroInfo.sid..".png")
 
 	headerFrame:getChildByName("Label_name"):setString(heroInfo.name)
@@ -75,22 +105,27 @@ function UI_hero:init(hero_)
 		equipBg:setVisible(false)
 		bagNode = bagDemo:clone()
 		local equipNode = bagNode:getChildByName("Panel_equip")
-		if equipIndex%2==0 then
-				bagNode:setAnchorPoint(1,0)
-		end
+		--if equipIndex%2==0 then
+				bagNode:setAnchorPoint(0.5,0.5)
+		--end
 		bagNode:setPosition(eqbtn:getPosition())
 		adampt:addChild(bagNode, 99)
 		bagNode:setName("bagNode_"..equipIndex)
+		if equipIndex==7 then
+			--缩放（第三个饰品栏）
+			bagNode:setScale(0.63)
+		end
 		--local colorBg = bagNode:getChildByName("Image_bg")
 		local equipImg = bagNode:getChildByName("Image_equip")
-		--bagNode:loadTexture(string.format("%scolorframe_%d.png", config.dirUI.common, equip.lv))
+		bagNode:loadTexture(string.format("%scolorframe_%d.png", config.dirUI.common, equip.lv))
 		equipImg:loadTexture(string.format("%s%d.png", config.dirUI.equip, equip.sid))
 		equipImg:setTag(equip.id)
 		for i,v in ipairs(equip.gems) do
 			if v>0 then
 				local gemImg = equipNode:getChildByName("Image_gem" .. i)
 				gemImg:setVisible(true)
-				gemImg:loadTexture(string.format("%s%d.png", config.dirUI.gem, v))
+				local gemInfo = hp.gameDataLoader.getInfoBySid("gem", v)
+				gemImg:loadTexture(string.format("%s%d.png", config.dirUI.gem, gemInfo.type))
 			else
 				equipNode:getChildByName("Image_gem" .. i):setVisible(false)
 			end
@@ -99,45 +134,54 @@ function UI_hero:init(hero_)
 
 	-- 刷新装备信息
 	local function refreshEquipInfo(equipIndex)
-		local upEquips = player.equipBag.getEquips_equiped()
-		--local eq=player.equipBag.getEquipById(upEquips[equipIndex])
-		local eq=upEquips[equipIndex]
-		if eq==nil then
-			downEquip(equipIndex)
+		if equipIndex ~= nil then
+			local upEquips = player.equipBag.getEquips_equiped()
+			--local eq=player.equipBag.getEquipById(upEquips[equipIndex])
+			local eq=upEquips[equipIndex]
+			if eq==nil then
+				downEquip(equipIndex)
+			else
+				setEquipInfo(equipIndex,eq)
+			end
+		end
+	end
+	-- 前往铁匠铺
+	local function gotoSmith()
+		local building=game.curScene:getBuildingBySid(1011)
+		if building ~= nil then
+			building:onClicked()
 		else
-			setEquipInfo(equipIndex,eq)
+			require "ui/common/noBuildingNotice"
+			local ui_ = UI_noBuildingNotice.new(hp.lang.getStrByID(2913), 1011, 1)
+			self:addModalUI(ui_)
 		end
 	end
 
 	-- 装备按钮
 
 	local function onEqBtnTouched(sender, eventType)
-			hp.uiHelper.btnImgTouched(sender, eventType)
-			if eventType==TOUCH_EVENT_ENDED then
-				-- 检查是否有对应类型的装备
-				local equipIndex = sender:getTag()
-				if equipIndex == 7 then
-					--加锁的饰品小格子暂时不处理
-				else
-					local equipType = equipTypes[equipIndex]
+		hp.uiHelper.btnImgTouched(sender, eventType)
+		if eventType==TOUCH_EVENT_ENDED then
+			-- 检查是否有对应类型的装备
+			local equipIndex = sender:getTag()
+			local equipType = equipTypes[equipIndex]
 
-					local equipBag = player.equipBag
-					local equips = equipBag.getEquipsByType(equipType)
-					local size = #equips
-					if size == 0 then
-						require("ui/msgBox/msgBox")
-						local msgBox = UI_msgBox.new(hp.lang.getStrByID(4106), 
-							string.format(hp.lang.getStrByID(4107), hp.lang.getStrByID(4100+equipType)),
-							hp.lang.getStrByID(1209)
-							)
-						self:addModalUI(msgBox)
-					else
-						require "ui/hero/dressEquip"
-						local ui  = UI_dressEquip.new(self,equipIndex,equipType)
-						self:addUI(ui)
-					end
-				end
+			local equipBag = player.equipBag
+			local equips = equipBag.getEquipsByType(equipType)
+			local size = #equips
+			if size == 0 then
+				require("ui/msgBox/msgBox")
+				local msgBox = UI_msgBox.new(hp.lang.getStrByID(4106), 
+					string.format(hp.lang.getStrByID(4107), hp.lang.getStrByID(4100+equipType)),
+					hp.lang.getStrByID(2912),nil,gotoSmith
+					)
+				self:addModalUI(msgBox)
+			else
+				require "ui/hero/dressEquip"
+				local ui  = UI_dressEquip.new(self,equipIndex,equipType)
+				self:addUI(ui)
 			end
+		end
 	end
 
 	--穿装备
@@ -146,7 +190,7 @@ function UI_hero:init(hero_)
 	end
 
 	--卸下装备
-	local function downEquip(equipIndex)
+	function downEquip(equipIndex)
 		local bagNode = adampt:getChildByName("bagNode_"..equipIndex)
 		if bagNode ~= nil then
 			adampt:removeChild(bagNode)
@@ -170,11 +214,17 @@ function UI_hero:init(hero_)
 		end
 	end
 
-
+	require "ui/common/effect.lua"
+	local light = nil
+	self.light = light
+	
+	
 	-- 功能按钮
 	local btnsNode = widgetRoot:getChildByName("Panel_bottom"):getChildByName("ImageView_middle")
 	local btnHero = btnsNode:getChildByName("ImageView_hero")
 	local btnPoint = btnsNode:getChildByName("ImageView_skillPoint")
+	self.light = inLight(btnPoint:getVirtualRenderer(),1)
+	btnPoint:addChild(self.light)
 	local btnHide = headerFrame:getChildByName("ImageView_hide")
 	local function onBtnTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
@@ -206,10 +256,17 @@ function UI_hero:init(hero_)
 
 	local function setSkillPointNum()
 		local pointUsed = 0
+		skillList = hero_.getSkillList()
 		for k,v in pairs(skillList) do
 			pointUsed = pointUsed+v
 		end
-
+		
+		if pointCount-pointUsed > 0 then
+			self.light:setVisible(true)
+		else
+			self.light:setVisible(false)
+		end
+		
 		btnPoint:getChildByName("Label_skillPoint"):setString(string.format(hp.lang.getStrByID(2503), pointCount-pointUsed))
 	end
 	local function reflushExp()

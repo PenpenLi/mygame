@@ -50,8 +50,8 @@ function UI_barrackInfo:initUI()
 	-- 总兵力 消耗
 	local Panel_5946 = listView:getChildByName("Panel_1344"):getChildByName("Panel_5946")
 	Panel_5946:getChildByName("Label_5947"):setString(hp.lang.getStrByID(1032))
-	Panel_5946:getChildByName("Label_5968"):setString(string.format(hp.lang.getStrByID(1011), player.getTotalArmy():getSoldierTotalNumber()))
-	Panel_5946:getChildByName("Label_5969"):setString(string.format(hp.lang.getStrByID(1033), player.getTotalArmy():getCharge()))
+	Panel_5946:getChildByName("Label_5968"):setString(string.format(hp.lang.getStrByID(1011), player.soldierManager.getTotalArmy():getSoldierTotalNumber()))
+	Panel_5946:getChildByName("Label_5969"):setString(string.format(hp.lang.getStrByID(1033), player.soldierManager.getTotalArmy():getCharge()))
 
 	local function adjustHeight(parent_, panelList_, listView_, num_)
 		local deltaHeight = 31 * num_
@@ -80,11 +80,11 @@ function UI_barrackInfo:initUI()
 	panelTemp:getChildByName("Label_5957"):setString(hp.lang.getStrByID(1040))
 	panelTemp:getChildByName("Label_5958"):setString(hp.lang.getStrByID(1041))
 
-	local army = player.getTotalArmy()
+	local army = player.soldierManager.getTotalArmy()
 	local oneArmyInfo = armyListView:getChildByName("Panel_5883")
 	armyListView:removeLastItem()
 
-	for i = 1, player.getSoldierType() do
+	for i = 1, globalData.TOTAL_LEVEL do
 		local name = army:getSoldierByType(i):getSoldierInfo().name
 		local num = army:getSoldierByType(i):getNumber()
 		local cloneInfo = oneArmyInfo:clone()
@@ -92,7 +92,7 @@ function UI_barrackInfo:initUI()
 		cloneInfo:getChildByName("Panel_5960"):getChildByName("Label_5958"):setString(num)
 		armyListView:pushBackCustomItem(cloneInfo)
 	end
-	adjustHeight(Panel_5194, {armyPanel, PanelContent}, armyListView, player.getSoldierType())
+	adjustHeight(Panel_5194, {armyPanel, PanelContent}, armyListView, globalData.TOTAL_LEVEL)
 
 	-- 兵营信息
 	local Panel_5196 = listView:getChildByName("Panel_5196")
@@ -126,9 +126,11 @@ function UI_barrackInfo:initUI()
 	-- 总兵营奖励
 	local panelBarrackAward = listView:getChildByName("Panel_5197"):getChildByName("Panel_5946")
 	panelBarrackAward:getChildByName("Label_5947"):setString(hp.lang.getStrByID(1036))
-	panelBarrackAward:getChildByName("Label_5970"):setString(string.format(hp.lang.getStrByID(1045), "0"))
-	panelBarrackAward:getChildByName("Label_6145"):setString(string.format(hp.lang.getStrByID(1044), "0"))
-	panelBarrackAward:getChildByName("Label_6146"):setString(string.format(hp.lang.getStrByID(1043), "0"))
+	local add_ = player.helper.getAttrAddn(109)
+	panelBarrackAward:getChildByName("Label_5970"):setString(string.format(hp.lang.getStrByID(1045), hp.common.round(add_/100)))
+	local result_ = hp.common.round(add_/10000 / (add_/10000 + 1) * 100)
+	panelBarrackAward:getChildByName("Label_6145"):setString(string.format(hp.lang.getStrByID(1044), -result_))
+	panelBarrackAward:getChildByName("Label_6146"):setString(string.format(hp.lang.getStrByID(1043), player.soldierManager.getCitySoldierLimit()))
 
 	-- 额外福利
 	local title_ = self.uiTitle:clone()
@@ -150,9 +152,9 @@ function UI_barrackInfo:initUI()
 	end
 end
 
-function UI_barrackInfo:close()
+function UI_barrackInfo:onRemove()
 	self.uiItem:release()
 	self.uiSubTitle:release()
 	self.uiTitle:release()
-	self.super.close(self)
+	self.super.onRemove(self)
 end

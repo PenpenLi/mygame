@@ -1,0 +1,11 @@
+服务器sid	服务器类型(0:正常，1:皇帝争夺战)	服务器状态(0:正常，-1:未开启，1:维护中)	服务器名称	要塞图片	服务器地址	服务器分组	所属国家（0=群雄，1=魏国，2=蜀国，3=吴国）	地图位置
+								
+sid	type	status	name	img	url	group	country	position
+INT	INT	INT	STRING	STRING	STRING	INT	INT	INTS
+1	0	0	官渡	fortress.png	http://123.57.221.218:8681/	1	1	1180|1054
+2	0	0	汉中	fortress.png	http://192.168.1.108:8682/	2	1	1180|720
+3	0	-1	赤壁	fortress.png	-1	3	2	1456|720
+4	0	-1	太原	fortress.png	-1	1	3	1456|1054
+-1	1	-1	成都	chengdu.png	-1	1	2	870|820
+-2	1	-1	建邺	jianye.png	-1	1	3	1781|820
+-3	1	-1	洛阳	luoyang.png	-1	1	1	1298|1261

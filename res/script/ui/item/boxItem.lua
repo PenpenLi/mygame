@@ -41,7 +41,7 @@ function UI_boxItem:init(type_, useCallback_)
 	else
 		uiFrame:setTitle(hp.lang.getStrByID(3306))
 	end
-
+	uiFrame:setTopShadePosY(888)
 	local rootWidget = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "commonItem.json")
 
 	-- addCCNode
@@ -188,9 +188,15 @@ function UI_boxItem:pushLoadingItem(loadingNumOnce)
 				if tag==1 then
 				-- 购买使用
 					player.expendResource("gold", operItemInfo.sale) --消耗金币
+					-- edit by huangwei
+					Scene.showMsg({3001, getItemInfoBySid(operItemInfo.sid).name, 1})
+					-- edit by huangwei end
 				elseif tag==2 then
 				-- 使用
 					player.expendItem(operItemInfo.sid, 1) --消耗道具
+					-- edit by huangwei
+					Scene.showMsg({3000, getItemInfoBySid(operItemInfo.sid).name, 1})
+					-- edit by huangwei end
 				end
 				-- 宝石/材料宝箱提示获得的物品
 				if data.items ~= nil then
@@ -198,26 +204,18 @@ function UI_boxItem:pushLoadingItem(loadingNumOnce)
 					--获取道具
 						player.addItem(data.items[i], data.items[i+1])
 					end
-					local typeSid=math.floor(operItemInfo.sid/10)
-					local isGem=false
-					local isMaterial=false
-					--宝石宝箱
-					if typeSid==2400 then
-						isGem=true
-					--材料宝箱
-					elseif typeSid==2405 then
-						isMaterial=true
-					end
-					if isGem then		
-						local gemInfo = hp.gameDataLoader.getInfoBySid("gem", data.items[1])
+					local gemInfo = hp.gameDataLoader.getInfoBySid("gem", data.items[1])
+					if gemInfo~=nil then
 						require("ui/smith/gemMaterialInfo")
 						local ui = UI_gemMaterialInfo.new(1,gemInfo)
 						self:addModalUI(ui)
-					elseif isMaterial then
+					else
 						local materialInfo = hp.gameDataLoader.getInfoBySid("equipMaterial", data.items[1])
-						require("ui/smith/gemMaterialInfo")
-						local ui = UI_gemMaterialInfo.new(2,materialInfo)
-						self:addModalUI(ui)
+						if materialInfo~=nil then
+							require("ui/smith/gemMaterialInfo")
+							local ui = UI_gemMaterialInfo.new(2,materialInfo)
+							self:addModalUI(ui)
+						end
 					end
 				end
 				self.haveUsed = true
@@ -247,12 +245,7 @@ function UI_boxItem:pushLoadingItem(loadingNumOnce)
 				if player.getResource("gold")<itemInfo.sale then
 					-- 金币不够
 					require("ui/msgBox/msgBox")
-					local msgBox = UI_msgBox.new(hp.lang.getStrByID(2826), 
-						hp.lang.getStrByID(2827), 
-						hp.lang.getStrByID(1209), 
-						hp.lang.getStrByID(2412)
-						)
-					self:addModalUI(msgBox)
+					UI_msgBox.showCommonMsg(self, 1)
 					return
 				end
 

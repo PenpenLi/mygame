@@ -1,6 +1,6 @@
 --
 -- ui/prison/prisonMoreInfoBox
--- µØÀÎ¸ü¶àĞÅÏ¢
+-- åœ°ç‰¢æ›´å¤šä¿¡æ¯
 --===================================
 require "ui/frame/popFrame"
 
@@ -27,7 +27,7 @@ function UI_prisonInfo:init(building_)
 	moreInfo:setString(bInfo.moreDesc)
 	
 	
-	--µÚÒ»²¿·Ö
+	--ç¬¬ä¸€éƒ¨åˆ†
 	
 	local head = ListView_info:getChildByName("Panel_tittle")
 	local item1 = ListView_info:getChildByName("Panel_item1")
@@ -45,7 +45,7 @@ function UI_prisonInfo:init(building_)
 	--head
 	item1Cont:getChildByName("Label_level"):setString(hp.lang.getStrByID(1039))
 	item1Cont:getChildByName("Label_time"):setString(hp.lang.getStrByID(6202))
-	
+	item1Cont:getChildByName("Label_num"):setString(hp.lang.getStrByID(6206))
 	--remove selected item
 	ListView_info:removeItem(4)
 	
@@ -77,7 +77,7 @@ function UI_prisonInfo:init(building_)
 		
 		itemCont:getChildByName("Label_level"):setString(info.level .. "")
 		itemCont:getChildByName("Label_time"):setString(info.earlierseGuillotine .. "h")
-		
+		itemCont:getChildByName("Label_num"):setString(info.imprisonHero)
 		if item ~= item2 then
 			ListView_info:insertCustomItem(item,ContItemSize)
 		end
@@ -90,7 +90,7 @@ function UI_prisonInfo:init(building_)
 	
 	
 	
-	--µÚ¶ş²¿·Ö
+	--ç¬¬äºŒéƒ¨åˆ†
 	
 	head = ListView_info:getChildByName("Panel_tittle"):clone()
 	local addItem1 = ListView_info:getChildByName("Panel_addItem1")
@@ -112,7 +112,7 @@ function UI_prisonInfo:init(building_)
 	-- addItem1Cont has in list
 	ContItemSize = ContItemSize + 1
 	
-	--¹ØÑºµÄÓ¢ĞÛµÈ¼¶	¹¥»÷Ôö¼Ó
+	--å…³æŠ¼çš„è‹±é›„ç­‰çº§	æ”»å‡»å¢åŠ 
 	local AddititonalBenefits = {
 		{"1~19"	 ,"1%"},
 		{"20~24" ,"2%"},

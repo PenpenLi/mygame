@@ -14,11 +14,8 @@ local armytype = 5
 function UI_trapTrain:init(sid_)
 	-- data
 	-- ===============================
-	local helper = require "playerData/helper"
-	local addition_ = helper.getTrapTrainAdd()
-
 	-- get trap infomation
-	local trapInfo = player.getTrapInfoBySid(sid_)
+	local trapInfo = hp.gameDataLoader.getInfoBySid("trap", sid_)
 	local active_ = true
 	if trapInfo.unlock ~= -1 then
 		if not player.researchMgr.isTechResearch(trapInfo.unlock) then
@@ -27,7 +24,7 @@ function UI_trapTrain:init(sid_)
 	end
 
 	-- max train number
-	local maxNormalTrainNum, maxTrainNum = self:CanTrainNumber(sid_)
+	local maxNormalTrainNum, maxTrainNum, lackRes_ = self:CanTrainNumber(sid_)
 	local resource = {player.getResource("rock"),player.getResource("wood"),player.getResource("mine"),player.getResource("food"),player.getResource("silver")}
 	local trainNum = maxTrainNum
 	local trainCost = {0,0,0,0,0}
@@ -45,11 +42,16 @@ function UI_trapTrain:init(sid_)
 	local panelDesc = widgetRoot:getChildByName("Panel_desc")
 
 	local panelCost = widgetRoot:getChildByName("Panel_produceCost")
-	local stone = panelCost:getChildByName("Panel_stone"):getChildByName("Label_cost")
-	local wood = panelCost:getChildByName("Panel_wood"):getChildByName("Label_cost")
-	local iron = panelCost:getChildByName("Panel_iron"):getChildByName("Label_cost")
-	local food = panelCost:getChildByName("Panel_food"):getChildByName("Label_cost")
-	local coin = panelCost:getChildByName("Panel_coin"):getChildByName("Label_cost")
+	local panelList_ = {"Panel_stone","Panel_wood","Panel_iron","Panel_food","Panel_coin"}
+	local uiPanel_ = {}
+	local uiResLabel_ = {}
+	local uiResImg_ = {}
+	for i, v in ipairs(panelList_) do
+		local panel_ = panelCost:getChildByName(v)
+		uiPanel_[i] = panel_
+		uiResLabel_[i] = panel_:getChildByName("Label_cost")
+		uiResImg_[i] = panel_:getChildByName("ImageView_image")
+	end
 
 	local panelTrain = widgetRoot:getChildByName("Panel_train")
 	local changeNum = panelTrain:getChildByName("Panel_4920")
@@ -60,7 +62,14 @@ function UI_trapTrain:init(sid_)
 	local uiTrainNum = panelTrain:getChildByName("ImageView_soldierNum"):getChildByName("Label_value")
 	local btnFastTrain = panelTrain:getChildByName("ImageView_fastTrain")
 	local btnTrain = panelTrain:getChildByName("ImageView_Train")
-
+	self.uiDiamond = panelTrain:getChildByName("ImageView_gold"):getChildByName("Label_goldCost")
+	
+	require "ui/common/effect.lua"
+	local light = nil
+	light = inLight(btnTrain:getVirtualRenderer(),1)
+	btnTrain:addChild(light)
+	
+	
 	local Panel_toAcademy = widgetRoot:getChildByName("Panel_toAcademy")
 
 	local btnToAcademy = Panel_toAcademy:getChildByName("ImageView_14044")
@@ -78,9 +87,9 @@ function UI_trapTrain:init(sid_)
 	local strName = ""
 	for i,v in ipairs(trapInfo.abnegate) do
 		if i == 1 then
-			strName = strName..player.getTypeName(v)
+			strName = strName..player.soldierManager.getTypeName(v)
 		else
-			strName = strName..","..player.getTypeName(v)
+			strName = strName..","..player.soldierManager.getTypeName(v)
 		end
 	end
 	if strName == "" then
@@ -89,19 +98,19 @@ function UI_trapTrain:init(sid_)
 	panelDesc:getChildByName("Label_subdue"):setString(string.format(hp.lang.getStrByID(1005), strName))
 
 	-- subdued
-	local strName = player.getTypeName(trapInfo.abnegated)
+	local strName = player.soldierManager.getTypeName(trapInfo.abnegated)
 	panelDesc:getChildByName("Label_subdued"):setString(string.format(hp.lang.getStrByID(1006), strName))
 
-	-- dailyCost
-	panelDesc:getChildByName("Label_dailyCost"):setVisible(false)
+	-- level
+	panelDesc:getChildByName("Label_dailyCost"):setString(string.format(hp.lang.getStrByID(5499), trapInfo.level))
 	
 	panelDesc:getChildByName("Panel_cost"):setVisible(false)
 
 	-- type
 	panelDesc:getChildByName("Label_type"):setVisible(false)
 
-	btnFastTrain:getChildByName("Label_word"):setString(hp.lang.getStrByID(2022))
-	btnTrain:getChildByName("Label_word"):setString(hp.lang.getStrByID(2023))
+	panelTrain:getChildByName("Label_word"):setString(hp.lang.getStrByID(2022))
+	panelTrain:getChildByName("Label_word1"):setString(hp.lang.getStrByID(2023))
 
 	if not active_ then
 		widgetRoot:removeChild(widgetRoot:getChildByName("Panel_4626"))
@@ -135,7 +144,7 @@ function UI_trapTrain:init(sid_)
 
 				local data = hp.httpParse(response)
 				if data.result == 0 then
-					player.trapTrainFinish({sid=sid_, number=trainNum})
+					player.trapManager.trapTrainFinish({sid=sid_, number=trainNum})
 				end
 
 				self:close()
@@ -152,19 +161,17 @@ function UI_trapTrain:init(sid_)
 				cmdData.operation[1] = oper
 				local cmdSender = hp.httpCmdSender.new(onFastTrainResponse)
 				cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+				self:showLoading(cmdSender)
 			end
 
-			-- if cdBox.getCD(cdBox.CDTYPE.TRAP) > 0 then
-			-- 	local function callBackConfirm()
-			-- 		require("ui/item/speedItem")
-			-- 		local ui  = UI_speedItem.new(cdBox.CDTYPE.TRAP)
-			-- 		self:addUI(ui)
-			-- 		self:close()
-			-- 	end
-			-- 	require "ui/common/successBox"
-   --  			local box_ = UI_successBox.new(hp.lang.getStrByID(5113), hp.lang.getStrByID(5114), callBackConfirm)
-   --    			self:addModalUI(box_)
-			-- else
+			local diamond_ = tonumber(self.uiDiamond:getString())
+			if diamond_ > player.getResource("gold") then
+				local function buyDiamond()
+					cclog_("购买钻石")
+				end
+				require("ui/msgBox/msgBox")
+				UI_msgBox.showCommonMsg(self, 1)
+	   		else
 				require("ui/msgBox/msgBox")
 				local msgBox = UI_msgBox.new(hp.lang.getStrByID(2022), 
 	   				hp.lang.getStrByID(5155), 
@@ -173,7 +180,7 @@ function UI_trapTrain:init(sid_)
 	      			onConfirm
 	   				)
 	   			self:addModalUI(msgBox)
-			-- end			
+			end			
 		end
 	end
 
@@ -184,13 +191,6 @@ function UI_trapTrain:init(sid_)
 
 		local data = hp.httpParse(response)
 		if data.result == 0 then
-			-- resource change
-			player.expendResource("rock", trainCost[1])
-			player.expendResource("wook", trainCost[2])
-			player.expendResource("mine", trainCost[3])
-			player.expendResource("food", trainCost[4])
-			player.expendResource("silver", trainCost[5])
-
 			local info_ = {data.cd, data.cd, sid_, trainNum}
 			cdBox.initCDInfo(cdBox.CDTYPE.TRAP, info_)
 			hp.msgCenter.sendMsg(hp.MSG.TRAP_TRAIN, info_)
@@ -208,26 +208,31 @@ function UI_trapTrain:init(sid_)
 		trainCost[3] = trainNum * trapInfo.costs[6]
 		trainCost[4] = trainNum * trapInfo.costs[3]
 		trainCost[5] = trainNum * trapInfo.costs[2]
-		stone:setString(hp.common.changeNumUnit(resource[1]).."/"..hp.common.changeNumUnit(trainCost[1]))
-		wood:setString(hp.common.changeNumUnit(resource[2]).."/"..hp.common.changeNumUnit(trainCost[2]))
-		iron:setString(hp.common.changeNumUnit(resource[3]).."/"..hp.common.changeNumUnit(trainCost[3]))
-		food:setString(hp.common.changeNumUnit(resource[4]).."/"..hp.common.changeNumUnit(trainCost[4]))
-		coin:setString(hp.common.changeNumUnit(resource[5]).."/"..hp.common.changeNumUnit(trainCost[5]))
+		for i, v in ipairs(uiResLabel_) do
+			v:setString(hp.common.changeNumUnit(resource[i]).."/"..hp.common.changeNumUnit(trainCost[i]))
+		end
 
 		-- update time cost
-		timer:setString(hp.datetime.strTime(trapInfo.cd * trainNum / (1 + addition_)))
+		local time_ = player.helper.getTrapTrainTime(trapInfo.cd * trainNum)
+		timer:setString(hp.datetime.strTime(time_))
 
 		if (trainNum == 0) or (trainNum > maxNormalTrainNum) then
 			btnTrain:setTouchEnabled(false)
 			btnTrain:loadTexture(config.dirUI.common.."button_gray.png")
 			btnFastTrain:setTouchEnabled(false)
 			btnFastTrain:loadTexture(config.dirUI.common.."button_gray.png")
+			light:setVisible(false)
 		else
 			btnTrain:setTouchEnabled(true)
 			btnTrain:loadTexture(config.dirUI.common.."button_blue.png")
 			btnFastTrain:setTouchEnabled(true)
-			btnFastTrain:loadTexture(config.dirUI.common.."button_blue.png")
+			btnFastTrain:loadTexture(config.dirUI.common.."button_green.png")
+			light:setVisible(true)
 		end
+
+		-- 立即训练钻石消耗
+		local resource_ = {0,trainCost[5],trainCost[4],trainCost[2],trainCost[1],trainCost[3]}
+		self.uiDiamond:setString(player.quicklyMgr.getDiamondCost(resource_, time_))
 	end
 
 	local percent = -1
@@ -286,9 +291,14 @@ function UI_trapTrain:init(sid_)
 					self:addUI(ui)
 					self:close()
 				end
-				require "ui/common/successBox"
-    			local box_ = UI_successBox.new(hp.lang.getStrByID(5113), hp.lang.getStrByID(5114), callBackConfirm)
-      			self:addModalUI(box_)
+				require("ui/msgBox/msgBox")
+				local msgBox = UI_msgBox.new(hp.lang.getStrByID(5113), 
+					hp.lang.getStrByID(5114), 
+					hp.lang.getStrByID(2414), 
+					hp.lang.getStrByID(2412),  
+					callBackConfirm
+					)
+				self:addModalUI(msgBox)
 			else
 				-- start train
 				local cmdData={operation={}}
@@ -300,6 +310,7 @@ function UI_trapTrain:init(sid_)
 				cmdData.operation[1] = oper
 				local cmdSender = hp.httpCmdSender.new(OnTrainResponse)
 				cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+				self:showLoading(cmdSender, sender)
 			end
 		end
 	end
@@ -311,6 +322,31 @@ function UI_trapTrain:init(sid_)
 			local ui_ = UI_trapTree.new()
 			self:addUI(ui_)
 			self:close()
+		end
+	end
+
+	local function onResItemTouched(sender, eventType)
+		hp.uiHelper.btnImgTouched(sender, eventType)
+		if eventType==TOUCH_EVENT_ENDED then
+			require "ui/item/resourceItem"
+			local ui  = UI_resourceItem.new(sender:getTag())
+			self:addUI(ui)
+			self:close()
+		end
+	end
+
+	local function setLackResHint()
+		for i, v in ipairs(lackRes_) do
+			if v then
+				uiResLabel_[i]:setColor(cc.c3b(255,0,0))
+				local fade_ = cc.FadeOut:create(1)
+				local fadeIn_ = cc.FadeIn:create(1)
+				local action_ = cc.Sequence:create(fade_, fadeIn_)
+				local sprite_ = cc.Sprite:create(config.dirUI.common.."ui_barrack_6.png")
+				sprite_:runAction(cc.RepeatForever:create(action_))
+				sprite_:setAnchorPoint(0,0)
+				uiPanel_[i]:addChild(sprite_)
+			end
 		end
 	end
 
@@ -329,13 +365,27 @@ function UI_trapTrain:init(sid_)
 
 	btnToAcademy:addTouchEventListener(OnToAcademyTouched)
 
+	for i, v in ipairs(uiResImg_) do
+		v:addTouchEventListener(onResItemTouched)
+	end
+
 	self:registMsg(hp.MSG.CLOSE_WINDOW)
 
 	-- addCCNode
 	-- ===============================
 	self:addChildUI(popFrame)
 	self:addCCNode(widgetRoot)
-	changeSliderPercent(100)
+	if maxNormalTrainNum == 0 then
+		slider:setTouchEnabled(false)
+		changeSliderPercent(0)
+		setLackResHint()
+	else
+		changeSliderPercent(100)
+	end
+
+	-- 渐入渐出
+	self:moveIn(1, 0.2)
+	popFrame:setCloseEvent(function() self:moveOut(2, 0.2, 1) end)
 end
 
 
@@ -347,7 +397,17 @@ function UI_trapTrain:CanTrainNumber(sid_)
 	for i,v in ipairs(barracklist) do
 		barrackTrain = barrackTrain + hp.gameDataLoader.getBuildingInfoByLevel("wall", v.lv, "deadfallMax")
 	end
-	maxTrainNum[1] = barrackTrain - player.getTrapNum()
+
+	-- 正在建造的
+	local trainingInfo_ =  cdBox.getCDInfo(cdBox.CDTYPE.TRAP)
+	local trainingNum_ = trainingInfo_.number
+	if trainingNum_ == nil then
+		trainingNum_ = 0
+	end
+	if trainingInfo_.cd == 0 then
+		trainingNum_ = 0
+	end
+	maxTrainNum[1] = barrackTrain - player.trapManager.getTrapNum() - trainingNum_
 	if maxTrainNum[1] < 0 then
 		maxTrainNum[1] = 0
 	end
@@ -355,16 +415,22 @@ function UI_trapTrain:CanTrainNumber(sid_)
 
 	-- resource limit
 	local resource = {player.getResource("rock"),player.getResource("wood"),player.getResource("mine"),player.getResource("food"),player.getResource("silver")}
-	local trapInfo = player.getTrapInfoBySid(sid_)
+	local trapInfo = hp.gameDataLoader.getInfoBySid("trap", sid_)
 	local trainCost = {trapInfo.costs[5], trapInfo.costs[4], trapInfo.costs[6], trapInfo.costs[3], trapInfo.costs[2]}
+	local lackRes_ = {}
 	for i = 1, table.getn(resource) do
+		lackRes_[i] = false
 		if trainCost[i] ~= 0 then
-			maxTrainNum[table.getn(maxTrainNum) + 1] = math.floor(resource[i]/trainCost[i])
+			local num_ = math.floor(resource[i]/trainCost[i])
+			maxTrainNum[table.getn(maxTrainNum) + 1] = num_
+			if num_ == 0 then
+				lackRes_[i] = true
+			end
 		end
 	end
 
 	local min = hp.common.getMinNumber(maxTrainNum)
-	return min, min
+	return min, min, lackRes_
 end
 
 function UI_trapTrain:onMsg(msg_, param_)

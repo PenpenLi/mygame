@@ -20,7 +20,6 @@ function UI_warningMsgBox:init(title_, msg_, okText_, cancelText_, onOK_, onCanc
 	-- ui
 	-- ===============================
 	local wigetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "warningMsgBox.json")
-	local uiFrame = UI_popFrame.new(wigetRoot, title_)
 
 	local contNode = wigetRoot:getChildByName("Panel_cont")
 	local btnCancel = contNode:getChildByName("ImageView_no")
@@ -36,7 +35,7 @@ function UI_warningMsgBox:init(title_, msg_, okText_, cancelText_, onOK_, onCanc
 		cancelLabel:setString(cancelText_)
 	else
 		local px, py = btnOk:getPosition()
-		px = game.visibleSize.width/2
+		px = config.resSize.width/2
 		btnOk:setPosition(px, py)
 		btnCancel:setVisible(false)
 	end
@@ -57,6 +56,26 @@ function UI_warningMsgBox:init(title_, msg_, okText_, cancelText_, onOK_, onCanc
 	btnCancel:addTouchEventListener(onBtnTouched)
 	btnOk:addTouchEventListener(onBtnTouched)
 
+
+	local fontSize = descLabel:getFontSize()
+	local lineNum = descLabel:getVirtualRenderer():getStringNumLines()
+	local rootSize = wigetRoot:getSize()
+	local px, py = wigetRoot:getPosition()
+
+	if lineNum>1 then
+		descLabel:setTextHorizontalAlignment(0)
+	end
+
+	local descHeight = fontSize * lineNum
+	rootSize.height = rootSize.height+descHeight
+	py = py-descHeight/2
+	wigetRoot:setSize(rootSize)
+	wigetRoot:setPosition(px, py)
+
+	px, py = descLabel:getPosition()
+	descLabel:setPosition(px, py+descHeight)
+	
+	local uiFrame = UI_popFrame.new(wigetRoot, title_)
 
 	-- addCCNode
 	-- ===============================

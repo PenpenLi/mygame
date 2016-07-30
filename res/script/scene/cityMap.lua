@@ -1,9 +1,10 @@
---
+
 -- scene/cityMap.lua
 -- 城市地图
 --================================================
 require "scene/Scene"
 require "obj/building"
+require "obj/cityPeople"
 
 cityMap = class("cityMap", Scene)
 
@@ -11,8 +12,9 @@ cityMap = class("cityMap", Scene)
 --
 -- init
 ----------------------------
-function cityMap:init()
+function cityMap:init(enterFudi_)
 	self.mapLevel = 3 --3级地图
+	self.enterFudi = enterFudi_
 
 	-- 变量初始化
 	--================================
@@ -57,7 +59,7 @@ function cityMap:init()
 	local tileMapW = 8192 --瓦片地图的宽
 	local tileMapH = 4096 --瓦片地图的高
 	local mapBW = 896	--一块地图的宽
-	local mapBH = 768	--一块地图的高
+	local mapBH = 896	--一块地图的高
 	local mapBNumW = 5	--宽度上有多少块组成
 	local mapBNumH = 3	--高度上有多少块组成
 	local mapWidth = mapBW*mapBNumW
@@ -75,7 +77,7 @@ function cityMap:init()
 	--self.mapScrollView:setMinScale(minScale)
 	--self.mapScrollView:setMaxScale(minScale*3)
 	self.mapScrollView:setBounceable(false)
-	self.mapScrollView:setZoomScale(minScale*1.5)
+	self.mapScrollView:setZoomScale(minScale*1.2)
 	self.mapScrollView:setContentOffset(cc.p(0, 0))
 
 	---- mapBg
@@ -124,6 +126,12 @@ function cityMap:init()
 	-- 城内信息放置层
 	--==========================
 	self.infoLayer = cc.Layer:create()
+	-- headerInfo
+	require "ui/common/mainHeaderInfo"
+	local hearderUI = UI_mainHeaderInfo.new()
+	hearderUI:onAdd(self)
+	self.infoLayer:addChild(hearderUI.layer)
+	table.insert(self.uis, hearderUI)
 	-- cityInfo
 	require "ui/cityInfo"
 	local cityInfo = UI_cityInfo.new()
@@ -148,11 +156,15 @@ function cityMap:init()
 	--==========================
 	self.menuLayer = cc.Layer:create()
 	require "ui/mainMenu"
-	local mainMenu = UI_mainMenu.new()
+	local mainMenu = nil
+	if enterFudi_ then
+		mainMenu = UI_mainMenu.new(1)
+	else
+		mainMenu = UI_mainMenu.new(2)
+	end
 	mainMenu:onAdd(self)
 	self.menuLayer:addChild(mainMenu.layer)
 	table.insert(self.uis, mainMenu)
-	mainMenu.setMapIconState()
 	self.mainMenu = mainMenu
 
 	-- require "ui/talk/talkBtn"
@@ -186,23 +198,47 @@ function cityMap:init()
 			self:addBuilding(v, buildingMgr.getBuildingByBsid(2, v.sid))
 		end
 	end
-	
+	-- 添加行人
+	for i,v in ipairs(game.data.cityPeople) do
+		CityPeople.new(self, v)
+	end
+	-- 添加装饰元素
+	for i,v in ipairs(game.data.cityElement) do
+		local eleNode = cc.Sprite:create(config.dirUI.cityElement .. v.img)
+		local p = self:pMap2Tilemap(cc.p(v.x, v.y))
+		eleNode:setAnchorPoint(0.5, 0.2)
+		eleNode:setPosition(v.x, v.y)
+		eleNode:setLocalZOrder(p.x+p.y)
+		if v.flip==1 then
+			eleNode:setScaleX(-1)
+		end
+		self.objLayer:addChild(eleNode)
+	end
+
 	-- 注册消息
 	self:registMsg(hp.MSG.CD_FINISHED)
 end
 
-
 -- onEnter
 function cityMap:onEnter()
+	if self.enterFudi then
+	-- 需要进入府邸内部界面
+		require("ui/mansion/mansion")
+		local ui = UI_mansion.new()
+		self:addUI(ui)
+	else
+		self:onEnterAnim()
+	end
+	
 	-- 进入新手指引
 	--===============================
-	if not config.skipGuid then
-		player.guide.run()
-	end
+	player.guide.run()
 end
 
 -- onMsg
 function cityMap:onMsg(msg_, paramInfo_)
+	self.super.onMsg(self, msg_, paramInfo_)
+	
 	if msg_==hp.MSG.CD_FINISHED then
 		if paramInfo_.cdType==cdBox.CDTYPE.BUILD then
 			self:checkAllBuildingsUpIcon()
@@ -213,11 +249,10 @@ end
 -- addUI
 function cityMap:addUI(ui_)
 	ui_.uiType_ = 0
-	ui_:onAdd(self)
 	self.uiLayer:addChild(ui_.layer)
 	table.insert(self.uis, ui_)
 	table.insert(self.UIs, ui_)
-	self.mainMenu.setMapIconState()
+	ui_:onAdd(self)
 end
 
 -- removeUI
@@ -238,10 +273,9 @@ function cityMap:removeUI(ui_)
 			break
 		end
 	end
-	self.mainMenu.setMapIconState()
 end
 
--- removeUI
+-- removeAllUI
 function cityMap:removeAllUI()
 	for i=#self.UIs, 1, -1 do
 		local UI = self.UIs[i]
@@ -256,7 +290,6 @@ function cityMap:removeAllUI()
 	end
 
 	self.UIs = {}
-	self.mainMenu.setMapIconState()
 end
 
 -- addModalUI
@@ -309,22 +342,22 @@ function cityMap:removeAllModalUI()
 	self.modalUIs = {}
 end
 
---
--- heartbeat
-----------------------------
-function cityMap:heartbeat(dt)
-	self.super.heartbeat(self, dt)
+-- --
+-- -- heartbeat
+-- ----------------------------
+-- function cityMap:heartbeat(dt)
+-- 	self.super.heartbeat(self, dt)
 
-	-- 执行所有物体的heartbeat
-	self.objTickCount = self.objTickCount+dt
-	if self.objTickCount>=config.interval.objHeartbeat then
-		for i, obj in ipairs(self.objs) do
-			obj:heartbeat(self.objTickCount)
-		end
-		self.objTickCount = 0
-	end
+-- 	-- 执行所有物体的heartbeat
+-- 	self.objTickCount = self.objTickCount+dt
+-- 	if self.objTickCount>=config.interval.objHeartbeat then
+-- 		for i, obj in ipairs(self.objs) do
+-- 			obj:heartbeat(self.objTickCount)
+-- 		end
+-- 		self.objTickCount = 0
+-- 	end
 
-end
+-- end
 
 
 --
@@ -335,6 +368,21 @@ function cityMap:pScreen2Map(p_)
 	local p = self.mapScrollView:getContentOffset()
 	local scale = self.mapScrollView:getZoomScale()
 	return cc.p((p_.x - p.x)/scale, (p_.y - p.y)/scale)
+end
+
+-- 地图坐标 --> 瓦片坐标
+function cityMap:pMap2Tilemap(p_)
+	local p = p_
+	local px, py = self.tileMap:getPosition()
+	local tileSize = self.tileMap:getTileSize()
+	local midWidth = self.tileMapSize.width/2
+	p.x = p.x-px
+	p.y = p.y-py
+	
+	local x = math.floor(midWidth+(p.x/tileSize.width-p.y/tileSize.height))
+	local y = math.floor(self.tileMapSize.height+midWidth - (p.x/tileSize.width + p.y/tileSize.height))
+
+	return cc.p(x, y)
 end
 
 -- 屏幕坐标 --> 瓦片坐标
@@ -392,6 +440,7 @@ end
 function cityMap:onTouchBegan(p_)
 	self.touchBeganP = p_
 	local p = self:pScreen2Tilemap(p_)
+	p_ = self:pScreen2Map(p_)
 	self.isMoved = false
 
 	if self.touchedObj~=nil then
@@ -400,7 +449,7 @@ function cityMap:onTouchBegan(p_)
 		self.touchedObj = nil
 	end
 
-	cclog("onTouchBegan--------------------------- x=%d, y=%d", p.x, p.y)
+	cclog("onTouchBegan--------------------------- x=%d, y=%d, x1=%d, y1=%d", p.x, p.y, p_.x, p_.y)
 	-- 获取触摸到的物体
 	if self.objMap[p.x]~=nil then
 		self.touchedObj = self.objMap[p.x][p.y]
@@ -458,14 +507,40 @@ function cityMap:showFadeOutMsg(msg_, position_)
 end
 
 -- addBuilding
-function cityMap:addBuilding(block_, bulid_)
-	local obj = Building.new(self, block_, bulid_)
+function cityMap:addBuilding(block_, build_)
+	local obj = Building.new(self, block_, build_)
 	for i=block_.left, block_.right do
 		self.objMap[i] = self.objMap[i] or {}
 		for j=block_.top, block_.bottom do
 			self.objMap[i][j] = obj
 		end
 	end
+
+	if build_~=nil and build_.sid==1018 then
+	-- 城墙特殊处理
+		for i=73, 79 do
+			self.objMap[i] = self.objMap[i] or {}
+			for j=46, 124 do
+				self.objMap[i][j] = obj
+			end
+		end
+		for i=19, 70 do
+			self.objMap[i] = self.objMap[i] or {}
+			for j=33, 40 do
+				self.objMap[i][j] = obj
+			end
+		end
+		local corners = {{70, 39}, {70, 40}, {69, 40}, {69, 41}}
+		for i,v in ipairs(corners) do
+			for i=0, 6 do
+				local x_ = v[1]+i
+				local y_ = v[2]+i
+				self.objMap[x_] = self.objMap[x_] or {}
+				self.objMap[x_][y_] = obj
+			end
+		end
+	end
+
 	table.insert(self.objs, obj)
 end
 
@@ -481,10 +556,12 @@ function cityMap:getBuilding(bType_, bSid_)
 	return nil
 end
 
--- getBuildingBySid
-function cityMap:getBuildingBySid(sid_)
+
+-- getBlock
+-- 获取一个已开放的空闲格子
+function cityMap:getBlock(bType_)
 	for i, v in ipairs(self.objs) do
-		if v.build~=nil and sid_==v.build.sid then
+		if bType_==v.block.type and v.build==nil and not v.unopenedFlag then
 			return v
 		end
 	end
@@ -492,9 +569,37 @@ function cityMap:getBuildingBySid(sid_)
 	return nil
 end
 
+-- getBuildingBySid
+function cityMap:getBuildingBySid(sid_)
+	local building = nil
+	for i, v in ipairs(self.objs) do
+		if v.build~=nil and sid_==v.build.sid then
+			if building==nil then
+				building = v
+			else
+				if v.build.lv>building.build.lv then
+					building = v
+				end
+			end
+		end
+	end
+
+	return building
+end
+
 -- checkAllBuildingsUpIcon
 function cityMap:checkAllBuildingsUpIcon()
 	for i, build in ipairs(self.objs) do
 		build:checkUpIcon()
 	end
+end
+
+-- add by huanghaitao
+function cityMap:preExit()
+	local tick_ = os.clock()
+	self.super.preExit(self)
+	for i, build in ipairs(self.objs) do
+		build:onRemove()
+	end 
+	player.clockEnd("cityMap:preExit", tick_, 0.3)
 end

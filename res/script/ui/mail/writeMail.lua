@@ -1,4 +1,4 @@
-﻿--
+--
 -- ui/mail/writeMail.lua
 -- 邮件主界面
 --===================================
@@ -9,7 +9,7 @@ UI_writeMail = class("UI_writeMail", UI)
 
 
 --init
-function UI_writeMail:init(addr_, title_, cont_)
+function UI_writeMail:init(addr_, title_, cont_, tag_)
 	-- data
 	-- ===============================
 
@@ -25,7 +25,7 @@ function UI_writeMail:init(addr_, title_, cont_)
 	local widgetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "mailWrite.json")
 	local contPanel = widgetRoot:getChildByName("Panel_cont")
 	local btnSend = contPanel:getChildByName("ImageView_send")
-	btnSend:getChildByName("Label_send"):setString(hp.lang.getStrByID(9009))
+	contPanel:getChildByName("ImageView_send"):getChildByName("Label_send"):setString(hp.lang.getStrByID(9009))
 	local btnAttachment = contPanel:getChildByName("ImageView_attachment")
 	local labelAddr = contPanel:getChildByName("Label_addr")
 	local editctrlAddr = hp.uiHelper.labelBind2EditBox(labelAddr)
@@ -52,6 +52,11 @@ function UI_writeMail:init(addr_, title_, cont_)
 	else
 		editctrlCont.setString(cont_)
 	end
+	-- 联盟群发
+	if tag_==1 then
+		labelAddr:setTouchEnabled(false)
+		editctrlAddr.setString(hp.lang.getStrByID(1815))
+	end
 
 	local function onHttpResponse(status, response, tag_)
 		if status==200 then
@@ -74,7 +79,11 @@ function UI_writeMail:init(addr_, title_, cont_)
 				local cmdData={operation={}}
 				local oper = {}
 				oper.channel = 10
-				oper.type = 1
+				if tag_ ~= nil and tag_ == 1 then
+					oper.type = 10
+				else
+					oper.type = 1
+				end
 				oper.name = editctrlAddr.getString()
 				oper.title = editctrlTitle.getString()
 				oper.text = editctrlCont.getString()

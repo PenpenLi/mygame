@@ -6,18 +6,20 @@ require "ui/fullScreenFrame"
 
 UI_unionShop = class("UI_unionShop", UI)
 
-local baseTypeID_ = 2802
+local baseTypeID_ = {2803,2804,2805,2807,2808}
 
 --init
 function UI_unionShop:init()
 	-- data
 	-- ===============================
+	self.unionShopItemNum = 0
 	self.shopItems = {}
 	self.unionShopItems = {}
 	self.unionShopMap = {}
 
 	-- ui data
 	self.popUI = nil
+	self.uiItemMap = {}
 
 	-- call back
 	self:initCallBack()
@@ -27,6 +29,8 @@ function UI_unionShop:init()
 	self:initUI()
 
 	local uiFrame = UI_fullScreenFrame.new()
+	uiFrame:hideTopBackground()
+	uiFrame:setTopShadePosY(750)
 	uiFrame:setTitle(hp.lang.getStrByID(5128))
 
 	-- addCCNode
@@ -36,6 +40,8 @@ function UI_unionShop:init()
 
 	hp.uiHelper.uiAdaption(self.uiTitle)
 	hp.uiHelper.uiAdaption(self.uiItem)
+
+	self:registMsg(hp.MSG.UNION_NOTIFY)
 
 	self:initShopItem()
 	self:refreshShow()
@@ -49,7 +55,8 @@ function UI_unionShop:initUI()
 	content_:getChildByName("Image_61"):loadTexture(config.dirUI.common.."alliance_48.png")
 
 	-- 总金额
-	content_:getChildByName("Label_62"):setString(hp.lang.getStrByID(7001).."      "..tostring(player.getAlliance():getMyUnionInfoBase().contribute))
+	self.uiMoney = content_:getChildByName("Label_62")
+	self.uiMoney:setString(hp.lang.getStrByID(7001).."      "..tostring(player.getAlliance():getMyUnionInfoBase().contribute))
 
 	-- 说明文字
 	content_:getChildByName("Label_64"):setString(hp.lang.getStrByID(1176))
@@ -88,6 +95,7 @@ function UI_unionShop:requestShopItems()
 	cmdData.operation[1] = oper
 	local cmdSender = hp.httpCmdSender.new(onApplicantResponse)
 	cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+	self:showLoading(cmdSender)
 end
 
 function UI_unionShop:initShopItem()
@@ -107,6 +115,7 @@ function UI_unionShop:initShopItem()
 end
 
 function UI_unionShop:initUnionShopItem(info_)
+	self.unionShopItemNum = table.getn(info_)
 	for i, v in ipairs(info_) do
 		local item_ = hp.gameDataLoader.getInfoBySid("item", v[1])
 		if self.unionShopItems[item_.type] == nil then
@@ -115,11 +124,11 @@ function UI_unionShop:initUnionShopItem(info_)
 		item_.number = v[2]
 		item_.subtype = 2
 		local tag_ = item_.sid * 10 + 2
-		print("+++++++", tag_)
+		cclog_("+++++++", tag_)
 		table.insert(self.unionShopItems[item_.type], item_)
 		self.unionShopMap[tag_] = item_
-		print(self.unionShopMap[tag_].sid)
-		print(self.unionShopMap[tag_].number)
+		cclog_(self.unionShopMap[tag_].sid)
+		cclog_(self.unionShopMap[tag_].number)
 	end
 end
 
@@ -130,13 +139,14 @@ function UI_unionShop:refreshShow()
 		local index_ = 1
 		local title_ = self.uiTitle:clone()
 		self.listView:pushBackCustomItem(title_)
-		title_:getChildByName("Panel_21"):getChildByName("Label_23"):setString(hp.lang.getStrByID(baseTypeID_ + i))
+		title_:getChildByName("Panel_21"):getChildByName("Label_23"):setString(hp.lang.getStrByID(baseTypeID_[i]))
 		local item_ = self.uiItem:clone()
 		self.listView:pushBackCustomItem(item_)
 		for j, w in ipairs(v) do
 			local content_ = item_:getChildByName("Panel_21"):getChildByName(tostring(index_))
 			local pic_ = content_:getChildByName("Image_66")
 			local tag_ = w.sid * 10 + 1
+			self.uiItemMap[tag_] = content_
 			pic_:setTag(tag_)
 			pic_:addTouchEventListener(self.onItemTouched)
 			pic_:getChildByName("Image_67"):loadTexture(string.format("%s%s.png", config.dirUI.item, tostring(w.sid)))
@@ -162,12 +172,17 @@ function UI_unionShop:refreshShow()
 		for i = index_, 3 do
 			item_:getChildByName("Panel_21"):getChildByName(tostring(i)):setVisible(false)
 		end
+
+		if index_ == 1 then
+			self.listView:removeLastItem()
+		end
 	end
 end
 
 function UI_unionShop:refreshCatalog()
-	print("refreshCatalog")
-	print("self.unionShopItems",table.getn(self.unionShopItems))
+	if self.unionShopItemNum == 0 then
+		return
+	end
 	local title_ = self.uiTitle:clone()
 	title_:getChildByName("Panel_21"):getChildByName("Label_23"):setString(hp.lang.getStrByID(1182))
 	self.listView:pushBackCustomItem(title_)
@@ -175,18 +190,20 @@ function UI_unionShop:refreshCatalog()
 		local index_ = 1
 		local title_ = self.uiTitle:clone()
 		self.listView:pushBackCustomItem(title_)
-		title_:getChildByName("Panel_21"):getChildByName("Label_23"):setString(hp.lang.getStrByID(baseTypeID_ + i))
+		title_:getChildByName("Panel_21"):getChildByName("Label_23"):setString(hp.lang.getStrByID(baseTypeID_[i]))
 		local item_ = self.uiItem:clone()
 		self.listView:pushBackCustomItem(item_)
 		for j, w in ipairs(v) do
 			local content_ = item_:getChildByName("Panel_21"):getChildByName(tostring(index_))
 			local pic_ = content_:getChildByName("Image_66")
 			local tag_ = w.sid * 10 + 2
+			self.uiItemMap[tag_] = content_
 			pic_:setTag(tag_)
 			pic_:addTouchEventListener(self.onItemTouched)
 			pic_:getChildByName("Image_67"):loadTexture(string.format("%s%s.png", config.dirUI.item, tostring(w.sid)))
 
 			-- 货币图标
+			content_:getChildByName("Image_115"):loadTexture(config.dirUI.common.."alliance_48.png")
 
 			-- 售价
 			content_:getChildByName("Label_116"):setString(w.societySale)
@@ -210,6 +227,10 @@ function UI_unionShop:refreshCatalog()
 		for i = index_, 3 do
 			item_:getChildByName("Panel_21"):getChildByName(tostring(i)):setVisible(false)
 		end
+
+		if index_ == 1 then
+			self.listView:removeLastItem()
+		end
 	end
 end
 
@@ -217,12 +238,9 @@ function UI_unionShop:initCallBack()
 	local function onHelpTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)		
 		if eventType == TOUCH_EVENT_ENDED then
-		end
-	end
-
-	local function onMoreInfoTouched(sender, eventType)
-		hp.uiHelper.btnImgTouched(sender, eventType)		
-		if eventType == TOUCH_EVENT_ENDED then
+			require "ui/union/shop/unionShopContribute"
+			local ui_ = UI_unionShopContribute.new()
+			self:addModalUI(ui_)
 		end
 	end
 
@@ -230,12 +248,15 @@ function UI_unionShop:initCallBack()
 		hp.uiHelper.btnImgTouched(sender, eventType)		
 		if eventType == TOUCH_EVENT_ENDED then
 			local info_ = self.unionShopMap[sender:getTag()]
-			print("+++++++",sender:getTag())
+			cclog_("+++++++",sender:getTag())
+			local function onPopUICloseed()
+				self.popUI = nil
+			end
 			if self.popUI ~= nil then
 				self.popUI:changeItem(info_.sid, info_.subtype, info_.number)
 			else
 				require "ui/union/shop/unionShopPop"
-				self.popUI = UI_unionShopPop.new(info_.sid, info_.subtype, info_.number)
+				self.popUI = UI_unionShopPop.new(info_.sid, info_.subtype, info_.number, onPopUICloseed)
 				self:addModalUI(self.popUI)
 			end
 		end
@@ -250,16 +271,45 @@ function UI_unionShop:initCallBack()
 
 	self.onHelpTouched = onHelpTouched
 	self.onItemTouched = onItemTouched
-	self.onMoreInfoTouched = onMoreInfoTouched
 	self.onListViewTouched = onListViewTouched
 end
 
-function UI_unionShop:close()
+function UI_unionShop:onRemove()
 	if self.popUI ~= nil then
 		self.popUI:close()
 		self.popUI = nil 
 	end
 	self.uiItem:release()
 	self.uiTitle:release()
-	self.super.close(self)
+	self.super.onRemove(self)
+end
+
+function UI_unionShop:changeItemNumber(sid_, num_, subType_)
+	cclog_("subType_",subType_)
+	local tag_ = sid_ * 10 + subType_
+	cclog_("tag_",tag_)
+	local item_ = self.uiItemMap[tag_]
+	local info_ = self.unionShopMap[tag_]
+	if info_.subtype == 1 then
+		return
+	end
+	
+	if item_ ~= nil and info_ ~= nil then
+		info_.number = info_.number - num_
+		if info_.number <= 0 then
+			item_:setVisible(false)
+		else
+			item_:getChildByName("Image_117_0"):getChildByName("Label_118"):setString(tostring(info_.number))
+		end
+	end
+end
+
+function UI_unionShop:onMsg(msg_, param_)
+	if msg_ == hp.MSG.UNION_NOTIFY then
+		if param_.msgType == 4 then
+			self.uiMoney:setString(hp.lang.getStrByID(7001).."      "..tostring(player.getAlliance():getMyUnionInfoBase().contribute))
+		elseif param_.msgType == 5 then
+			self:changeItemNumber(param_.sid, param_.num, param_.subType)
+		end
+	end
 end

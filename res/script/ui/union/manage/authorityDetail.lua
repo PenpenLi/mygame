@@ -9,7 +9,7 @@ UI_authorityDetail = class("UI_authorityDetail", UI)
 local authorityMap = {invite=5010,apply=5011,promote=5012,
 relegate=5013,kick=5014,transfer=5015,shopBuy=5016,changeInvite=5017,
 changeName=5018,dissovle=5019,changeDesc=5020,mask=5021,changeIcon=5022,
-changeColor=5023,receiveGift=5024,exit=5025}
+changeColor=5023,receiveGift=5024,exit=5025,changeAnnounce=5498}
 
 --init
 function UI_authorityDetail:init(type_)
@@ -22,6 +22,8 @@ function UI_authorityDetail:init(type_)
 	self:initUI()	
 
 	local uiFrame = UI_fullScreenFrame.new()
+	uiFrame:hideTopBackground()
+	uiFrame:setTopShadePosY(888)
 	uiFrame:setTitle(hp.lang.getStrByID(5132))
 
 	-- addCCNode
@@ -46,10 +48,10 @@ function UI_authorityDetail:initUI()
 	self.listView:removeLastItem()
 end
 
-function UI_authorityDetail:close()
+function UI_authorityDetail:onRemove()
 	self.item:release()
 	self.uiTitle:release()
-	self.super.close(self)
+	self.super.onRemove(self)
 end
 
 function UI_authorityDetail:refreshShow()
@@ -71,7 +73,7 @@ function UI_authorityDetail:refreshShow()
 	content_:getChildByName("ImageView_30180"):loadTexture(config.dirUI.common..unionRank_.image)
 	content_:getChildByName("Label_30181"):setString(unionRank_.name)
 	for j, w in pairs(allianceRank_) do
-		print(j)
+		cclog_(j)
 		if j ~= "sid" and j~="loadList" then
 			if w == 1 then
 				local item_ = self.item:clone()

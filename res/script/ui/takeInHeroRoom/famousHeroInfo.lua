@@ -9,7 +9,7 @@ UI_famousHeroInfo = class("UI_famousHeroInfo", UI)
 
 
 --init
-function UI_famousHeroInfo:init(heroInfo_)
+function UI_famousHeroInfo:init(heroInfo_,param)
 	-- data
 	-- ===============================
 	local heroInfo=heroInfo_
@@ -17,15 +17,22 @@ function UI_famousHeroInfo:init(heroInfo_)
 	-- ===============================
 	local uiFrame = UI_fullScreenFrame.new(true)
 	--uiFrame:setTitle(hp.lang.getStrByID(2500))
-	uiFrame:setTitle(nil)
+	uiFrame:setTitle("")
+	uiFrame:hideTopShade()
 
 	local widgetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "famousHeroInfo.json")
+	local positionPanel = widgetRoot:getChildByName("Panel_position")
 	local adampt = widgetRoot:getChildByName("Panel_adampt")
 	local skillPanel = widgetRoot:getChildByName("Panel_skill")
 	local skillInfoFramePanel = widgetRoot:getChildByName("Panel_skillInfo_frame")
 	local skillInfoPanel = widgetRoot:getChildByName("Panel_skillInfo")
 	skillInfoFramePanel:setVisible(false)
 	skillInfoPanel:setVisible(false)
+	if param ~= nil then
+		positionPanel:getChildByName("Label_position"):setString(param)
+	else
+		positionPanel:setVisible(false)
+	end
 	local attrsListView=skillInfoPanel:getChildByName("Image_info"):getChildByName("ListView_attrs")
 	local attrDemo=attrsListView:getChildByName("Label_attr")
 	self.attrDemo=attrDemo
@@ -37,9 +44,13 @@ function UI_famousHeroInfo:init(heroInfo_)
 	--header
 	local headerFrame = adampt:getChildByName("ImageView_Frame")
 
+	-- 整体大背景
+	if heroInfo.sex == 1 then
+		local bg=widgetRoot:getChildByName("Panel_bg"):getChildByName("ImageView_background")
+		bg:loadTexture(config.dirUI.common .."ui_hero_back1.png")
+	end
 
-
-	local heroIcon = adampt:getChildByName("ImageView_hero")
+	local heroIcon = widgetRoot:getChildByName("ListView_hero"):getItem(0):getChildByName("Panel_cont"):getChildByName("ImageView_hero")
 	heroIcon:loadTexture(config.dirUI.hero .. heroInfo.sid..".png")
 
 	headerFrame:getChildByName("Label_name"):setString(string.format(hp.lang.getStrByID(6019), heroInfo.name))
@@ -109,7 +120,7 @@ function UI_famousHeroInfo:init(heroInfo_)
 				if specialSkill ~= nil then
 					local node=skillDemo:clone()
 					node:setTag(heroInfo.flairLv[k])
-					node:setPosition((k-1)*(skillWidth+2)+5, 0)
+					node:setPosition((k-1)*(skillWidth+20)+5, 0)
 					node:getChildByName("Image_skill"):setTag(specialSkill.sid)
 					node:getChildByName("Image_skill"):loadTexture(config.dirUI.spSkill .. specialSkill.img)
 					node:getChildByName("Image_skill"):addTouchEventListener(onBtnSkillIconTouched)

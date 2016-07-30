@@ -6,8 +6,8 @@ require "ui/fullScreenFrame"
 
 UI_unionChangeName = class("UI_unionChangeName", UI)
 
-local maxLen = 12
 local minWordNum = 3
+local NAME_LEN = 8
 
 --init
 function UI_unionChangeName:init()
@@ -22,6 +22,8 @@ function UI_unionChangeName:init()
 	self:initUI()
 
 	local uiFrame = UI_fullScreenFrame.new()
+	uiFrame:hideTopBackground()
+	uiFrame:setTopShadePosY(888)
 	uiFrame:setTitle(hp.lang.getStrByID(5137))
 	-- addCCNode
 	-- ===============================
@@ -39,11 +41,11 @@ function UI_unionChangeName:initUI()
 
 	self.item2 = self.listView:getItem(1):getChildByName("Panel_29900")
 	self.item2:getChildByName("Label_29963"):setString(hp.lang.getStrByID(5059))
-	self.item2:getChildByName("Label_5"):setString(string.format(hp.lang.getStrByID(5060), maxLen))
 	self.item2:getChildByName("Label_5_0"):setString(string.format(hp.lang.getStrByID(5061), minWordNum))
-	self.inputText = self.item2:getChildByName("Label_29944")
-	self.inputText:setString(player.getAlliance():getBaseInfo().name)
-	hp.uiHelper.labelBind2EditBox(self.inputText)
+	local label_ = self.item2:getChildByName("Label_29944")	
+	label_:setString(player.getAlliance():getBaseInfo().name)
+	self.inputText = hp.uiHelper.labelBind2EditBox(label_)
+	self.inputText.setMaxLength(NAME_LEN)
 
 	self.item3 = self.listView:getItem(2):getChildByName("Panel_29900")
 	self.item3:getChildByName("Label_29901"):setString(hp.lang.getStrByID(5062))
@@ -54,41 +56,53 @@ function UI_unionChangeName:initUI()
 end
 
 function UI_unionChangeName:initCallBack()
-	local function onConfirmResponse(status, response, tag)
-		if status ~= 200 then
-			return
-		end
-
-		local data = hp.httpParse(response)
-		if data.result == 0 then
-			player.getAlliance():changeName(self.inputText:getString())
-			require "ui/common/successBox"
-			local box_ = UI_successBox.new("修改成功!")
-			self:addModalUI(box_)
-			self.item1:getChildByName("Label_7"):setString(player.getAlliance():getBaseInfo().name)
-		end
-	end
-
 	local function onConfirmTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			local function changeUnionName()
+			local function changeUnionName(gold_)
 				local cmdData={operation={}}
 				local oper = {}
 				oper.channel = 16
 				oper.type = 7
 				oper.name = self.inputText:getString()
+				oper.gold = gold_
+				local tag_ = 1
+				if gold_ == 0 then
+					tag_ = 2
+				end
 				cmdData.operation[1] = oper
+
+				local function onConfirmResponse(status, response, tag)
+					if status ~= 200 then
+						return
+					end
+
+					local data = hp.httpParse(response)
+					if data.result == 0 then
+						player.getAlliance():changeName(self.inputText:getString())
+						self.item1:getChildByName("Label_7"):setString(player.getAlliance():getBaseInfo().name)
+						if tag == 1 then
+							player.expendResource("gold", oper.gold)
+						elseif tag == 2 then
+							player.expendItem(20354, 1)
+						end
+						Scene.showMsg({1023})
+					end
+				end
+
 				local cmdSender = hp.httpCmdSender.new(onConfirmResponse)
-				cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+				cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper, tag_)
+				self:showLoading(cmdSender, sender)
 			end
 
-			if player.getItemNum(20354) == 0 then
-				require "ui/common/buyAndUseItemPop"
-				ui_ = UI_buyAndUseItem.new(20354, 1, changeUnionName)
-				self:addModalUI(ui_)
+			if self.inputText:getString() == "" then
+				require "ui/common/successBox"
+				local box_ = UI_successBox.new(hp.lang.getStrByID(5312), hp.lang.getStrByID(5313))
+				self:addModalUI(box_)
 			else
-				changeUnionName()
+				require "ui/common/buyAndUseItemPop"
+				local ui_ = UI_buyAndUseItem.new(20354, 1, changeUnionName)
+				self:addModalUI(ui_)
 			end
 		end
 	end

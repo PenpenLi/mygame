@@ -1,6 +1,7 @@
 --
 -- obj/alliance/alliance.lua
 -- 工会
+-- 消息:
 --================================================
 require "obj/alliance/member"
 
@@ -12,39 +13,6 @@ local HELPONCE = 100
 local REQUESTINTERVAL = 10 -- 定时请求
 
 local interval_ = 0
-
-local function band(num_, des_)
-	local dNum_ = {}
-	local dDes_ = {}
-	local dResult_ = {}
-
-	local temp_ = num_
-	while temp_ > 0 do
-		table.insert(dNum_, temp_%2)
-		temp_ = math.floor(temp_/2)
-	end
-
-	local temp_ = des_
-	while temp_ > 0 do
-		table.insert(dDes_, temp_%2)
-		temp_ = math.floor(temp_/2)
-	end
-
-	local len_ = table.getn(dNum_)
-	if len_ < table.getn(dDes_) then
-		len_ = table.getn(dDes_)
-	end
-
-	for i=1,len_ do
-		local t_ = 0
-		if (dNum_[i] == 1) and (dDes_[i] == 1) then
-			t_ = 1
-			return 1
-		end
-		-- table.insert(dResult_, t_)
-	end
-	return 0
-end
 
 state = 
 {
@@ -148,6 +116,9 @@ function Alliance:leaveUnion()
 		self.dirty[v] = true
 		self.reference[v] = {}
 	end
+
+	-- 清空其余数据
+	self:clearData()
 end
 
 function Alliance:firstRequestData()
@@ -219,8 +190,10 @@ function Alliance:synNetInfo(info_)
 	-- 	self.dirty[dirtyType.BIGFIGHT] = true
 	-- end
 	if info_.leagueId ~= nil then
-		self.unionID = info_.leagueId
+		self:setUnionID(info_.leagueId)
 	end
+	-- 联盟贡献
+	self:updateMyUnionInfoBase(info_)
 end
 
 function Alliance:updateData(info_, type_)
@@ -250,16 +223,22 @@ end
 
 -- 准备数据，没有则请求，然后发通知
 function Alliance:prepareData(type_, name_)
+	if self.unionID == 0 then
+		return
+	end
+
+	local cmdData_ = nil
 	if self.dirty[type_] == true then
-		self:requestData(type_)
+		cmdData_ = self:requestData(type_)
 	else
-		print("prepareData",type_,name_)
+		cclog_("prepareData",type_,name_)
 		hp.msgCenter.sendMsg(hp.MSG.UNION_DATA_PREPARED, type_)
 	end
 
 	if self.reference[type_][name_] == nil then
 		self.reference[type_][name_] = 1
 	end
+	return cmdData_
 end
 
 function Alliance:unPrepareData(type_, name_)
@@ -274,7 +253,22 @@ function Alliance:tryRequestData(type_)
 	if ref_ > 0 then
 		self:requestData(type_)
 	elseif ref_ < 0 then
-		print("error,error,error,error,error", type_)
+		cclog_("error,error,error,error,error", type_)
+	end
+end
+
+-- 判断是否拥有权限
+function Alliance:haveAuthority(name_)
+	if self.unionID == 0 then
+		return false
+	end
+
+	local info_ = hp.gameDataLoader.getInfoBySid("allienceRank", self:getMyUnionInfo():getRank())
+
+	if info_[name_] == 1 then
+		return true
+	else
+		return false
 	end
 end
 
@@ -303,6 +297,7 @@ function Alliance:requestData(type_)
 	cmdData.operation[1] = oper
 	local cmdSender = hp.httpCmdSender.new(onBaseInfoResponse)
 	cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+	return cmdSender
 end
 
 function Alliance:getUnionID()
@@ -311,6 +306,25 @@ end
 
 function Alliance:setUnionID(id_)
 	self.unionID = id_
+	if id_ == 0 then
+		self:leaveUnion()
+		hp.msgCenter.sendMsg(hp.MSG.UNION_NOTIFY, {msgType = 2})
+	else
+	-- 进入联盟
+		hp.msgCenter.sendMsg(hp.MSG.UNION_JOIN_SUCCESS)
+		if player.getFristLeague() == 0 then
+			player.clearFristLeague()
+		end
+	end
+end
+
+-- 清除数据
+function Alliance:clearData()
+	-- 清除所有数字
+	local map_ = {help=4,war=2,defense=1,applicant=3,gift=5,joinAble=6}
+	for k, v in pairs(map_) do
+		self.unionHomePageData[k] = 0
+	end
 end
 
 function Alliance:getFunds()
@@ -319,9 +333,20 @@ end
 
 -- 个人公会信息
 function Alliance:updateMyUnionInfoBase(info_)
-	self.myUnionInfoBase.contribute = info_.leagueCost
-	self.myUnionInfoBase.todayContri = info_.dayLeagueCost
+	if info_.leagueCost ~= nil then
+		self.myUnionInfoBase.contribute = info_.leagueCost
+		hp.msgCenter.sendMsg(hp.MSG.UNION_NOTIFY, {msgType = 4})
+	end
+	if info_.dayLeagueCost ~= nil then
+		self.myUnionInfoBase.todayContri = info_.dayLeagueCost
+	end
 	self.myUnionInfoBase.todayUp = TODAYUP
+end
+
+-- 增加联盟基金
+function Alliance:addUnionFunds(num_)
+	self.baseInfo.funds = self.baseInfo.funds + num_
+	hp.msgCenter.sendMsg(hp.MSG.UNION_NOTIFY, {msgType=3})
 end
 
 function Alliance:getMyUnionInfoBase()
@@ -330,13 +355,25 @@ end
 
 -- 公会首页基础信息
 function Alliance:updateUnionHomePageInfo(info_)
-	self.unionHomePageData.help = info_[4]
-	self.unionHomePageData.war = info_[2]
-	self.unionHomePageData.defense = info_[1]
-	self.unionHomePageData.applicant = info_[3]
-	self.unionHomePageData.gift = info_[5]
+	local map_ = {help=4,war=2,defense=1,applicant=3,gift=5,joinAble=6}
+	local changeParam_ = {}
+	for k, v in pairs(map_) do
+		if self.unionHomePageData[k] ~= info_[map_[k]] then
+			self.unionHomePageData[k] = info_[map_[k]]
+			changeParam_[k] = true
+		else
+			changeParam_[k] = false
+		end
+	end
 	self.unionHomePageData.unionWar = self.unionHomePageData.war + self.unionHomePageData.defense
-	self.unionHomePageData.joinAble = info_[6]
+	if changeParam_.war or changeParam_.defense then
+		changeParam_.unionWar = true
+	else
+		changeParam_.unionWar = false
+	end
+	-- 附加参数
+	self.unionHomePageData.param = {change=changeParam_}
+
 	self.dirty[dirtyType.VARIABLENUM] = ISDIRTY
 end
 
@@ -381,28 +418,10 @@ function Alliance:updateBaseInfo(info_)
 	self.baseInfo.giftExp = info_[8]
 	self.baseInfo.power = info_[9]
 	self.baseInfo.kill = info_[10]
-	self.baseInfo.joinState = band(info_[11], state.JOIN)
+	self.baseInfo.joinState = hp.common.band(info_[11], state.JOIN)
 	self.baseInfo.funds = info_[12]
-	self:calcGiftLevel()
+	self.baseInfo.giftLevel, self.baseInfo.giftCurLvExp, self.baseInfo.levelUpExp = Alliance.calcGiftLevel(info_[8])
 	self.dirty[dirtyType.BASEINFO] = ISDIRTY
-end
-
-function Alliance:calcGiftLevel()
-	local temp_ = nil
-	for i, v in ipairs(hp.gameDataLoader.getTable("unionGiftlv")) do
-		if self.baseInfo.giftExp >= v.exp then
-			self.baseInfo.giftLevel = i
-			temp_ = v
-			if i == table.getn(hp.gameDataLoader.getTable("unionGiftlv")) then
-				self.baseInfo.giftCurLvExp = 0
-				self.baseInfo.levelUpExp = 0
-			end
-		else
-			self.baseInfo.giftCurLvExp = self.baseInfo.giftExp - temp_.exp
-			self.baseInfo.levelUpExp = v.exp - temp_.exp
-			return
-		end
-	end
 end
 
 function Alliance:getBaseInfo()
@@ -417,12 +436,7 @@ end
 -- 成员信息
 -- 更新成员
 function Alliance:updateMember(info_)
-	self.members = {{},{},{},{},{}}
-	for i, v in ipairs(info_) do
-		local member_ = Member.new()
-		member_:init(v)
-		table.insert(self.members[member_:getRank()], member_)
-	end
+	self.members = Alliance.parseMemberList(info_)
 	self.dirty[dirtyType.MEMBER] = ISDIRTY
 end
 
@@ -448,6 +462,10 @@ function Alliance:getMemberByLocalID(id_)
 			end
 		end
 	end
+end
+
+function Alliance:getMembers()
+	return self.members
 end
 
 function Alliance:getMyUnionInfo()
@@ -571,7 +589,7 @@ end
 -- 排序小型作战
 function Alliance:sortSmallFight()
 	local function changePosition(a, b)
-		print("a,b",a,b)
+		cclog_("a,b",a,b)
 		local x, y = a, b
 		for i = a, table.getn(self.smallFight) do
 			if self.smallFight[i].state == 2 then
@@ -747,6 +765,7 @@ function Alliance.requestHelp(cdType_, sucCallBack_, failCallBack_)
 	cmdData.operation[1] = oper
 	local cmdSender = hp.httpCmdSender.new(onHelpResponse)
 	cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+	return cmdSender
 end
 
 -- 公会礼包
@@ -757,9 +776,28 @@ function Alliance:updateUnionGift(info_)
 		return
 	end
 
-	for i, v in ipairs(info_) do
-		local gift_ = Alliance:parseUnionGift(v)
-		self.unionGift[gift_.id] = gift_
+	-- for i, v in ipairs(info_) do
+	-- 	local gift_ = Alliance.parseUnionGift(v)
+	-- 	self.unionGift[gift_.id] = gift_
+	-- end
+
+	for n = 1, 2 do
+		-- for i,v in ipairs(info_) do
+		-- 倒序排列
+		for i = #info_, 1, -1 do
+			local v = info_[i]
+			if n == 1 then
+				if v[5] == 1 and v[3] > player.getServerTime() then
+					local gift_ = Alliance.parseUnionGift(v)
+					self.unionGift[#self.unionGift + 1] = gift_
+				end
+			else
+				if v[5] == 0 or v[3] < player.getServerTime() then
+					local gift_ = Alliance.parseUnionGift(v)
+					self.unionGift[#self.unionGift + 1] = gift_
+				end
+			end
+		end
 	end
 end
 
@@ -768,10 +806,18 @@ function Alliance:getUnionGift()
 end
 
 function Alliance:receiveGift(id_)
-	local giftInfo_ = hp.gameDataLoader.getInfoBySid("unionGift", self.unionGift[id_].sid)
+	local giftInfo_
+	local index
+	for i,v in ipairs(self.unionGift) do
+		if id_ == v.id then
+			giftInfo_ = hp.gameDataLoader.getInfoBySid("unionGift", v.sid)
+			index = i
+		end
+	end
 	self.baseInfo.giftExp = giftInfo_.exp + self.baseInfo.giftExp
-	self:calcGiftLevel()
-	self.unionGift[id_] = nil
+	self.baseInfo.giftLevel, self.baseInfo.giftCurLvExp, self.baseInfo.levelUpExp = Alliance.calcGiftLevel(self.baseInfo.giftExp)
+	-- self.unionGift[index] = nil
+	table.remove(self.unionGift, index)
 	self:changeHomePageInfo("gift", self.unionHomePageData.gift - 1)
 	hp.msgCenter.sendMsg(hp.MSG.UNION_RECEIVE_GIFT, id_)
 end
@@ -779,9 +825,12 @@ end
 -- 一些事件响应
 function Alliance:helpOneMember(index_)
 	self.baseInfo.funds = self.baseInfo.funds + HELPONCE
-	self.myUnionInfoBase.todayContri = self.myUnionInfoBase.todayContri + HELPONCE
-	if self.myUnionInfoBase.todayContri > TODAYUP then
+	local delta = HELPONCE
+	if self.myUnionInfoBase.todayContri + HELPONCE > TODAYUP then
+		delta = TODAYUP - self.myUnionInfoBase.todayContri
 		self.myUnionInfoBase.todayContri = TODAYUP
+	else
+		self.myUnionInfoBase.todayContri = self.myUnionInfoBase.todayContri + HELPONCE
 	end
 	table.remove(self.unionHelp, index_)
 	self.unionHomePageData.help = self.unionHomePageData.help - 1
@@ -799,18 +848,41 @@ end
 
 -- 数据解析
 -- ===========================
+function Alliance.calcGiftLevel(giftExp_)
+	local temp_ = nil
+	local giftLevel_ = 0
+	local giftCurLvExp_ = 0
+	local levelUpExp_ = 0
+	for i, v in ipairs(hp.gameDataLoader.getTable("unionGiftlv")) do
+		if giftExp_ >= v.exp then
+			giftLevel_ = i
+			temp_ = v
+			if i == table.getn(hp.gameDataLoader.getTable("unionGiftlv")) then
+				giftCurLvExp_ = 0
+				levelUpExp_ = 0
+			end
+		else
+			giftCurLvExp_ = giftExp_ - temp_.exp
+			levelUpExp_ = v.exp - temp_.exp
+			break			
+		end
+	end
+	return giftLevel_, giftCurLvExp_, levelUpExp_
+end
+
 function Alliance.parseUnionInfo(info_)
 	local union_ = {}
 	union_.id = info_[1]	-- 工会id
 	union_.number = info_[3]	-- 成员数量
-	union_.chairMan = info_[5]	-- 会长
+	union_.chairman = info_[5]	-- 会长
 	union_.notice = info_[7]	-- 公告
 	union_.icon = info_[6]	-- 图标
 	union_.name = info_[4]	-- 名称
-	union_.giftLevel = info_[8]	-- 礼包等级
+	union_.giftLevel, union_.giftCurLvExp, union_.levelUpExp = Alliance.calcGiftLevel(info_[8])	-- 礼包等级
 	union_.power = info_[9]	-- 战力
 	union_.kill = info_[10]		-- 杀敌
-	union_.join = band(info_[11], state.JOIN) -- 开启验证
+	union_.join = hp.common.band(info_[11], state.JOIN) -- 开启验证
+	union_.announce = info_[12]
 	return union_
 end
 
@@ -823,6 +895,7 @@ function Alliance.parsePlayerInfo(info_)
 	player_.icon = info_[6]	-- 图标
 	player_.sign = info_[7]
 	player_.kill = info_[8]
+	player_.power = info_[9]
 	return player_
 end
 
@@ -892,12 +965,61 @@ function Alliance.parseBigFight(info_)
 	return fight_
 end
 
-function Alliance:parseUnionGift(info_)
+function Alliance.parseUnionGift(info_)
 	gift_ = {}
 	gift_.id = info_[1]
 	gift_.sid = info_[2]
 	gift_.endTime = info_[3]
+	gift_.name = info_[4]
+	gift_.state = info_[5]
 	return gift_
+end
+
+function Alliance.parseUnionDetailInfo(info_)
+	union_ = {}
+	union_.kingTime = info_[1]
+	union_.killArmy = info_[2]
+	union_.killedArmy = info_[3]
+	union_.destroyTrap = info_[4]
+	union_.destroyCity = info_[5]
+	union_.battleWin = info_[6]
+	union_.battleFail = info_[7]
+	union_.captureHero = info_[8]
+	union_.killHero = info_[9]
+	union_.saveHero = info_[10]
+	union_.killedHero = info_[11]
+	union_.helpNum = info_[12]
+	union_.requestHelp = info_[13]
+	union_.openGift = info_[14]
+	union_.battleTimes = union_.battleFail + union_.battleWin
+	if union_.killedArmy == 0 then
+		union_.killArmyRate = 0
+	else
+		union_.killArmyRate = string.format("%.2f", union_.killArmy / union_.killedArmy)
+	end
+
+	if union_.battleTimes == 0 then
+		union_.winRate = 0
+	else
+		union_.winRate = string.format("%.2f", union_.battleWin / union_.battleTimes)
+	end
+
+	if union_.helpNum == 0 then
+		union_.helpRate = 0
+	else
+		union_.helpRate = string.format("%.2f", union_.requestHelp / union_.helpNum)
+	end
+	return union_
+end
+
+function Alliance.parseMemberList(info_)
+	local members = {{},{},{},{},{}}
+	for i, v in ipairs(info_) do
+		local member_ = Member.new()
+		member_:init(v)
+		table.insert(members[member_:getRank()], member_)
+	end
+	return members
 end
 
 -- 心跳处理

@@ -19,6 +19,7 @@ function UI_changeJoinState:init()
 	self:initUI()
 	self:changeSwitchState()
 	local uiFrame = UI_fullScreenFrame.new()
+	uiFrame:setTopShadePosY(888)
 	uiFrame:setTitle(hp.lang.getStrByID(5139))
 	-- addCCNode
 	-- ===============================
@@ -68,6 +69,7 @@ function UI_changeJoinState:initCallBack()
 			cmdData.operation[1] = oper
 			local cmdSender = hp.httpCmdSender.new(onSwitchResponse)
 			cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+			self:showLoading(cmdSender, sender)
 		end
 	end
 

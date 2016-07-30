@@ -23,7 +23,8 @@ function UI_gemEmbed:init(equip_, bagUI_)
 	-- ===============================
 	local uiFrame = UI_fullScreenFrame.new()
 	uiFrame:setTitle(hp.lang.getStrByID(3501))
-
+	uiFrame:setTopShadePosY(888)
+	uiFrame:setBottomShadePosY(224)
 	local widgetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "gemEmbed.json")
 	
 
@@ -114,7 +115,7 @@ function UI_gemEmbed:init(equip_, bagUI_)
 			gemBg:loadTexture(string.format("%scolorframe_%d.png", config.dirUI.common, gemInfo.level))
 			gemNoEmbed:setVisible(false)
 			gemImg:setVisible(true)
-			gemImg:loadTexture(string.format("%s%d.png", config.dirUI.gem, gemInfo.sid))
+			gemImg:loadTexture(string.format("%s%d.png", config.dirUI.gem, gemInfo.type))
 			gemLvBg:setVisible(true)
 			gemLv:setVisible(true)
 			gemLv:setString(gemInfo.level)
@@ -189,6 +190,10 @@ function UI_gemEmbed:init(equip_, bagUI_)
 	end
 
 
+	--btn
+	local contPanle = widgetRoot:getChildByName("Panel_cont")
+	local btnBreak = contPanle:getChildByName("Image_break")
+	local btnGetGem = contPanle:getChildByName("Image_get")
 	local function onHttpResponse(status, response, tag)
 		if status==200 then
 			local data = hp.httpParse(response)
@@ -211,11 +216,8 @@ function UI_gemEmbed:init(equip_, bagUI_)
 		cmdData.operation[1] = oper
 		local cmdSender = hp.httpCmdSender.new(onHttpResponse)
 		cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper, 1)
+		self:showLoading(cmdSender, btnBreak)
 	end
-	--btn
-	local contPanle = widgetRoot:getChildByName("Panel_cont")
-	local btnBreak = contPanle:getChildByName("Image_break")
-	local btnGetGem = contPanle:getChildByName("Image_get")
 	local function onBtnTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then

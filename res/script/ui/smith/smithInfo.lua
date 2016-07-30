@@ -1,6 +1,6 @@
 --
 -- ui/smith/smithInfo
--- ¶ÍÔì¸ü¶àĞÅÏ¢
+-- é”»é€ æ›´å¤šä¿¡æ¯
 --===================================
 require "ui/frame/popFrame"
 
@@ -22,12 +22,11 @@ function UI_smithInfo:init(building_)
 	
 	local ListView_info = wigetRoot:getChildByName("ListView_info")
 	
-	local contNode = ListView_info:getChildByName("Panel_cont")
-	local moreInfo = contNode:getChildByName("Label_moreInfo")
+	local moreInfo = ListView_info:getChildByName("Panel_desc"):getChildByName("Panel_cont"):getChildByName("Label_moreInfo")
 	moreInfo:setString(bInfo.moreDesc)
 	
 	
-	--µÚÒ»²¿·Ö
+	--ç¬¬ä¸€éƒ¨åˆ†
 	
 	local head = ListView_info:getChildByName("Panel_tittle")
 	local item1 = ListView_info:getChildByName("Panel_item1")
@@ -91,7 +90,7 @@ function UI_smithInfo:init(building_)
 	
 	
 	
-	--µÚ¶ş²¿·Ö
+	--ç¬¬äºŒéƒ¨åˆ†
 	
 	local addHead = head:clone()
 	addHead:getChildByName("Panel_cont"):getChildByName("Label_head"):setString(hp.lang.getStrByID(6203))

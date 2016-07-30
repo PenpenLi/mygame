@@ -51,8 +51,16 @@ function UI_marchNoHeroWarning:init(callBack_)
 		end
 	end
 
+	local function onAddHeroMarchTouched(sender, eventType)
+		hp.uiHelper.btnImgTouched(sender, eventType)
+		if eventType==TOUCH_EVENT_ENDED then
+			callBack_(true)
+			self:close()
+		end
+	end 
+
 	content_:getChildByName("Image_16"):addTouchEventListener(OnBtnCloseTouched)
-	cancel_:addTouchEventListener(OnBtnCloseTouched)
+	cancel_:addTouchEventListener(onAddHeroMarchTouched)
 	march_:addTouchEventListener(OnMarchTouched)
 
 	-- addCCNode

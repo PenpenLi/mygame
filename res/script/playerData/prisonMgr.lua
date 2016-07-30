@@ -50,11 +50,13 @@ local function decodeHeroData(data_)
 end
 
 -- decodeKillCD
-local function decodeKillCD(data_)
-	killCD.cd = data_[1]
-	killCD.total_cd = data_[2]
-	killCD.ownerID = data_[3]
-	killCD.id = data_[4]
+local function decodeKillCD(dataCd_, dataHero_)
+	killCD.cd = dataCd_[1]
+	killCD.total_cd = dataCd_[2]
+	if dataHero_ then
+		killCD.ownerID = dataHero_[1]
+		killCD.id = dataHero_[2]
+	end
 end
 
 -- onHttpResponse
@@ -79,7 +81,7 @@ local function onHttpResponse(status, response)
 			table.insert(heroList, decodeHeroData(v))
 		end
 		if data.cd~=nil then
-			decodeKillCD(data.cd)
+			decodeKillCD(data.cd, data.kill)
 		end
 		if data.surrender_cd~=nil then
 			induceCD = data.surrender_cd
@@ -112,6 +114,7 @@ local function onHttpResponse(status, response)
 		end
 	elseif oper.type==4 then
 	-- 招降一个英雄
+		induceCD = data.surrender_cd
 		if data.state==0 then
 		-- 招降成功
 			local heroInfo = nil
@@ -120,10 +123,19 @@ local function onHttpResponse(status, response)
 					heroInfo = v
 					table.remove(heroList, i)
 					hp.msgCenter.sendMsg(hp.MSG.PRISON_MGR, {type=2, hero=heroInfo})
+					break
 				end
 			end
 		else
-			hp.msgCenter.sendMsg(hp.MSG.PRISON_MGR, {type=4, hero=heroInfo})
+			local heroInfo = nil
+			for i, v in ipairs(heroList) do 
+				if oper.id==v.ownerID and oper.sid==v.id then
+					heroInfo = v
+					heroInfo.loyalty = data.loyalness
+					hp.msgCenter.sendMsg(hp.MSG.PRISON_MGR, {type=4, hero=heroInfo})
+					break
+				end
+			end
 		end
 
 		hp.msgCenter.sendMsg(hp.MSG.PRISON_MGR, {type=5})
@@ -143,7 +155,7 @@ local function sendHttpCmd(oper)
 	cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
 	curOper = oper
 
-	return true
+	return true, cmdSender
 end
 
 -- public function

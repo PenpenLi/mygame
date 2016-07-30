@@ -1,5 +1,5 @@
 宝石id	宝石名称	宝石类型	宝石等级	附加属性类型	属性数值(万分位)	下一等级ID
-						
+sid	name	gtype	level	key	value	nextSid
 sid	name	type	level	key	value	nextSid
 INT	STRING	INT	INT	INTS	INTS	INTS
 101	蓝宝石 Lv.1	1	1	1	200	102

@@ -148,11 +148,11 @@ function UI_unionBigFightDetail:onMsg(msg_, param_)
 	end
 end
 
-function UI_unionBigFightDetail:close()
+function UI_unionBigFightDetail:onRemove()
 	player.getAlliance():unPrepareData(dirtyType.BIGFIGHT, "UI_unionBigFightDetail")
 	self.item1:release()
 	self.item2:release()
-	self.super.close(self)
+	self.super.onRemove(self)
 end
 
 function UI_unionBigFightDetail:refreshShow()
@@ -205,7 +205,7 @@ end
 
 function UI_unionBigFightDetail:updateFight()
 	self.uiJoinNum:setString(string.format(hp.lang.getStrByID(5037), table.getn(self.fightInfo.members), self.fightInfo.info.num))
-	local percent_ = hp.common.round(self.fightInfo.power / self.fightInfo.info.power * 100)
+	local percent_ = self.fightInfo.power / self.fightInfo.info.power * 100
 	self.uiFightLoadingBar:setPercent(percent_)
 end
 
@@ -216,7 +216,7 @@ function UI_unionBigFightDetail:tickUpdateInfo()
 	end
 
 	self.uiCountTime:setString(hp.datetime.strTime(restTime_))
-	local percent_ = hp.common.round(100 - restTime_ / self.fightInfo.info.time * 100)
+	local percent_ = 100 - restTime_ / self.fightInfo.info.time * 100
 	self.uiLoadingBar:setPercent(percent_)
 end
 

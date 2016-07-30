@@ -20,7 +20,7 @@ function UI_research:init(researchType_, researchId_)
 	local researchInfo = researchMgr.getResearchNextLvInfo(researchId)
 
 	local buildLv = player.buildingMgr.getBuildingMaxLvBySid(1007)
-	local bInfo = game.getDataBySid("building", 1007)
+	local bInfo = hp.gameDataLoader.getInfoBySid("building", 1007)
 	local mustBuildComp = true
 	
 	--
@@ -35,14 +35,14 @@ function UI_research:init(researchType_, researchId_)
 			if data.result~=nil and data.result==0 then
 				-- 更新科技cd
 				if tag==1 then
-					cdBox.initCDInfo(cdBox.CDTYPE.RESEARCH, {data.cd, data.cd})
-				end
-				-- 消耗资源
-				for i,v in ipairs(researchInfo.costs) do
-					if v>0 then
-						player.expendResource(game.data.resType[i][1], v)
+					cdBox.initCDInfo(cdBox.CDTYPE.RESEARCH, {data.cd, data.cd, researchInfo.sid})-- 消耗资源
+					for i,v in ipairs(researchInfo.costs) do
+						if v>0 then
+							player.expendResource(game.data.resType[i][1], v)
+						end
 					end
 				end
+				
 				-- 添加技能
 				researchMgr.addResearch(researchInfo.sid)
 			end
@@ -70,12 +70,26 @@ function UI_research:init(researchType_, researchId_)
 	-- 时间
 	headCont:getChildByName("Label_oTimeName"):setString(hp.lang.getStrByID(2018))
 	headCont:getChildByName("Label_oTime"):setString(hp.datetime.strTime(researchInfo.cd))
+	local freeCD = player.helper.getFreeCD()
+	if freeCD>0 then
+		headCont:getChildByName("Label_vipName"):setString(hp.lang.getStrByID(2057))
+		headCont:getChildByName("Label_vipTime"):setString("-"..hp.datetime.strTime(freeCD))
+	else
+		headCont:getChildByName("Label_vipName"):setVisible(false)
+		headCont:getChildByName("Label_vipTime"):setVisible(false)
+	end
 	headCont:getChildByName("Label_rTimeName"):setString(hp.lang.getStrByID(2019))
-	local realCD = player.helper.getResearchRealCD(researchInfo.cd)
-	headCont:getChildByName("Label_rTime"):setString(hp.datetime.strTime(realCD))
+	local realTime = player.helper.getResearchRealCD(researchInfo.cd) - freeCD
+	if realTime<0 then
+		realTime = 0
+	end
+	headCont:getChildByName("Label_rTime"):setString(hp.datetime.strTime(realTime))
 	-- 升级
 	local btnNow = headCont:getChildByName("ImageView_now")
 	local btnUpgrade = headCont:getChildByName("ImageView_upgrade")
+	-- 升级特效
+	local upgradeEff = hp.uiEffect.innerGlow(btnUpgrade, 1)
+	
 	-- 请求加速队列
 	local function onSpeedQueue()
 		require("ui/item/speedItem")
@@ -130,6 +144,13 @@ function UI_research:init(researchType_, researchId_)
 	btnUpgrade:addTouchEventListener(onBtnTouched)
 	btnNow:getChildByName("Label_now"):setString(hp.lang.getStrByID(2701))
 	btnUpgrade:getChildByName("Label_upgrade"):setString(hp.lang.getStrByID(2702))
+	
+	-- 花费钻石
+	local function calcDiamondCost()
+		btnNow:getChildByName("ImageView_goldNum"):getChildByName("Label_num"):setString(player.quicklyMgr.getDiamondCost(researchInfo.costs, realTime))
+	end
+	calcDiamondCost()
+	self.calcDiamondCost = calcDiamondCost
 
 	-- list
 	----------
@@ -161,21 +182,58 @@ function UI_research:init(researchType_, researchId_)
 	end
 
 	-- 学院等级
+	local function goUpdateBuilding(sender, eventType)
+		hp.uiHelper.btnImgTouched(sender, eventType)
+		if eventType==TOUCH_EVENT_ENDED then
+			local building = game.curScene:getBuildingBySid(1007)
+			if building==nil then
+				require("ui/msgBox/msgBox")
+				local msgBox = UI_msgBox.new(hp.lang.getStrByID(1191), 
+					hp.lang.getStrByID(2060), 
+					hp.lang.getStrByID(1209)
+					)
+				self:addModalUI(msgBox)
+				return
+			else
+				require("ui/build_upgrade")
+				local ui = UI_buildUpgrade.new({type=2, building=building})
+				self:closeAll()
+				self:addUI(ui)
+				ui:moveIn(2, 0.2)
+			end
+		end
+	end
 	item = itemRes
 	itemCont = item:getChildByName("Panel_cont")
 	itemCont:getChildByName("ImageView_icon"):loadTexture(config.dirUI.common .. "building_icon.png")
 	itemCont:getChildByName("Label_desc"):setString(bInfo.name .. " " .. string.format(hp.lang.getStrByID(2017), researchInfo.buildLv))
 	itemCont:getChildByName("ImageView_buy"):setVisible(false)
 	itemCont:getChildByName("Label_buy"):setVisible(false)
-
-	if buildLv<researchInfo.buildLv then
-		itemCont:getChildByName("ImageView_isOK"):loadTexture(config.dirUI.common .. "wrong.png")
+	local okImg = itemCont:getChildByName("ImageView_isOK")
+	local upImg = itemCont:getChildByName("ImageView_buy")
+	local upText = itemCont:getChildByName("Label_buy")
+	if buildLv>=researchInfo.buildLv then
+		okImg:loadTexture(config.dirUI.common .. "right.png")
+		okImg:setVisible(true)
+		upImg:setVisible(false)
+		upText:setVisible(false)
+	else
+		okImg:setVisible(false)
+		upImg:setVisible(true)
+		upText:setVisible(true)
+		upImg:addTouchEventListener(goUpdateBuilding)
+		hp.uiEffect.innerGlow(upImg, 1)
+		upText:setString(hp.lang.getStrByID(2059))
 		self.disableNum = self.disableNum+1
 		mustBuildComp = false
-	else
-		itemCont:getChildByName("ImageView_isOK"):loadTexture(config.dirUI.common .. "right.png")
 	end
 	iIndex = iIndex+1
+	--判断是否应该加底背景
+	if iIndex%2==0 then
+		item:getChildByName("Panel_frame"):setVisible(false)
+	else
+		item:getChildByName("Panel_frame"):setVisible(true)
+	end
 
 	-- 前续科技
 	for i, sidMust in ipairs(researchInfo.mustSid) do
@@ -194,18 +252,28 @@ function UI_research:init(researchType_, researchId_)
 			itemCont:getChildByName("ImageView_buy"):setVisible(false)
 			itemCont:getChildByName("Label_buy"):setVisible(false)
 
+			local okImg = itemCont:getChildByName("ImageView_isOK")
+			okImg:setVisible(true)
 			if researchMgr.getResearchLv(idMust)<lvMust then
-				itemCont:getChildByName("ImageView_isOK"):loadTexture(config.dirUI.common .. "wrong.png")
+				okImg:loadTexture(config.dirUI.common .. "wrong.png")
 				self.disableNum = self.disableNum+1
 				mustBuildComp = false
 			else
-				itemCont:getChildByName("ImageView_isOK"):loadTexture(config.dirUI.common .. "right.png")
+				okImg:loadTexture(config.dirUI.common .. "right.png")
 			end
+
 			iIndex = iIndex+1
+			--判断是否应该加底背景
+			if iIndex%2==0 then
+				item:getChildByName("Panel_frame"):setVisible(false)
+			else
+				item:getChildByName("Panel_frame"):setVisible(true)
+			end
 		end
 	end
 
 	-- 资源需求
+	self.costItem = {}
 	local function onBuyBtnTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
@@ -235,13 +303,15 @@ function UI_research:init(researchType_, researchId_)
 			buyTxt:setVisible(true)
 			buyBtn:setTag(i-1)
 			buyBtn:addTouchEventListener(onBuyBtnTouched)
+			if not self.costItem[i].effFlag then
+			-- 如果没有添加特效，添加特效
+				hp.uiEffect.innerGlow(buyBtn, 1)
+				self.costItem[i].effFlag = true
+			end
 			buyTxt:setString(hp.lang.getStrByID(2028))
 		end
-
 		return false
 	end
-	self.costItem = {}
-	self.setCostItem = setCostItem
 	for i,v in ipairs(researchInfo.costs) do 
 		if v>0 then
 			if bFlag then
@@ -255,14 +325,22 @@ function UI_research:init(researchType_, researchId_)
 			self.costItem[i] = {}
 			self.costItem[i].item = item
 			self.costItem[i].disableFlag = false
+			self.costItem[i].effFlag = false
 			if setCostItem(item)==false then
 				self.costItem[i].disableFlag = true
 				self.disableNum = self.disableNum+1
 			end
 			
 			iIndex = iIndex+1
+			--判断是否应该加底背景
+			if iIndex%2==0 then
+				item:getChildByName("Panel_frame"):setVisible(false)
+			else
+				item:getChildByName("Panel_frame"):setVisible(true)
+			end
 		end
 	end
+	self.setCostItem = setCostItem
 
 	-- 建造 - 升级奖励
 	item = itemTitle:clone()
@@ -272,12 +350,14 @@ function UI_research:init(researchType_, researchId_)
 	upTitle:setString(hp.lang.getStrByID(2704))
 	-- 经验
 	local itemCont = itemAward:getChildByName("Panel_cont")
+	itemAward:getChildByName("Panel_frame"):setVisible(false)
 	itemCont:getChildByName("Label_desc"):setString(string.format(hp.lang.getStrByID(2031), researchInfo.addExp))
 	iIndex = iIndex+1
 	-- 战力
 	item = itemAward:clone()
 	listView:insertCustomItem(item, iIndex)
 	itemCont = item:getChildByName("Panel_cont")
+	item:getChildByName("Panel_frame"):setVisible(true)
 	itemCont:getChildByName("Label_desc"):setString(string.format(hp.lang.getStrByID(2032), researchInfo.point))
 	itemCont:getChildByName("ImageView_icon"):loadTexture(config.dirUI.common .. "attack_icon.png")
 	iIndex = iIndex+1
@@ -288,21 +368,26 @@ function UI_research:init(researchType_, researchId_)
 	local function onBtnMoreTouched(sender, eventType)  
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
+			require("ui/academy/techInfo")
+			local ui = UI_techInfo.new(researchId)
+			self:addModalUI(ui)
 		end
 	end
 	btnMore:addTouchEventListener(onBtnMoreTouched)
 
 	local function checkUpdateEnabled()
 		if self.disableNum<=0 or (self.disableNum==1 and cdBox.getCD(cdBox.CDTYPE.RESEARCH)>0)then
-			btnUpgrade:loadTexture(config.dirUI.common .. "button_green.png")
+			btnUpgrade:loadTexture(config.dirUI.common .. "button_yellow.png")
 			btnUpgrade:setTouchEnabled(true)
+			upgradeEff:setVisible(true)
 		else
 			btnUpgrade:loadTexture(config.dirUI.common .. "button_gray.png")
 			btnUpgrade:setTouchEnabled(false)
+			upgradeEff:setVisible(false)
 		end
 
 		if mustBuildComp == true then
-			btnNow:loadTexture(config.dirUI.common .. "button_blue.png")
+			btnNow:loadTexture(config.dirUI.common .. "button_green.png")
 			btnNow:setTouchEnabled(true)
 		else
 			btnNow:loadTexture(config.dirUI.common .. "button_gray.png")
@@ -350,6 +435,7 @@ function UI_research:onMsg(msg_, itemInfo_)
 				self.checkUpdateEnabled()
 			end
 		end
+		self.calcDiamondCost()
 	end
 end
 

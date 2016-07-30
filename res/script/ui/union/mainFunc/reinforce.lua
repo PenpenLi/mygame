@@ -11,6 +11,7 @@ function UI_reinforce:init(id_)
 	-- data
 	-- ===============================
 	self.member = player.getAlliance():getMemberByID(id_)
+	self.id = id_
 
 	-- call back
 	self:initCallBack()
@@ -25,17 +26,63 @@ function UI_reinforce:init(id_)
 	-- ===============================
 	self:addChildUI(popFrame)
 	self:addCCNode(self.widgetRoot)
+
+	self:requestData()
+end
+
+function UI_reinforce:requestData()
+	local function onHttpResponse(status, response, tag)
+		if status ~= 200 then
+			return
+		end
+
+		local data = hp.httpParse(response)
+		if data.result == 0 then
+			self.num = data.num
+			self.count = data.count
+			self.soldierNum:setString(string.format("%d/%d", data.num, data.count))
+		end
+	end
+	
+	local cmdData={operation={}}
+	local oper = {}
+	oper.channel = 6
+	oper.type = 11
+	oper.id = self.id
+	cmdData.operation[1] = oper
+	local cmdSender = hp.httpCmdSender.new(onHttpResponse)
+	cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+	self:showLoading(cmdSender)
 end
 
 function UI_reinforce:initCallBack()
 	local function onReinforceTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)		
 		if eventType == TOUCH_EVENT_ENDED then
-			print("aaa",self.member)
-			require "ui/march/march"			
-			if self.member ~=nil then
-				UI_march.openMarchUI(self, self.member:getPosition(), 6, 0)
+			local soldierNum_ = self.count - self.num
+
+			local function onConfirm1Touched()
+				local function callBack()
+					self:close()
+				end
+				require "ui/march/march"			
+				if self.member ~=nil then
+					UI_march.openMarchUI(self, self.member:getPosition(), globalData.MARCH_TYPE.REINFORCE, {maxNumber=soldierNum_, armyID=0}, callBack)
+				end
 			end
+
+			if soldierNum_ == 0 then
+				require "ui/common/successBox"
+	   			local box_ = UI_successBox.new(hp.lang.getStrByID(5460), hp.lang.getStrByID(5461), nil)
+	   			self:addModalUI(box_)
+			elseif player.getNewGuyGuard() ~= 0 then
+				require "ui/common/msgBoxRedBack"
+	   			local ui_ = UI_msgBoxRedBack.new(hp.lang.getStrByID(5143), hp.lang.getStrByID(5144), hp.lang.getStrByID(1209),
+	   				hp.lang.getStrByID(2412), onConfirm1Touched)
+	   			self:addModalUI(ui_)
+	   		else
+	   			onConfirm1Touched()
+	   		end
 		end
 	end
 

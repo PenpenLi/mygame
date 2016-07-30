@@ -25,6 +25,7 @@ function UI_unionIcon:init()
 	self:initUI()
 
 	local uiFrame = UI_fullScreenFrame.new()
+	uiFrame:setTopShadePosY(888)
 	uiFrame:setTitle(hp.lang.getStrByID(1800))
 	-- addCCNode
 	-- ===============================
@@ -117,7 +118,7 @@ function UI_unionIcon:initShow()
 	end
 end
 
-function UI_unionIcon:close()
+function UI_unionIcon:onRemove()
 	self.horContainer:release()
-	self.super.close(self)
+	self.super.onRemove(self)
 end

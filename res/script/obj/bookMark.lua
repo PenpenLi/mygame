@@ -23,7 +23,7 @@ function BookMark:ctor(info_)
 	self.position = {}
 	-- self.position.kx = 
 	-- self.position.kx = 
-	self.position.k = info_[2]
+	self.position.k = tonumber(info_[2])
 	self.position.x = info_[3]
 	self.position.y = info_[4]
 end

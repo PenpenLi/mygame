@@ -8,7 +8,7 @@ UI_manageAlliance = class("UI_manageAlliance", UI)
 
 -- 项目列表 1-公会邀请 2-屏蔽 3-屏蔽管理 4-权限 5-公会信息 6-改名
 -- 7-改描述 8-收人 9-图标 10-军队颜色 11-转让 12-解散 13-退出
-local imageList = {"alliance_35.png", "alliance_36.png", "alliance_37.png", "alliance_38.png", 
+local imageList = {"alliance_35.png", "alliance_50.png", "alliance_50.png", "alliance_38.png", 
 		"alliance_39.png", "alliance_40.png", "alliance_41.png", "alliance_42.png", "alliance_43.png",
 		"alliance_44.png", "alliance_45.png", "alliance_47.png", "alliance_47.png"}
 local nameIDList = {1829, 1830, 1831, 1832, 1833, 1834, 1835, 1836, 1837, 1838, 1839, 1840, 1841}
@@ -27,6 +27,8 @@ function UI_manageAlliance:init()
 	self:initUI()
 
 	local uiFrame = UI_fullScreenFrame.new()
+	uiFrame:hideTopBackground()
+	uiFrame:setTopShadePosY(888)
 	uiFrame:setTitle(hp.lang.getStrByID(5131))
 	-- addCCNode
 	-- ===============================
@@ -62,72 +64,54 @@ function UI_manageAlliance:initCallBack()
 			local tag_ = sender:getTag()		
 			if tag_ == 1 then
 				require "ui/union/invite/unionInviteMember"
-				ui_ = UI_unionInviteMember.new()
+				local ui_ = UI_unionInviteMember.new()
 				self:addUI(ui_)
 			elseif tag_ == 4 then
 				require "ui/union/manage/authorityView"
-				ui_ = UI_authorityView.new()
+				local ui_ = UI_authorityView.new()
 				self:addUI(ui_)
 			elseif tag_ == 5 then
+				require "ui/union/manage/unionInfo"
+				local ui_ = UI_unionInfo.new(player.getAlliance():getUnionID())
+				self:addUI(ui_)
 			elseif tag_ == 6 then
 				require "ui/union/manage/unionChangeName"
-				ui_ = UI_unionChangeName.new()
+				local ui_ = UI_unionChangeName.new()
 				self:addUI(ui_)				
 			elseif tag_ == 7 then
 				require "ui/union/manage/unionDesc"
-				ui_ = UI_unionDesc.new()
+				local ui_ = UI_unionDesc.new()
 				self:addUI(ui_)
 			elseif tag_ == 8 then
 				require "ui/union/manage/changeJoinState"
-				ui_ = UI_changeJoinState.new()
+				local ui_ = UI_changeJoinState.new()
 				self:addUI(ui_)
 			elseif tag_ == 9 then
 				require "ui/union/manage/changeUnionIcon"
-				ui_ = UI_changeUnionIcon.new()
+				local ui_ = UI_changeUnionIcon.new()
 				self:addUI(ui_)				
 			elseif tag_ == 10 then
 				require "ui/union/manage/changeColor"
-				ui_ = UI_changeColor.new()
+				local ui_ = UI_changeColor.new()
 				self:addUI(ui_)
 			elseif tag_ == 11 then
 				require "ui/union/manage/transferLeader"
-				ui_ = UI_transferLeader.new()
+				local ui_ = UI_transferLeader.new()
 				self:addUI(ui_)
 			elseif tag_ == 12 then
 				require "ui/union/manage/disbandUnion"
-				ui_ = UI_disbandUnion.new()
+				local ui_ = UI_disbandUnion.new()
 				self:addUI(ui_)
 			elseif tag_ == 13 then
 				require "ui/union/manage/leaveUnion"
-				ui_ = UI_leaveUnion.new()
+				local ui_ = UI_leaveUnion.new()
 				self:addModalUI(ui_)
 			end
-			print("tag:",tag_)
+			cclog_("tag:",tag_)
 		end
 	end
 
 	self.onItemTouched = onItemTouched
-end
-
-function UI_manageAlliance:exitUnion()
-	local function onExitResponse(status, response, tag)
-		if status ~= 200 then
-			return
-		end
-
-		local data = hp.httpParse(response)
-		if data.result == 0 then
-			self:closeAll()
-		end
-	end
-
-	local cmdData={operation={}}
-	local oper = {}
-	oper.channel = 16
-	oper.type = 4
-	cmdData.operation[1] = oper
-	local cmdSender = hp.httpCmdSender.new(onExitResponse)
-	cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
 end
 
 function UI_manageAlliance:initShow()
@@ -146,7 +130,7 @@ function UI_manageAlliance:initShow()
 	end
 end
 
-function UI_manageAlliance:close()
+function UI_manageAlliance:onRemove()
 	self.uiItem:release()
-	self.super.close(self)
+	self.super.onRemove(self)
 end

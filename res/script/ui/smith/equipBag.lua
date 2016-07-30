@@ -27,6 +27,7 @@ function UI_equipBag:init()
 	-- ===============================
 	local uiFrame = UI_fullScreenFrame.new()
 	uiFrame:setTitle(hp.lang.getStrByID(3303))
+	uiFrame:setTopShadePosY(888)
 	local wigetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "equipBag.json")
 	
 	-- addCCNode
@@ -50,17 +51,17 @@ function UI_equipBag:init()
 	listNode:removeAllItems()
 
 	--设置装备信息
-	local lineNode_sed = nil
-	local bagNode_sed = nil
-	local equipNode_sed = nil
-	local equipid_sed = nil
+	local equipid_sed = nil --选择装备
+	local lineNode_sed = nil --选择装备所在行
+	local bagNode_sed = nil --选择装备的背包节点, 显示装备
+	local equipNode_sed = nil --选择装备的装备节点，显示宝石
 	local function onEquipTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			equipid_sed = sender:getTag()
-			equipNode_sed = sender:getParent()
-			lineNode_sed = equipNode_sed:getParent()
-			bagNode_sed = lineNode_sed:getChildByTag(equipid_sed)
+			bagNode_sed = sender:getParent()
+			lineNode_sed = bagNode_sed:getParent()
+			equipNode_sed = lineNode_sed:getChildByTag(equipid_sed)
 
 			require("ui/smith/gemEmbed")
 			local ui = UI_gemEmbed.new( equipBag.getEquipById(equipid_sed), self)
@@ -69,18 +70,19 @@ function UI_equipBag:init()
 	end
 	local function setEquipInfo(bagNode, equipNode, equip)
 		local colorBg = bagNode:getChildByName("Image_bg")
-		local equipImg = equipNode:getChildByName("Image_equip")
+		local equipImg = bagNode:getChildByName("Image_equip")
 		colorBg:loadTexture(string.format("%scolorframe_%d.png", config.dirUI.common, equip.lv))
 		equipImg:loadTexture(string.format("%s%d.png", config.dirUI.equip, equip.sid))
 		equipImg:setTag(equip.id)
-		bagNode:setTag(equip.id)
+		equipNode:setTag(equip.id)
 		equipImg:addTouchEventListener(onEquipTouched)
 
 		for i,v in ipairs(equip.gems) do
 			if v>0 then
 				local gemImg = equipNode:getChildByName("Image_gem" .. i)
 				gemImg:setVisible(true)
-				gemImg:loadTexture(string.format("%s%d.png", config.dirUI.gem, v))
+				local gemInfo = hp.gameDataLoader.getInfoBySid("gem", v)
+				gemImg:loadTexture(string.format("%s%d.png", config.dirUI.gem, gemInfo.type))
 			else
 				equipNode:getChildByName("Image_gem" .. i):setVisible(false)
 			end
@@ -158,7 +160,7 @@ function UI_equipBag:init()
 		equipBag.extendSize(lineNum)
 	end
 	local function canExtend()
-		print(equipBag.getSize(), equipBag.getMaxSize() )
+		cclog_(equipBag.getSize(), equipBag.getMaxSize() )
 		if equipBag.getSize()<equipBag.getMaxSize() then
 			return true
 		end

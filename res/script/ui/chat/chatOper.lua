@@ -49,5 +49,6 @@ function UI_chatOper:init(chatInfo_)
 
 	btnCopy:getChildByName("Label_text"):setString(hp.lang.getStrByID(3602))
 	btnMore:getChildByName("Label_text"):setString(chatInfo_.srcName)
+	btnMore:getChildByName("Image_headIcon"):loadTexture(config.dirUI.heroHeadpic .. chatInfo_.srcIcon .. ".png")
 	btnCancle:getChildByName("Label_text"):setString(hp.lang.getStrByID(2412))
 end

@@ -12,14 +12,16 @@ local availableImage = "button_blue.png"
 function UI_questDetail:init(questID_)
 	-- data
 	-- ===============================
-	print("questID_",questID_)
+	cclog_("questID_",questID_)
 	self.questInfo = hp.gameDataLoader.getInfoBySid("quests", questID_)
+	self.questID = questID_
 
 	-- ui
 	-- ===============================
 	self:initUI()	
 
 	local uiFrame = UI_fullScreenFrame.new()
+	uiFrame:setTopShadePosY(888)
 	uiFrame:setTitle(hp.lang.getStrByID(1411))
 	-- addCCNode
 	-- ===============================
@@ -27,36 +29,18 @@ function UI_questDetail:init(questID_)
 	self:addCCNode(self.wigetRoot)
 
 	-- call back
-	local function OnCollectResponse(status, response, tag)
-		if status ~= 200 then
-			return
-		end
-
-		local data = hp.httpParse(response)
-		if data.result == 0 then
-			hp.msgCenter.sendMsg(hp.MSG.MISSION_COMPLETE, questID_)
-			self:close()
-		end
-	end
-
 	local function OnCollectTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			local cmdData={operation={}}
-			local oper = {}
-			oper.channel = 2
-			oper.type = 1
-			oper.sid = questID_
-			cmdData.operation[1] = oper
-			local cmdSender = hp.httpCmdSender.new(OnCollectResponse)
-			cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+			self:showLoading(player.questManager.httpReqCollectEmpireReward(questID_), sender)
 		end
 	end
 
 	self.collect:addTouchEventListener(OnCollectTouched)
 
 	-- 消息注册
-	self:registMsg(hp.MSG.MISSION_MAIN_STATUS_CHANGE)
+	self:registMsg(hp.MSG.MISSION_COMPLETE)
+	self:registMsg(hp.MSG.MISSION_COLLECT)
 end
 
 -- 初始化UI
@@ -72,48 +56,100 @@ function UI_questDetail:initUI()
 	local oneReward = listView:getChildByName("Panel_18671"):clone()
 
 	-- 图片
-	if self.questInfo.type == 1 then
-		if self.questInfo.parameter1 == 1001 then
-			content:getChildByName("ImageView_18662"):loadTexture(config.dirUI.building.."fudi_icon.png")
-		elseif self.questInfo.parameter1 == 1018 then
-			content:getChildByName("ImageView_18662"):loadTexture(config.dirUI.building.."wall_icon.png")
-		else
-			local buildInfo_ = hp.gameDataLoader.multiConditionSearch("upgrade", {{"buildSid", self.questInfo.parameter1}, {"level", self.questInfo.parameter2}})
-			content:getChildByName("ImageView_18662"):loadTexture(config.dirUI.building..buildInfo_.img)
-		end
-	end
+	content:getChildByName("ImageView_18662"):loadTexture(config.dirUI.quest..self.questInfo.image)
 
 	listView:removeLastItem()
 
+	local index_ = 1
 	for j, w in ipairs(self.questInfo.reward) do
 		local rewardInfo_ = hp.gameDataLoader.getInfoBySid("rewards", w)
-		for i, v in ipairs(rewardInfo_.resource) do
-			local resourceInfo_ = hp.gameDataLoader.getInfoBySid("resInfo", i)
-			local cloneReward_ = oneReward:clone()
-			cloneReward_:getChildByName("Panel_20378"):getChildByName("ImageView_20379"):loadTexture(config.dirUI.common..resourceInfo_.image)
-			cloneReward_:getChildByName("Panel_20378"):getChildByName("Label_20380"):setString(resourceInfo_.name..": "..v)
+		-- 道具
+		for i, v in ipairs(rewardInfo_.item) do
+			if v ~= -1 then
+				local itemInfo_ = hp.gameDataLoader.getInfoBySid("item", v)
+				local cloneReward_ = oneReward:clone()
+				cloneReward_:getChildByName("Panel_20378"):getChildByName("ImageView_20379"):loadTexture(config.dirUI.item..v..".png")
+				cloneReward_:getChildByName("Panel_20378"):getChildByName("Label_20380"):setString(itemInfo_.name..": "..rewardInfo_.num[i])
 
-			if i % 2 == 0 then
-				cloneReward_:getChildByName("Panel_20377"):getChildByName("ImageView_20382"):setVisible(false)
+				if index_ % 2 == 0 then
+					cloneReward_:getChildByName("Panel_20377"):getChildByName("ImageView_20382"):setVisible(false)
+				end
+				listView:pushBackCustomItem(cloneReward_)
+				index_ = index_ + 1
 			end
-			listView:pushBackCustomItem(cloneReward_)
+		end
+
+		-- 资源
+		for i, v in ipairs(rewardInfo_.resource) do
+			if v ~= 0 then
+				local resourceInfo_ = hp.gameDataLoader.getInfoBySid("resInfo", i)
+				local cloneReward_ = oneReward:clone()
+				cloneReward_:getChildByName("Panel_20378"):getChildByName("ImageView_20379"):loadTexture(config.dirUI.common..resourceInfo_.image)
+				cloneReward_:getChildByName("Panel_20378"):getChildByName("Label_20380"):setString(resourceInfo_.name..": "..v)
+
+				if index_ % 2 == 0 then
+					cloneReward_:getChildByName("Panel_20377"):getChildByName("ImageView_20382"):setVisible(false)
+				end
+				listView:pushBackCustomItem(cloneReward_)
+				index_ = index_ + 1
+			end
 		end
 	end
 
 	self.collect = content:getChildByName("Panel_23185"):getChildByName("ImageView_20396")
 	self.collect:getChildByName("Label_20397"):setString(hp.lang.getStrByID(1413))
 	self:changeRewardStatus()
+
+	-- add by huangwei 任务指引
+	local function questGuide(sender, eventType)
+		hp.uiHelper.btnImgTouched(sender, eventType)
+		if eventType == TOUCH_EVENT_ENDED then
+			local buildingId = self.questInfo.parameter1
+			local buidingInfo = hp.gameDataLoader.getInfoBySid("building", buildingId)
+			local questType = self.questInfo.showtype
+			self:closeAll()
+			if questType == 1 then
+				local buiding = game.curScene:getBuildingBySid(buildingId)
+				if buiding == nil then
+					self:closeAll()
+				else
+					buiding:Scroll2Here(0.5)
+					buiding:addGuide()
+				end
+			elseif questType == 2 then
+				local buiding = game.curScene:getBlock(buidingInfo.type)
+				buiding:Scroll2Here(0.5)
+				buiding:addGuide()
+			end
+		end
+	end
+
+	local guideBtn = content:getChildByName("Image_guide")
+	local btnText = content:getChildByName("Label_guideText")
+	-- 非主线任务
+	if self.questInfo.type ~= 1 then
+		guideBtn:setVisible(false)
+		btnText:setVisible(false)
+		guideBtn:setTouchEnabled(false)
+	else
+		guideBtn:addTouchEventListener(questGuide)
+		btnText:setString(hp.lang.getStrByID(1223))
+	end
 end
 
 function UI_questDetail:changeRewardStatus()
-	if player.isRewardCollectable(self.questInfo.sid) then
+	if player.questManager.isRewardCollectable(self.questInfo.sid) then
 		self.collect:loadTexture(config.dirUI.common..availableImage)
 		self.collect:setTouchEnabled(true)
 	end
 end
 
-function UI_questDetail:onMsg(msg_, parm_)
-	if msg_ == hp.MSG.MISSION_MAIN_STATUS_CHANGE then
-		self:changeRewardStatus(parm_)
+function UI_questDetail:onMsg(msg_, param_)
+	if msg_ == hp.MSG.MISSION_COMPLETE then
+		self:changeRewardStatus()
+	elseif msg_ == hp.MSG.MISSION_COLLECT then
+		if param_ == self.questID then
+			self:close()
+		end
 	end
 end

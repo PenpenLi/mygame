@@ -28,6 +28,8 @@ function UI_vip:init()
 	-- ===============================
 	local uiFrame = UI_fullScreenFrame.new()
 	uiFrame:setTitle("VIP")
+	uiFrame:setBgImg(config.dirUI.common .. "frame_bg1.png")
+	uiFrame:setTopShadePosY(888)
 	local wigetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "vip.json")
 
 
@@ -38,7 +40,9 @@ function UI_vip:init()
 
 	--
 	-- ===============================
-	local listInfoNode = wigetRoot:getChildByName("ListView_vip"):getChildByName("Panel_info")
+	local listView = wigetRoot:getChildByName("ListView_vip")
+	listView:setClippingType(1)
+	local listInfoNode = listView:getChildByName("Panel_info")
 	-- head
 	local headFrame = listInfoNode:getChildByName("Panel_headFrame")
 	local headCont = listInfoNode:getChildByName("Panel_headCont")
@@ -55,7 +59,6 @@ function UI_vip:init()
 	local function setProgress()
 		local curPointNode = headCont:getChildByName("Image_p")
 		local processNode = headFrame:getChildByName("ProgressBar_vip")
-		local breakNode = headFrame:getChildByName("Image_break")
 
 		local curLv = vipStatus.getLv()
 		local curPoints = vipStatus.getPoints()
@@ -68,8 +71,6 @@ function UI_vip:init()
 
 		local px,py = curPointNode:getPosition()
 		curPointNode:setPosition(curPos, py)
-		px,py = breakNode:getPosition()
-		breakNode:setPosition(curPos, py)
 		processNode:setPercent((curPos-lvPos[1])*100/(lvPos[10]-lvPos[1]))
 		curPointNode:getChildByName("Label_num"):setString("(" .. curPoints .. ")")
 	end
@@ -80,6 +81,21 @@ function UI_vip:init()
 	-- 获取积分、激活VIP
 	local getBtn = viewNode:getChildByName("Image_getPoints")
 	local activeBtn = viewNode:getChildByName("Image_vipOn")
+	
+	--激活VIP按钮闪光
+	local light = inLight(activeBtn:getVirtualRenderer(),1)
+	activeBtn:addChild(light)
+	
+	local function checkVipActive()
+		if player.vipStatus.isActive() then
+			light:setVisible(false)
+		else
+			light:setVisible(true)
+		end
+	end
+	self.checkVipActive = checkVipActive
+	checkVipActive()
+	
 	local function onBtnTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
@@ -138,20 +154,18 @@ function UI_vip:init()
 	function setAttrPoint()
 		local curLv = vipStatus.getLv()
 		local curPoints = vipStatus.getPoints()
-		local nextVIPInfo = getVIPInfoByLv(curLv+1)
 		lvLable:setString(curLv)
 		ptLable:setString(string.format(hp.lang.getStrByID(3711), curPoints))
-		if nextVIPInfo~=nil then
-			ptrLable:setString(string.format(hp.lang.getStrByID(3711), nextVIPInfo.points-curPoints))
-		else
-			ptrLable:setString("")
-		end
+		ptrLable:setString(string.format(hp.lang.getStrByID(3711), 100+vipStatus.getStreakDay()*10))
 	end
 	setAttrTime()
 	setAttrPoint()
 	streakLabel:setString(string.format(hp.lang.getStrByID(3712), vipStatus.getStreakDay()))
-	attrNode:getChildByName("Label_desc1"):setString(hp.lang.getStrByID(3713))
-	attrNode:getChildByName("Label_desc2"):setString(hp.lang.getStrByID(3714))
+
+	-- 描述
+	local descNode = listInfoNode:getChildByName("Panel_desc")
+	descNode:getChildByName("Label_desc1"):setString(hp.lang.getStrByID(3713))
+	descNode:getChildByName("Label_desc2"):setString(hp.lang.getStrByID(3714))
 
 
 	self.setProgress = setProgress
@@ -169,6 +183,7 @@ function UI_vip:onMsg(msg_, param_)
 			self.setProgress()
 			self.setAttrPoint()
 			self.setVIPIcon()
+			self.checkVipActive()
 		end
 	end
 end

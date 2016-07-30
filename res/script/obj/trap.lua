@@ -29,3 +29,7 @@ end
 function Trap:getTrapSid()
 	return self.sid
 end
+
+function Trap:setTrapNumber(num_)
+	self.num = num_
+end

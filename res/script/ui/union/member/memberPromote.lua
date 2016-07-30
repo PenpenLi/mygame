@@ -120,6 +120,7 @@ function UI_memberPromote:initCallBack()
 			cmdData.operation[1] = oper
 			local cmdSender = hp.httpCmdSender.new(onChangeResponse)
 			cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper, tag_)
+			self:showLoading(cmdSender, sender)
 		end
 	end
 
@@ -138,7 +139,7 @@ function UI_memberPromote:initCallBack()
 end
 
 function UI_memberPromote:refreshChoose(index_)
-	print("index_", index_)
+	cclog_("index_", index_)
 	for i, v in ipairs(self.uiItem) do
 		if index_ == v:getTag() then
 			v:setVisible(true)

@@ -68,8 +68,9 @@ function UI_famousHero:init(bInfo)
 	local moreInfo = wigetRoot:getChildByName("Panel_cont"):getChildByName("btn_moreInfo")
 	moreInfo:getChildByName("Label_moreInfo"):setString(hp.lang.getStrByID(6005))
 
-	
-	
+	local noHeroTip = wigetRoot:getChildByName("Panel_cont"):getChildByName("Label_tip")
+	noHeroTip:setString(hp.lang.getStrByID(6046))
+	noHeroTip:setVisible(false)
 	
 	
 	
@@ -77,7 +78,7 @@ function UI_famousHero:init(bInfo)
 	local function moreInfoMemuItemOnTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			--print("moreInfoMemuItemOnTouched")
+			--cclog_("moreInfoMemuItemOnTouched")
 			require "ui/takeInHeroRoom/moreInfo"
 			local moreInfoBox = UI_moreInfoBox.new(bInfo)
 			self:addModalUI(moreInfoBox)
@@ -129,7 +130,7 @@ function UI_famousHero:init(bInfo)
 		oper.channel = 15
 		oper.type = 6
 		oper.sid = HeroSid
-		--print(myAuction.sid .. "ppppppppppppppppppp")
+		--cclog_(myAuction.sid .. "ppppppppppppppppppp")
 		oper.price = price
 		cmdData.operation[1] = oper
 		local cmdSender = hp.httpCmdSender.new(onBuyHeroHttpResponse)
@@ -150,7 +151,7 @@ function UI_famousHero:init(bInfo)
 		end
 		
 		onBuyHero( curPri )
-		--print("use " .. curPri .. " price buy .....................................!!!!!!!")
+		--cclog_("use " .. curPri .. " price buy .....................................!!!!!!!")
 		
 	end
 
@@ -176,8 +177,7 @@ function UI_famousHero:init(bInfo)
 			--金币不足
 			if player.getResource("gold") < heroInfo.highPrice then
 			
-				msgbox = UI_msgBox.new(msgTips,hp.lang.getStrByID(6031),msgIs)
-				UI_famousHeroSelf:addModalUI(msgbox)
+				UI_msgBox.showCommonMsg(self, 1)
 				
 			elseif myAuction.price > 0 then
 			--已经竞拍此英雄
@@ -275,8 +275,6 @@ function UI_famousHero:init(bInfo)
 		img_farmBlackBg:getChildByName("Label_inGoldAuction"):
 			setString(string.format(hp.lang.getStrByID(6024),myAuction.price))
 			
-		img_farmBlackBg:getChildByName("Label_inTimeAuction"):
-			setString(string.format(hp.lang.getStrByID(6025),hp.datetime.strTime(hasTime)))
 		--显示出来
 		img_farmBlackBg:setEnabled(true)
 		img_farmBlackBg:setVisible(true)
@@ -301,12 +299,17 @@ function UI_famousHero:init(bInfo)
 	--添加项
 	local function addFamousHeroList(listData)
 		--从后面删除 只留一个表头
-		for i=#timeTable, 1, -1  do
+		for i=#self.timeTable, 1, -1  do
 			ListView_hero:removeItem(i)
 		end
+		self.timeTable = {}
 		
+		if (#listData<=0) then 
+			noHeroTip:setVisible(true)
+			return
+		end
+
 		--遍历 
-		timeTable = {}
 		for i, v in ipairs(listData) do
 			
 			local timeNode = {}
@@ -340,7 +343,7 @@ function UI_famousHero:init(bInfo)
 			local btn_auction = cont:getChildByName("btn_auction")
 			timeNode.btnNode = btn_auction:getChildByName("Label_time")
 			timeNode.btnNode:setString(hp.datetime.strTime(timeNode.time))
-			table.insert(timeTable, timeNode)
+			table.insert(self.timeTable, timeNode)
 
 			
 			
@@ -349,7 +352,7 @@ function UI_famousHero:init(bInfo)
 			fastGet:setTag(heroInfo.sid)
 			fastGet:addTouchEventListener(btn_fastGet_callback)
 			--直接获得英雄消耗钻石
-			fastGet:getChildByName("Label_gold"):setString(heroInfo.highPrice..hp.lang.getStrByID(6018))
+			fastGet:getChildByName("Label_gold"):setString(heroInfo.highPrice)
 
 			
 			btn_auction:setTag(heroInfo.sid)
@@ -379,7 +382,7 @@ function UI_famousHero:init(bInfo)
 		cmdData.operation[1] = oper
 		local cmdSender = hp.httpCmdSender.new(callBackFunc)
 		cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
-		--print("send...................................................ok")
+		--cclog_("send...................................................ok")
 	end
 
 	self.GetHeroDataList = GetHeroDataList
@@ -405,10 +408,6 @@ function UI_famousHero:init(bInfo)
 					myAuction.price = 0
 				end
 				
-				
-				
-				
-				
 			end
 		end
 	end
@@ -430,21 +429,15 @@ function UI_famousHero:init(bInfo)
 	
 	
 	local function timeCallback(dt)
-		for i,v in ipairs(timeTable) do
-			v.time = v.time - dt
-			
-			if myAuction.price > 0 then
-				if myAuction.sid == v.sid and v.framNode ~= nil then
-					v.framNode:setString(string.format(hp.lang.getStrByID(6025),hp.datetime.strTime(v.time)))
+		if #self.timeTable>0 then
+			for i,v in ipairs(self.timeTable) do	
+				if (v~=nil and v.btnNode ~= nil and v.time>=0) then
+					v.time = v.time - dt
+					--cclog_ (v.time .. "sssssssssssssssssssssstime")
+					v.btnNode:setString( hp.datetime.strTime(v.time) )
 				end
 			end
-			
-			if v.btnNode ~= nil then
-				--print (v.time .. "sssssssssssssssssssssstime")
-				v.btnNode:setString( hp.datetime.strTime(v.time) )
-			end
 		end
-	
 	end
 	self.timeCallback = timeCallback
 	
@@ -452,11 +445,6 @@ function UI_famousHero:init(bInfo)
 	
 
 end
-
-
-
-
-
 
 
 
@@ -477,6 +465,10 @@ function UI_famousHero:onMsg(msg_, parm_)
 		self.GetHeroDataList(self.initHeroListHttpResponse)
 		
 	end
+end
+
+function UI_famousHero:onRemove()
+	self.super.onRemove(self)
 end
 	
 

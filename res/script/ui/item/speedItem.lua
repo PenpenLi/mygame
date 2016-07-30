@@ -14,14 +14,14 @@ function UI_speedItem:init(cdType_)
 	-- data
 	-- ===============================
 	self.cdType = cdType_
-	local canFree = cdBox.canFreeSpeed(cdType_)
+	local canFree = false--cdBox.canFreeSpeed(cdType_)
 
 
 	-- ui
 	-- ===============================
 	local uiFrame = UI_fullScreenFrame.new()
 	uiFrame:setTitle(hp.lang.getStrByID(3120+cdType_))
-
+	uiFrame:setTopShadePosY(844)
 	local rootWidget = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "speedItem.json")
 
 	-- addCCNode
@@ -100,8 +100,6 @@ function UI_speedItem:init(cdType_)
 		if percent<1 then
 			percent = 1
 		end
-		progress:setPercent(percent)
-		progressTxt:setString(hp.datetime.strTime(cdInfo.cd))
 
 		if canFree then
 			if not freeOK then
@@ -109,14 +107,18 @@ function UI_speedItem:init(cdType_)
 				if cdInfo.cd>freeCD then
 					freeDesc:setString(string.format(hp.lang.getStrByID(3146), hp.datetime.strTime(cdInfo.cd-freeCD)))
 				else
-					freeDesc:setString(hp.lang.getStrByID(3147))
-					lockImg:setVisible(false)
-					useLabel:setVisible(true)
-					freeBtn:addTouchEventListener(onFreeBtnTouched)
-					freeOK = true
+					-- freeDesc:setString(hp.lang.getStrByID(3147))
+					-- lockImg:setVisible(false)
+					-- useLabel:setVisible(true)
+					-- freeBtn:addTouchEventListener(onFreeBtnTouched)
+					-- freeOK = true
+					-- progress:loadTexture(config.dirUI.common .. "progress_purple.png")
 				end
 			end
 		end
+
+		progress:setPercent(percent)
+		progressTxt:setString(hp.datetime.strTime(cdInfo.cd))
 	end
 	setCDInfo()
 	self.setCDInfo = setCDInfo
@@ -134,6 +136,11 @@ function UI_speedItem:init(cdType_)
 	--
 	-- registMsg
 	self:registMsg(hp.MSG.ITEM_CHANGED)
+
+
+	-- 进行新手引导绑定
+	-- =========================================
+	self:registMsg(hp.MSG.GUIDE_STEP)
 end
 
 
@@ -148,7 +155,9 @@ end
 
 -- onMsg
 function UI_speedItem:onMsg(msg_, itemInfo_)
-	if msg_==hp.MSG.ITEM_CHANGED then
+	if msg_==hp.MSG.GUIDE_STEP then
+		self.bindGuideUI(itemInfo_)
+	elseif msg_==hp.MSG.ITEM_CHANGED then
 		local itemNode = self.itemList:getChildByTag(itemInfo_.sid)
 		if itemNode~=nil then
 			local itemInfo = hp.gameDataLoader.getInfoBySid("item", itemInfo_.sid)
@@ -158,10 +167,11 @@ function UI_speedItem:onMsg(msg_, itemInfo_)
 			itemCont:getChildByName("Label_num"):setString(strNum)
 			if itemInfo_.num<=0 then
 				if itemCanSold(itemInfo.sid) then
-					local buyNode = operBtn:getChildByName("Panel_buy")
-					buyNode:getChildByName("Label_num"):setString(itemInfo.sale)
-					buyNode:setVisible(true)
-					operBtn:getChildByName("Panel_use"):setVisible(false)
+					-- local buyNode = operBtn:getChildByName("Panel_buy")
+					-- buyNode:getChildByName("Label_num"):setString(itemInfo.sale)
+					-- buyNode:setVisible(true)
+					-- operBtn:getChildByName("Panel_use"):setVisible(false)
+					self:updateItemList()
 				else
 					self.itemList:removeItem(self.itemList:getIndex(itemNode))
 				end
@@ -185,12 +195,9 @@ end
 
 
 function UI_speedItem:updateItemList()
-	local cdType = self.cdType
-	local itemList = self.itemList
-	local descItem = self.descItem
-	local itemTemp = nil
-
 	-- 更新列表
+	self.itemList:removeAllItems()
+	
 	self.loadingFinished = false
 	self.loadingIndex = 0 --已经加载的索引
 	self:pushLoadingItem(999)
@@ -242,11 +249,19 @@ function UI_speedItem:pushLoadingItem(loadingNumOnce)
 				if tag==1 then
 				-- 购买使用
 					player.expendResource("gold", operItemInfo.sale)
+					-- edit by huangwei
+					Scene.showMsg({3001, getItemInfoBySid(operItemInfo.sid).name, 1})
+					-- edit by huangwei end
 				elseif tag==2 then
 				-- 使用
 					player.expendItem(operItemInfo.sid, 1) --消耗道具
+					-- edit by huangwei
+					Scene.showMsg({3000, getItemInfoBySid(operItemInfo.sid).name, 1})
+					-- edit by huangwei end
 				end
 				cdBox.setCD(self.cdType, data.cd)
+
+				player.guide.stepEx({6004})
 			end
 		end
 
@@ -269,12 +284,7 @@ function UI_speedItem:pushLoadingItem(loadingNumOnce)
 				if player.getResource("gold")<itemInfo.sale then
 					-- 金币不够
 					require("ui/msgBox/msgBox")
-					local msgBox = UI_msgBox.new(hp.lang.getStrByID(2826), 
-						hp.lang.getStrByID(2827), 
-						hp.lang.getStrByID(1209), 
-						hp.lang.getStrByID(2412)
-						)
-					self:addModalUI(msgBox)
+					UI_msgBox.showCommonMsg(self, 1)
 					return
 				end
 
@@ -308,6 +318,7 @@ function UI_speedItem:pushLoadingItem(loadingNumOnce)
 		end
 	end
 
+	local guideItemBtn = nil
 	-- 设置一项的显示
 	local function setItemInfo(itemNode, itemInfo)
 		local itemCont = itemNode:getChildByName("Panel_cont")
@@ -333,6 +344,9 @@ function UI_speedItem:pushLoadingItem(loadingNumOnce)
 		operBtn:setTag(itemInfo.sid)
 		itemNode:setTag(itemInfo.sid)
 		operBtn:addTouchEventListener(onItemOperTouched)
+		if itemInfo.sid==22006 then
+			guideItemBtn = operBtn
+		end
 
 		if itemInfo.funStyle==12 then
 		-- 可展开项目
@@ -375,6 +389,9 @@ function UI_speedItem:pushLoadingItem(loadingNumOnce)
 		end
 	end
 
+	-- 列表项
+	local item1Parm = {} --拥有道具的项
+	local item2Parm = {} --未拥有道具的项
 	local totalNum = #game.data.item
 	for i=self.loadingIndex+1, totalNum do
 		local itemInfo = game.data.item[i]
@@ -386,7 +403,31 @@ function UI_speedItem:pushLoadingItem(loadingNumOnce)
 					itemTemp = item2:clone()
 				end
 				setItemInfo(itemTemp, itemInfo)
-				itemList:pushBackCustomItem(itemTemp)
+
+				-- 排序插入 -------
+				if player.getItemNum(itemInfo.sid) >0 then
+					local index = #item1Parm+1
+					for i, v in ipairs(item1Parm) do
+						if itemInfo.parmeter1[1]<v then
+							index = i
+							break
+						end
+					end
+					table.insert(item1Parm, index, itemInfo.parmeter1[1])
+					itemList:insertCustomItem(itemTemp, index-1)
+				else
+					local index = #item2Parm+1
+					for i, v in ipairs(item2Parm) do
+						if itemInfo.parmeter1[1]<v then
+							index = i
+							break
+						end
+					end
+					table.insert(item2Parm, index, itemInfo.parmeter1[1])
+					itemList:insertCustomItem(itemTemp, #item1Parm+index-1)
+				end
+				-- 排序插入 -------
+
 				loadingNum = loadingNum+1
 				self.loadingIndex = i
 				if loadingNum>=loadingNumOnce then
@@ -406,5 +447,14 @@ function UI_speedItem:pushLoadingItem(loadingNumOnce)
 			self.loadingFinished = true
 		end
 	end
+
+
+	local function bindGuideUI( step )
+		if step==6004 then
+			itemList:visit()
+			player.guide.bind2Node(step, guideItemBtn, onItemOperTouched)
+		end
+	end
+	self.bindGuideUI = bindGuideUI
 end
 

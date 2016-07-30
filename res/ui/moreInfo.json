@@ -11,7 +11,7 @@
   "designWidth": 640,
   "textures": [],
   "texturesPng": [
-    "common/quest_5.png",
+    "common/ui_border_bar.png",
     "common/desc_bg.png",
     "common/line2_right.png",
     "common/line2_left.png",
@@ -23,7 +23,7 @@
     "common/line2_right.png",
     "common/line2_left.png",
     "common/line2_center.png",
-    "GUI/image.png",
+    "common/line.png",
     "common/name_bg.png",
     "common/head_frame.png",
     "common/button_green.png",

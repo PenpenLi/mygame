@@ -19,6 +19,8 @@ function UI_memberList:init()
 	self:initUI()
 
 	local uiFrame = UI_fullScreenFrame.new()
+	uiFrame:hideTopBackground()
+	uiFrame:setTopShadePosY(888)
 	uiFrame:setTitle(hp.lang.getStrByID(1822))
 	-- addCCNode
 	-- ===============================
@@ -56,7 +58,6 @@ function UI_memberList:refreshShow()
 		local title_ = self.uiTitle:clone()
 		self.listView:pushBackCustomItem(title_)
 		local content_ = title_:getChildByName("Panel_30179")
-		content_:getChildByName("ImageView_30180"):loadTexture(config.dirUI.common..v.image)
 		content_:getChildByName("Label_30181"):setString(v.name)
 
 		local members_ = player.getAlliance():getMembersByRank(v.sid)
@@ -77,6 +78,10 @@ function UI_memberList:refreshShow()
 			memContent_:getChildByName("Label_30190"):setString(w:getName())
 			-- 战力
 			memContent_:getChildByName("Label_30194"):setString(w:getPower())
+			-- 新人
+			if w:getIsNew() == 0 then
+				memContent_:getChildByName("Image_11"):setVisible(true)
+			end
 
 			self.listView:pushBackCustomItem(uiMember_)
 		end
@@ -88,7 +93,7 @@ function UI_memberList:initCallBack()
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			require "ui/union/member/manageFellow"
-			ui_ = UI_manageFellow.new(sender:getTag())
+			local ui_ = UI_manageFellow.new(sender:getTag())
 			self:addModalUI(ui_)
 		end
 	end
@@ -104,9 +109,9 @@ function UI_memberList:onMsg(msg_, param_)
 	end
 end
 
-function UI_memberList:close()
+function UI_memberList:onRemove()
 	player.getAlliance():unPrepareData(dirtyType.MEMBER, "UI_memberList")
 	self.uiTitle:release()
 	self.uiMember:release()
-	self.super.close(self)
+	self.super.onRemove(self)
 end

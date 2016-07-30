@@ -17,7 +17,7 @@ function UI_talkBtn:init(ui_, title_, tileInfo_)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			require "ui/talk/talkFrame"
-			ui_ = UI_talkFrame.new()
+			local ui_ = UI_talkFrame.new()
 			self:addModalUI(ui_)
 		end
 	end

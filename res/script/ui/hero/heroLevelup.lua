@@ -25,7 +25,13 @@ function UI_heroLevelup:init()
 	local infoPanel = widgetRoot:getChildByName("Panel_info"):getChildByName("ImageView_bg")
 	local okBtn = infoPanel:getChildByName("ImageView_ok")
 	local skillpointBtn = infoPanel:getChildByName("ImageView_skillpoint")
-	infoPanel:getChildByName("Label_title"):setString(hp.lang.getStrByID(2510))
+	
+	require "ui/common/effect.lua"
+	local light = inLight(skillpointBtn:getVirtualRenderer(),1)
+	skillpointBtn:addChild(light)
+	
+	
+	--infoPanel:getChildByName("Label_title"):setString(hp.lang.getStrByID(2510))
 	infoPanel:getChildByName("Label_name"):setString(heroInfo.name)
 	infoPanel:getChildByName("ListView_hero"):getChildByName("Panel_hero"):getChildByName("Image_hero"):loadTexture(config.dirUI.hero .. heroInfo.sid..".png")
 
@@ -57,10 +63,10 @@ function UI_heroLevelup:init()
 			if sender==okBtn then
 				self:close()
 			elseif sender==skillpointBtn then
+				self:close()
 				require "ui/hero/skillTree"
 				local ui  = UI_skillTree.new(player.hero)
 				self:addUI(ui)
-				self:close()
 			end	
 		end
 	end

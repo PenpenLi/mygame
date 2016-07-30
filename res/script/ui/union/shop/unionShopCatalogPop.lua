@@ -7,15 +7,19 @@ require "ui/frame/popFrame"
 UI_unionShopCatalogPop = class("UI_unionShopCatalogPop", UI)
 
 --init
-function UI_unionShopCatalogPop:init(sid_)
+function UI_unionShopCatalogPop:init(sid_, closeCallBack_)
 	-- data
 	-- ===============================
 	self.item = hp.gameDataLoader.getInfoBySid("item", sid_)
 	self.sid = sid_
 	self.percent = 0
 	self.maxItemNumber = self:calcMaxNumber()
-	self.getNumber = 0
+	self.getNumber = 1
+	-- if self.maxItemNumber == 0 then
+	-- 	self.getNumber = 0
+	-- end
 	self.shop = nil
+	self.closeCallBack = closeCallBack_
 
 	-- call back
 	self:initCallBack()
@@ -38,23 +42,25 @@ function UI_unionShopCatalogPop:initCallBack()
 	local function updateLocalInfo()
 		self.totalCost:setString(tostring(self.getNumber * self.item.societySale))
 		self.number:setString(tostring(self.getNumber))
-		if self.getNumber == 0 then
+		if self.maxItemNumber == 0 then
 			self.getBtn:setTouchEnabled(false)
 			self.getBtn:loadTexture(config.dirUI.common.."button_gray1.png")
-			self.percent = 0
-			self.slider:setPercent(self.percent)
 		else
 			self.getBtn:setTouchEnabled(true)
-			self.getBtn:loadTexture(config.dirUI.common.."button_green1.png")
+			self.getBtn:loadTexture(config.dirUI.common.."button_blue1.png")
 		end
 	end
 
 	local function onPlusTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)		
 		if eventType == TOUCH_EVENT_ENDED then
+			if self.maxItemNumber == 0 then
+				return
+			end
+
 			if self.getNumber < self.maxItemNumber then
 				self.getNumber = self.getNumber + 1
-				self.percent = hp.common.round(self.getNumber / self.maxItemNumber * 100)
+				self.percent = hp.common.round((self.getNumber - 1) / (self.maxItemNumber - 1) * 100)
 				self.slider:setPercent(self.percent)
 				updateLocalInfo()
 			end
@@ -64,9 +70,13 @@ function UI_unionShopCatalogPop:initCallBack()
 	local function onMinusTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)		
 		if eventType == TOUCH_EVENT_ENDED then
-			if self.getNumber > 0 then
+			if self.maxItemNumber == 0 then
+				return
+			end
+			
+			if self.getNumber > 1 then
 				self.getNumber = self.getNumber - 1
-				self.percent = hp.common.round(self.getNumber / self.maxItemNumber * 100)
+				self.percent = hp.common.round((self.getNumber - 1) / (self.maxItemNumber - 1) * 100)
 				self.slider:setPercent(self.percent)
 				updateLocalInfo()
 			end
@@ -80,6 +90,8 @@ function UI_unionShopCatalogPop:initCallBack()
 
 		local data = hp.httpParse(response)
 		if data.result == 0 then
+			player.getAlliance():addUnionFunds(-self.item.societySale*self.getNumber)
+			self:close()
 		end
 	end
 
@@ -96,6 +108,7 @@ function UI_unionShopCatalogPop:initCallBack()
 			cmdData.operation[1] = oper
 			local cmdSender = hp.httpCmdSender.new(onGetResponse)
 			cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+			self:showLoading(cmdSender, sender)
 		end
 	end
 
@@ -109,13 +122,13 @@ function UI_unionShopCatalogPop:initCallBack()
 	end
 
 	local function onSliderPercentChange(sender, eventType)
-		local per = sender:getPercent()
+		local per = sender:getPercent()		
 		if self.percent == per then
 			return
 		end
 		self.percent = per
 		-- update train number
-		self.getNumber = hp.common.round(self.maxItemNumber * per / 100)
+		self.getNumber = hp.common.round((self.maxItemNumber - 1) * per / 100) + 1
 		updateLocalInfo()
 	end
 
@@ -124,6 +137,7 @@ function UI_unionShopCatalogPop:initCallBack()
 	self.onMinusTouched = onMinusTouched
 	self.onStarredMemberTouched = onStarredMemberTouched
 	self.onSliderPercentChange = onSliderPercentChange
+	self.updateLocalInfo = updateLocalInfo
 end
 
 function UI_unionShopCatalogPop:requestData()
@@ -147,6 +161,7 @@ function UI_unionShopCatalogPop:requestData()
 	cmdData.operation[1] = oper
 	local cmdSender = hp.httpCmdSender.new(onApplicantResponse)
 	cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+	self:showLoading(cmdSender)
 end
 
 function UI_unionShopCatalogPop:updateInfo(info_)
@@ -165,6 +180,11 @@ function UI_unionShopCatalogPop:changeItem(sid_)
 
 	self.sid = sid_
 	self.item = hp.gameDataLoader.getInfoBySid("item", sid_)
+	self.getNumber = 1
+	self.maxItemNumber = self:calcMaxNumber()
+	-- if self.maxItemNumber == 0 then
+	-- 	self.getNumber = 0
+	-- end
 	self:refreshShow()
 	self:requestData()
 end
@@ -178,6 +198,16 @@ function UI_unionShopCatalogPop:refreshShow(sid_)
 	content_:getChildByName("Label_219"):setString(self.item.name)
 	-- 描述
 	content_:getChildByName("Label_219_1"):setString(self.item.desc)
+	-- 价钱
+	self.updateLocalInfo()
+	local per_ = 0
+	if self.maxItemNumber > 1 then
+		per_ = (self.getNumber - 1) / (self.maxItemNumber - 1) * 100
+		self.slider:setTouchEnabled(true)
+	else
+		self.slider:setTouchEnabled(false)
+	end
+	self.slider:setPercent(hp.common.round(per_))
 end
 
 function UI_unionShopCatalogPop:initUI()
@@ -211,6 +241,7 @@ function UI_unionShopCatalogPop:calcMaxNumber()
 	return num_
 end
 
-function UI_unionShopCatalogPop:close()
-	self.super.close(self)
+function UI_unionShopCatalogPop:onRemove()
+	self.closeCallBack()
+	self.super.onRemove(self)
 end

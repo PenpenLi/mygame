@@ -19,6 +19,7 @@ function UI_authorityView:init()
 	self:initUI()	
 
 	local uiFrame = UI_fullScreenFrame.new()
+	uiFrame:setTopShadePosY(888)
 	uiFrame:setTitle(hp.lang.getStrByID(5132))
 
 	-- addCCNode
@@ -36,7 +37,7 @@ function UI_authorityView:initCallBack()
 		hp.uiHelper.btnImgTouched(sender, eventType)		
 		if eventType == TOUCH_EVENT_ENDED then
 			require "ui/union/manage/authorityDetail"
-			ui_ = UI_authorityDetail.new(sender:getTag())
+			local ui_ = UI_authorityDetail.new(sender:getTag())
 			self:addUI(ui_)
 		end
 	end
@@ -53,9 +54,9 @@ function UI_authorityView:initUI()
 	self.listView:removeLastItem()
 end
 
-function UI_authorityView:close()
+function UI_authorityView:onRemove()
 	self.item:release()
-	self.super.close(self)
+	self.super.onRemove(self)
 end
 
 function UI_authorityView:refreshShow()

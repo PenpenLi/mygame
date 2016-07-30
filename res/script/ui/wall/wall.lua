@@ -21,10 +21,11 @@ local buildingInfo = nil
 local defenseLoadingBar = nil
 local defenseValue = nil
 local speedup = nil
+local topBack = nil
 
 local function updateTrapNum()
 	local num_ = 0
-	local traps = player.getTraps()
+	local traps = player.trapManager.getTraps()
 	if traps ~= nil then
 		for k,v in pairs(traps) do
 			labelNum[tostring(v:getTrapSid())]:setString(v:getNumber())
@@ -38,24 +39,26 @@ local function setShowState(show_)
 	end
 	showState = show_
 
+	topContainer:setVisible(show_)
+	topBack:setVisible(show_)
 	if show_ == true then
 		speedup:setTouchEnabled(true)
-		topContainer:setVisible(show_)
 		local size1_ =  listView:getSize()
 		size1_.height = size1_.height - topContainer:getSize().height
 		listView:setSize(size1_)
 		local x, y = defenseContainer:getPosition()
 		y = y - topContainer:getSize().height
 		defenseContainer:setPosition(x, y)
+		defenseBack:setPosition(x, y)
 	else
 		speedup:setTouchEnabled(false)
-		topContainer:setVisible(show_)
 		local size1_ =  listView:getSize()
 		size1_.height = size1_.height + topContainer:getSize().height
 		listView:setSize(size1_)
 		local x, y = defenseContainer:getPosition()
 		y = y + topContainer:getSize().height
 		defenseContainer:setPosition(x, y)
+		defenseBack:setPosition(x, y)
 	end
 end
 
@@ -72,7 +75,7 @@ local function updateCDTime()
 		local total = cdInfo.total_cd
 		local cd = cdInfo.cd
 		if total ~= 0 then
-			local percent = 100 - math.floor(cd / total * 100)
+			local percent = 100 - cd / total * 100
 			trainProgress:setPercent(percent)
 		end
 	end
@@ -82,7 +85,7 @@ local function updateTrainShow()
 	local cdInfo = cdBox.getCDInfo(cdBox.CDTYPE.TRAP)
 	if cdInfo.cd > 0 then
 		setShowState(true)
-		local trapInfo = player.getTrapInfoBySid(cdInfo.sid)
+		local trapInfo = hp.gameDataLoader.getInfoBySid("trap", cdInfo.sid)
 		local trainNum_ = trapInfo.name.."x"..cdInfo.number
 		trainText:setString(trainNum_)
 		updateCDTime()
@@ -92,9 +95,9 @@ local function updateTrainShow()
 end
 
 local function updateWallDefense()
-	local defense = player.getWallDefense()
+	local defense = player.trapManager.getWallDefense()
 	local maxDefense = hp.gameDataLoader.getBuildingInfoByLevel("wall", buildingInfo.build.lv, "deadfallMax")
-	local percent = math.floor((defense / maxDefense) * 100)
+	local percent = (defense / maxDefense) * 100
 	defenseValue:setString(string.format("%d/%d", defense, maxDefense))
 	defenseLoadingBar:setPercent(percent)
 end
@@ -105,12 +108,12 @@ function UI_wall:init(building_)
 	-- ===============================
 	topContainer = nil
 	defenseContainer = nil
+	defenseBack = nil
 	trainText = nil
 	cdTime = nil
 	trainProgress = nil
 	listView = nil
 	showState = false
-	interval = 0
 	labelNum = {}
 	trapTypeLabel = nil
 	buildingInfo = nil
@@ -128,14 +131,16 @@ function UI_wall:init(building_)
 
 	local widgetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "wall.json")
 	topContainer = widgetRoot:getChildByName("Panel_1345")
-	speedup = topContainer:getChildByName("ImageView_1645"):getChildByName("ImageView_1639")
-	trainProgress = topContainer:getChildByName("ImageView_1644"):getChildByName("LoadingBar_1640")
-	trainText = trainProgress:getChildByName("ImageView_1641"):getChildByName("Label_1642")
-	cdTime = trainProgress:getChildByName("ImageView_1641"):getChildByName("Label_1643")
+	speedup = topContainer:getChildByName("ImageView_1645")
+	topBack = widgetRoot:getChildByName("Panel_40")
+	trainProgress = topBack:getChildByName("ImageView_1644"):getChildByName("LoadingBar_1640")
+	trainText = topContainer:getChildByName("Label_1642")
+	cdTime = topContainer:getChildByName("Label_1643")
 	defenseContainer = widgetRoot:getChildByName("Panel_2601")
 	local defenseLabel = defenseContainer:getChildByName("ImageView_1212"):getChildByName("Label_troops")
-	defenseLoadingBar = defenseContainer:getChildByName("ImageView_111"):getChildByName("LoadingBar_1640")
-	defenseValue = defenseLoadingBar:getChildByName("ImageView_1641"):getChildByName("Label_1642")
+	defenseBack = widgetRoot:getChildByName("Panel_38")
+	defenseLoadingBar = defenseBack:getChildByName("ImageView_111"):getChildByName("LoadingBar_1640")
+	defenseValue = defenseContainer:getChildByName("Label_1642")
 	listView = widgetRoot:getChildByName("ListView_list")
 	local container = listView:getChildByName("Panel_horContainer")
 	trapTypeLabel = listView:getChildByName("Panel_adampt1"):getChildByName("Panel_adampt2"):getChildByName("ImageView_troops"):getChildByName("Label_troops")
@@ -223,6 +228,10 @@ function UI_wall:init(building_)
 		adampt:getChildByName(string.format("%d", i)):setVisible(false)
 	end
 
+	if index == 1 then
+		listView:removeLastItem()
+	end
+
 	listView:pushBackCustomItem(moreInfoContainer)
 
 	-- 界面初始化显示内容
@@ -244,7 +253,7 @@ function UI_wall:init(building_)
 	-- register msg
 	self:registMsg(hp.MSG.TRAP_TRAIN)
 	self:registMsg(hp.MSG.TRAP_TRAIN_FIN)
-	self:registMsg(hp.MSG.TRAP_NUM_CHANGE)	
+	self:registMsg(hp.MSG.TRAP_MESSAGE)	
 
 	-- addCCNode
 	-- ===============================
@@ -259,13 +268,6 @@ end
 
 
 function UI_wall:heartbeat(dt)
-	interval = interval + dt
-	if interval < 1 then
-		return
-	end
-
-	interval = 0
-
 	if cdBox.getCD(cdBox.CDTYPE.TRAP) > 0 then
 		setShowState(true)
 		updateCDTime()
@@ -281,7 +283,7 @@ function UI_wall:onMsg(msg_, parm_)
 	elseif msg_ == hp.MSG.TRAP_TRAIN_FIN then
 		updateTrapNum()
 		updateWallDefense()
-	elseif msg_ == hp.MSG.TRAP_NUM_CHANGE then
+	elseif msg_ == hp.MSG.TRAP_MESSAGE then
 		updateTrapNum()
 		updateWallDefense()
 	end

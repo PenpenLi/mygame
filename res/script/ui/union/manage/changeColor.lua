@@ -65,6 +65,6 @@ function UI_changeColor:initCallBack()
 	self.onMoreInfoTouched = onMoreInfoTouched
 end
 
-function UI_changeColor:close()
-	self.super.close(self)
+function UI_changeColor:onRemove()
+	self.super.onRemove(self)
 end

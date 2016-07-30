@@ -39,7 +39,7 @@ function UI_freeDiamond:init()
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			require "ui/guide/joinUnion"
-			ui_ = UI_unionJoinDiamond.new()
+			local ui_ = UI_unionJoinDiamond.new()
 			self:addModalUI(ui_)
 		end
 	end

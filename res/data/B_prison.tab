@@ -1,7 +1,7 @@
 监狱等级	减少处决时间(小时)	关押英雄数量
 	earlierseGuillotine	imprisonHero
-level	earlierseGuillotine
-INT	INT	
+level	earlierseGuillotine	imprisonHero
+INT	INT	INT
 1	2	1
 2	4	2
 3	6	3

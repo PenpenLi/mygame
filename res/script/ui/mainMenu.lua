@@ -9,7 +9,7 @@ UI_mainMenu = class("UI_mainMenu", UI)
 
 
 --init
-function UI_mainMenu:init()
+function UI_mainMenu:init(selectedIndex_)
 	-- data
 	-- ===============================
 
@@ -17,161 +17,177 @@ function UI_mainMenu:init()
 	-- ui
 	-- ===============================
 	local wigetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "mainMenu.json")
-	local panelFrame = wigetRoot:getChildByName("Panel_frame")
 	local panelMenu = wigetRoot:getChildByName("Panel_menu")
 
 	-- 菜单
-	local imgMap = panelMenu:getChildByName("ImageView_mapBg"):getChildByName("ImageView_mapIcon")
-	local imgQuests = panelMenu:getChildByName("ImageView_quests")
-	local imgItems = panelMenu:getChildByName("ImageView_items")
-	local imgUnion = panelMenu:getChildByName("ImageView_union")
-	local imgMail = panelMenu:getChildByName("ImageView_mail")
-	local imgMore = panelMenu:getChildByName("ImageView_more")
-	local imgChat = panelMenu:getChildByName("ImageView_chat")
+	local imgFudi = panelMenu:getChildByName("ImageView_fudi"):getChildByName("ImageView_itemIcon")	--府邸
+	local imgZc = panelMenu:getChildByName("ImageView_zc"):getChildByName("ImageView_itemIcon")	--主城
+	local imgZb = panelMenu:getChildByName("ImageView_zb"):getChildByName("ImageView_itemIcon")	--争霸
+	local imgZy = panelMenu:getChildByName("ImageView_zy"):getChildByName("ImageView_itemIcon")	--战役
+	local imgItems = panelMenu:getChildByName("ImageView_items"):getChildByName("ImageView_itemIcon")	--菜单
+	local chatTouchNode = panelMenu:getChildByName("Panel_chatTouch")
 	local labelChat1 = panelMenu:getChildByName("Label_chat1")
 	local labelChat2 = panelMenu:getChildByName("Label_chat2")
-	self.questNum = imgQuests:getChildByName("ImageView_numbg")
-	self.questComplete = imgQuests:getChildByName("Image_ok")
 
+	-- 府邸特效
+	require "ui/common/effect.lua"
+	self.light = inLight(imgFudi:getVirtualRenderer(),3)
+	imgFudi:addChild(self.light)
+	self.imgFudi_new = imgFudi:getChildByName("Image_new")
+	if player.mansionMgr.isLight() then
+		self.light:setVisible(true)
+		self.imgFudi_new:setVisible(true)
+	else
+		self.light:setVisible(false)
+		self.imgFudi_new:setVisible(false)
+	end
+
+	-- 争霸地图特效
+	self.conflictLight = inLight(imgZb:getVirtualRenderer(),4)
+	self.conflictLight:setVisible(false)
+	imgZb:addChild(self.conflictLight)
+	self.imgZb_new = imgZb:getChildByName("Image_new")
+	local function conflictShow()
+		if self.conflictLight == nil then
+			return
+		end
+
+		if game.curScene == nil then
+			return
+		end
+
+		if game.curScene.mapLevel == 2 then
+			self.conflictLight:setVisible(false)
+		end
+
+		local show_ = player.marchMgr.getConflict()
+		self.conflictLight:setVisible(show_)
+		self.imgZb_new:setVisible(show_)
+	end
+	self.conflictShow = conflictShow
+	conflictShow()
+	
 	--
-	--
-	local itemSelectedBg = panelFrame:getChildByName("Image_itemBg")
+	-- 菜单选中效果
+	local itemSelectedBg = panelMenu:getChildByName("Image_selected")
+	local curItem = nil
 	local function selectMenuItem(itemNode)
-		if itemNode==nil then
-			itemSelectedBg:setVisible(false)
-		else
-			itemSelectedBg:setVisible(true)
-			itemSelectedBg:setPositionX(itemNode:getPositionX())
+		curItem = itemNode
+		itemSelectedBg:setPositionX(itemNode:getParent():getPositionX())
+	end
+
+	if selectedIndex_==1 then
+		selectMenuItem(imgFudi)
+	elseif selectedIndex_==2 then
+		selectMenuItem(imgZc)
+	elseif selectedIndex_==3 then
+		selectMenuItem(imgZb)
+	elseif selectedIndex_==4 then
+		selectMenuItem(imgZy)
+	elseif selectedIndex_==5 then
+		selectMenuItem(imgItems)
+	end
+
+	local function recheckSelectMenu()
+		if game.curScene.mapLevel==3 then
+			selectMenuItem(imgZc)
+		elseif game.curScene.mapLevel==2 then
+			selectMenuItem(imgZb)
 		end
 	end
-	local function setMapIconState()
-		local mapLv = self.parent.mapLevel
-		local uiNum = #self.parent.UIs
-		if uiNum==1 then
-			if mapLv==1 then
-				--
-			elseif mapLv==2 then
-				imgMap:loadTexture(config.dirUI.common .. "map_icon.png")
-			else
-				imgMap:loadTexture(config.dirUI.common .. "city_icon.png")
-			end
-		elseif uiNum==0 then
-			if mapLv==1 then
-				--
-			elseif mapLv==2 then
-				imgMap:loadTexture(config.dirUI.common .. "city_icon.png")
-			else
-				imgMap:loadTexture(config.dirUI.common .. "map_icon.png")
-			end
-			selectMenuItem(nil)
-		end
-		
-	end
-	self.setMapIconState = setMapIconState
+	self.recheckSelectMenu = recheckSelectMenu
 
 	local mapSwitching = false --正在切换地图
 	local function memuItemOnTouched(sender, eventType)
 		if mapSwitching then
 			return
 		end
-
+		local tick_ = os.clock()
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			if sender==imgMap then
-				if #self.parent.UIs>0 then
+			if sender==imgFudi then
+				if game.curScene.mapLevel==3 then
 					self:closeAll()
-					player.guide.stepEx({4007, 5007})
-				else
-					local map = nil
-					if self.parent.mapLevel==1 then
-						require("scene/cityMap")
-						map = cityMap.new()
-					elseif self.parent.mapLevel==2 then
-						require("scene/cityMap")
-						map = cityMap.new()
-					else
-						require("scene/kingdomMap")
-						map = kingdomMap.new()
-					end
-					mapSwitching = true
-					map:enter()
-				end
-				return
-			end
-			if sender==imgChat then
-				require("ui/chat/chatRoom")
-				local ui = UI_chatRoom.new()
-				self:addModalUI(ui)
-				return
-			end
-			
-			self:closeAll()
-			selectMenuItem(sender)
-			if sender==imgQuests then
-				require "ui/quest/questMain"
-				ui_ = UI_questMain.new()
-				self:addUI(ui_)
-				player.guide.step(4002)
-			elseif sender==imgItems then
-				require("ui/item/shopItem")
-				local ui = UI_shopItem.new()
-				self:addUI(ui)
-				player.guide.step(5002)
-			elseif sender==imgUnion then
-				if player.getAlliance():getUnionID() == 0 then
-					require("ui/union/invite/unionCreate")
-					local ui = UI_unionCreate.new()
+					require("ui/mansion/mansion")
+					local ui = UI_mansion.new()
 					self:addUI(ui)
 				else
-					require "ui/union/unionMain"
-					local ui_ = UI_unionMain.new()
+					mapSwitching = true
+					require("scene/cityMap")
+					local map = cityMap.new(true)
+					map:enter()
+				end
+				player.guide.stepEx({2002, 4001, 7007})
+			elseif sender==imgZc then
+				if game.curScene.mapLevel==3 then
+					if curItem~=imgZc then
+						game.curScene:onEnterAnim()
+					end
+					self:closeAll()
+				else
+					mapSwitching = true
+					require("scene/cityMap")
+					local map = cityMap.new()
+					map:enter()
+				end
+			elseif sender==imgZb then
+				if game.curScene.mapLevel==2 then
+					self:closeAll()
+					if curItem~=imgZb then
+						game.curScene:onEnterAnim()
+					end
+				else
+					mapSwitching = true
+					require("scene/kingdomMap")
+					local map = kingdomMap.new()
+					map:enter()
+				end
+			elseif sender==imgZy then
+				if curItem ~= imgZy then
+					self:closeAll()
+					require "ui/copy/copyMainNew"
+					local ui_ = UI_copyMainNew.new()
 					self:addUI(ui_)
 				end
-			elseif sender==imgMail then
-				require("ui/mail/mail")
-				local ui = UI_mail.new()
+			elseif sender==imgItems then
+				self:closeAll()
+				require("ui/mainMenuMore")
+				local ui = UI_mainMenuMore.new()
 				self:addUI(ui)
-			elseif sender==imgMore then
 			end
+			selectMenuItem(sender)
 		end
+		player.clockEnd("memuItemOnTouched", tick_, 0.3)
 	end
 
 	local function onChatTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
+			self:closeAll()
 			require("ui/chat/chatRoom")
 			local ui = UI_chatRoom.new()
 			self:addModalUI(ui)
 		end
 	end
-	imgMap:addTouchEventListener(memuItemOnTouched)
-	imgQuests:addTouchEventListener(memuItemOnTouched)
+	imgFudi:addTouchEventListener(memuItemOnTouched)
+	imgZc:addTouchEventListener(memuItemOnTouched)
+	imgZy:addTouchEventListener(memuItemOnTouched)
+	imgZb:addTouchEventListener(memuItemOnTouched)
 	imgItems:addTouchEventListener(memuItemOnTouched)
-	imgUnion:addTouchEventListener(memuItemOnTouched)
-	imgMail:addTouchEventListener(memuItemOnTouched)
-	imgMore:addTouchEventListener(memuItemOnTouched)
-	imgChat:addTouchEventListener(memuItemOnTouched)
-	labelChat1:addTouchEventListener(onChatTouched)
-	labelChat2:addTouchEventListener(onChatTouched)
-
-	-- mail
-	local function setMailInfo()
-		local numBg = imgMail:getChildByName("ImageView_numbg")
-		local unreadNum = hp.mailCenter.getAllUnreadMailNum()
-		if unreadNum>0 then
-			numBg:setVisible(true)
-			numBg:getChildByName("Label_num"):setString(unreadNum)
-		else
-			numBg:setVisible(false)
-		end
-	end
-	setMailInfo()
-	self.setMailInfo = setMailInfo
+	chatTouchNode:addTouchEventListener(onChatTouched)
 
 	-- 聊天
+	local colorArea = cc.c3b(255, 255, 255) --区域聊天颜色
+	local colorUnion = cc.c3b(0, 255, 240) --联盟聊天颜色
+	local colorPm = cc.c3b(19, 235, 24) --私聊聊天颜色
+	local colorEnemy = cc.c3b(255, 83, 83) --敌国聊天颜色
+	local titleArea = hp.lang.getStrByID(3613)
+	local titleUnion = hp.lang.getStrByID(3614)
+	local titlePm = hp.lang.getStrByID(3629)
 	local function getChatText(chatInfo)
 		local chatTxt = ""
+		local color = nil
 		if string.len(chatInfo.srcUnion)>0 then
-			chatTxt = "[" .. chatInfo.srcUnion .. "]" .. chatInfo.srcName .. ": " .. chatInfo.text
+			chatTxt = hp.lang.getStrByID(21) .. chatInfo.srcUnion .. hp.lang.getStrByID(22) .. chatInfo.srcName .. ": " .. chatInfo.text
 		else
 			chatTxt = chatInfo.srcName .. ": " .. chatInfo.text
 		end
@@ -181,108 +197,94 @@ function UI_mainMenu:init()
 			chatTxt_ = chatTxt_ .. "..."
 		end
 
-		return chatTxt_
+		if chatInfo.type==4 then
+		-- 联盟
+			chatTxt = "[" .. titleUnion .. "]" .. chatTxt_
+			color = colorUnion
+		elseif chatInfo.type==5 then
+		-- 私聊
+			chatTxt = "[" .. titlePm .. "]" .. chatTxt_
+			color = colorPm
+		else
+		-- 区域
+			chatTxt = "[" .. titleArea .. "]" .. chatTxt_
+			if chatInfo.srcServerId~=player.serverMgr.getMyServerID() then
+				color = colorEnemy
+			else
+				color = colorArea
+			end
+		end
+
+		return color, chatTxt
 	end
 	local function popChatInfo(chatInfo, bAnimation)
 		if chatInfo==nil then
 			labelChat2:setString("")
 		else
-			labelChat2:setString(getChatText(chatInfo))
+			local color, txt = getChatText(chatInfo)
+			labelChat2:setColor(color)
+			labelChat2:setString(txt)
 			if bAnimation then
-				labelChat2:runAction(cc.Blink:create(3, 6))
+				local function blinkEnd()
+					labelChat2:setVisible(true)
+				end
+				labelChat2:stopAllActions()
+				labelChat2:runAction(cc.Sequence:create(cc.Blink:create(3, 6), cc.CallFunc:create(blinkEnd)))
 			end
 		end
 
-		local chatInfo = hp.chatRoom.getPenultChatInfo()
+		local chatInfo = player.chatRoom.getPenultChatInfo()
 		if chatInfo==nil then
 			labelChat1:setString("")
 		else
-			labelChat1:setString(getChatText(chatInfo))
+			local color, txt = getChatText(chatInfo)
+			labelChat1:setColor(color)
+			labelChat1:setString(txt)
 		end
 	end
-	popChatInfo(hp.chatRoom.getLastChatInfo())
+	popChatInfo(player.chatRoom.getLastChatInfo())
 	self.popChatInfo = popChatInfo
 	
 	-- 和新手指引界面绑定
 	local function bindGuideUI(step)
-		if step==4002 then --领任务奖励
-			player.guide.bind2Node(step, imgQuests, memuItemOnTouched)
-		elseif step==4007 or step==5007 then --回到主程
-			player.guide.bind2Node(step, imgMap, memuItemOnTouched)
-		elseif step==5002 then --使用道具
-			player.guide.bind2Node(step, imgItems, memuItemOnTouched)
+		if step==2002 or step==4001 or step==7007  then --返回府邸
+			player.guide.bind2Node(step, imgFudi, memuItemOnTouched)
+		elseif step==7003 then --返回府邸
+			player.guide.bind2Node(step, imgZy, memuItemOnTouched)
 		end
 	end
 	self.bindGuideUI = bindGuideUI
-
 
 	-- addCCNode
 	-- ===============================
 	self:addCCNode(wigetRoot)
 
-
 	-- registMsg
-	self:registMsg(hp.MSG.MAIL_CHANGED)
-	self:registMsg(hp.MSG.MISSION_DAILY_COLLECTED)
-	self:registMsg(hp.MSG.MISSION_DAILY_COMPLETE)
-	self:registMsg(hp.MSG.MISSION_MAIN_STATUS_CHANGE)
-	self:registMsg(hp.MSG.MISSION_DAILY_RECIEVE_CHANGE)
 	self:registMsg(hp.MSG.CHATINFO_NEW)
 	self:registMsg(hp.MSG.GUIDE_STEP)
-	self:registMsg(hp.MSG.MISSION_DAILY_REFRESH)
-
-	self:updateReceiveTask()
-end
-
-
---heartbeat
-function UI_mainMenu:heartbeat(dt)
-end
-
-function UI_mainMenu:updateReceiveTask()
-	local receivableNum_ = 0
-	for i = 1, 3 do
-		for j, v in ipairs(player.getDailyTasks(i)) do
-			if v.flag == 3 then
-				receivableNum_ = receivableNum_ + 1
-			end
-		end
-	end
-	if receivableNum_ > 0 then
-		self.questNum:setVisible(true)
-		self.questNum:getChildByName("Label_num"):setString(tostring(receivableNum_))
-	else
-		self.questNum:setVisible(false)
-	end
-
-	local num_ = player.getNotCollectedNum()
-	if self.questComplete ~= nil then
-		if num_ > 0 then
-			self.questComplete:setVisible(true)
-		else
-			self.questComplete:setVisible(false)
-		end
-	end
+	self:registMsg(hp.MSG.MAIN_MENU_MANSION_LIGHT)
+	self:registMsg(hp.MSG.MARCH_MANAGER)
 end
 
 -- onMsg
 function UI_mainMenu:onMsg(msg_, parm_)
-	if msg_==hp.MSG.MAIL_CHANGED then
-		if parm_.type==7 then
-			-- 总未读邮件个数发生变化
-			self.setMailInfo()
-		end
-	elseif msg_ == hp.MSG.MISSION_DAILY_COMPLETE or msg_ == hp.MSG.MISSION_DAILY_COLLECTED or
-		msg_ == hp.MSG.MISSION_MAIN_STATUS_CHANGE or msg_ == hp.MSG.MISSION_DAILY_RECIEVE_CHANGE or
-		msg_ == hp.MSG.MISSION_DAILY_REFRESH then
-		self:updateReceiveTask()
-	elseif msg_==hp.MSG.CHATINFO_NEW then
-		if hp.chatRoom.getChannelType()==parm_.type or 3==parm_.type then
-		--当前频道聊天和私人聊天
+	if msg_==hp.MSG.CHATINFO_NEW then
+		if 6~=parm_.type then
+		-- 不是系统公告
 			self.popChatInfo(parm_.chat, true)
 		end
 	elseif msg_==hp.MSG.GUIDE_STEP then
 	-- 新手指引
 		self.bindGuideUI(parm_)
+	elseif msg_ == hp.MSG.MAIN_MENU_MANSION_LIGHT then
+		self.light:setVisible(parm_)
+		self.imgFudi_new:setVisible(parm_)
+	elseif msg_ == hp.MSG.MARCH_MANAGER then
+		if parm_ == nil then
+			return
+		end
+		if parm_.msgType == 1 then
+			self.conflictShow()
+		end
 	end
 end

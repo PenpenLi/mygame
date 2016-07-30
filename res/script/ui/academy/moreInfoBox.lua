@@ -1,6 +1,6 @@
 --
 -- ui/academy/moreInfoBox
--- 书院更多信息
+-- 涔﹂櫌鏇村淇℃伅
 --===================================
 require "ui/frame/popFrame"
 
@@ -17,12 +17,11 @@ function UI_moreInfoBox:init(building_)
 	-- ===============================
 	local wigetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "academyInfo.json")
 	local uiFrame = UI_popFrame.new(wigetRoot, bInfo.name)
-
-	local contNode = wigetRoot:getChildByName("ListView_info"):getChildByName("Panel_cont")
-	local moreInfo = contNode:getChildByName("Label_moreInfo")
-	moreInfo:setString(bInfo.moreDesc)
 	
 	local ListView_info = wigetRoot:getChildByName("ListView_info")
+
+	local moreInfo = ListView_info:getChildByName("Panel_desc"):getChildByName("Panel_cont"):getChildByName("Label_moreInfo")
+	moreInfo:setString(bInfo.moreDesc)
 	
 	
 	local tittleCont = ListView_info:getChildByName("Panel_tittle"):getChildByName("Panel_cont")

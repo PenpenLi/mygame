@@ -1,56 +1,56 @@
-地块id	类型	图片	左坐标	上坐标	右坐标	下坐标
-sid	type	img	left	top	right	bottom
-sid	type	img	left	top	right	bottom
-INT	INT	STRING	INT	INT	INT	INT
-1	1	block1	27	68	42	83
-2	1	block1	43	67	47	71
-3	1	block1	38	57	42	61
-4	1	block1	64	82	68	86
-5	1	block1	36	87	40	91
-6	1	block1	46	87	50	91
-7	1	block1	53	105	57	109
-8	1	block1	54	90	58	94
-9	1	block1	57	82	61	86
-10	1	block1	43	80	47	84
-11	1	block1	64	103	68	107
-12	1	block1	64	96	68	100
-13	1	block1	64	89	68	93
-14	1	block1	47	50	51	54
-15	1	block1	54	50	58	54
-16	1	block1	48	59	52	63
-18	1	block1	55	59	59	63
-19	1	block1	57	68	61	72
-20	1	block1	64	68	68	72
-21	1	block1	64	61	68	65
-22	1	block1	64	49	68	53
-23	1	block1	45	97	49	101
-24	1	block1	73	58	77	62
-25	1	block1	64	55	68	59
-26	1	block1	73	52	77	56
-27	1	block1	78	71	86	84
-1	2	block2	88	70	92	74
-2	2	block2	97	70	101	74
-3	2	block2	88	63	92	67
-4	2	block2	97	63	101	67
-5	2	block2	88	29	92	33
-6	2	block2	97	59	101	63
-7	2	block2	88	51	92	55
-8	2	block2	96	51	100	55
-9	2	block2	104	51	108	55
-10	2	block2	88	42	92	46
-11	2	block2	88	35	92	39
-12	2	block2	88	59	92	63
-13	2	block2	94	29	98	33
-14	2	block2	94	35	98	39
-15	2	block2	100	42	104	46
-16	2	block2	108	60	112	64
-17	2	block2	88	25	92	29
-18	2	block2	66	37	70	41
-19	2	block2	72	37	76	41
-20	2	block2	66	31	70	35
-21	2	block2	72	31	76	35
-22	2	block2	66	27	70	31
-23	2	block2	72	27	76	31
-24	2	block2	67	19	71	23
-25	2	block2	73	19	77	23
-26	2	block2	54	30	62	38
+地块id	类型	图片	左坐标	上坐标	右坐标	下坐标	开放需要主建筑等级
+sid	type	img	left	top	right	bottom	
+sid	type	img	left	top	right	bottom	needMainLv
+INT	INT	STRING	INT	INT	INT	INT	INT
+1	1	block1	17	62	32	77	1
+2	1	block1	36	60	40	64	2
+3	1	block1	31	50	35	54	3
+4	1	block1	22	50	26	54	3
+5	1	block1	30	81	34	85	1
+6	1	block1	39	80	43	84	1
+7	1	block1	48	100	52	104	1
+8	1	block1	49	83	53	87	1
+9	1	block1	30	87	34	91	1
+10	1	block1	36	73	40	77	1
+11	1	block1	59	96	63	100	2
+12	1	block1	59	90	63	94	2
+13	1	block1	59	84	63	88	2
+14	1	block1	40	44	44	48	5
+15	1	block1	47	44	51	48	5
+16	1	block1	41	53	45	57	6
+18	1	block1	49	53	53	57	6
+19	1	block1	50	63	54	67	6
+20	1	block1	58	62	62	66	8
+21	1	block1	58	54	62	58	8
+22	1	block1	58	42	62	46	10
+23	1	block1	39	90	43	94	1
+24	1	block1	67	51	71	55	1
+25	1	block1	58	48	62	52	10
+26	1	block1	66	45	70	49	1
+27	1	block1	71	64	79	77	1
+1	2	block2	83	65	87	69	2
+2	2	block2	90	64	94	68	2
+3	2	block2	83	58	87	62	1
+4	2	block2	90	58	94	62	1
+5	2	block2	82	24	86	28	6
+6	2	block2	90	53	94	57	1
+7	2	block2	83	46	87	50	1
+8	2	block2	90	46	94	50	1
+9	2	block2	97	45	101	49	3
+10	2	block2	82	37	86	41	4
+11	2	block2	82	30	86	34	5
+12	2	block2	83	53	87	57	1
+13	2	block2	88	24	92	28	6
+14	2	block2	88	30	92	34	5
+15	2	block2	94	37	98	41	4
+16	2	block2	102	55	106	59	3
+17	2	block2	82	19	86	23	6
+18	2	block2	101	64	105	68	3
+19	2	block2	66	29	70	33	10
+20	2	block2	60	24	64	28	10
+21	2	block2	66	24	70	28	10
+22	2	block2	60	19	64	23	9
+23	2	block2	66	19	70	23	9
+24	2	block2	61	13	65	17	8
+25	2	block2	67	13	71	17	8
+26	2	block2	48	24	56	32	1

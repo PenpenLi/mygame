@@ -22,8 +22,14 @@ function UI_hintFrame:init()
 	-- addCCNode
 	-- ===============================
 
-	hp.uiHelper.uiAdaption(self.wigetRoot)
+	-- edit by huangwei
+	-- hp.uiHelper.uiAdaption(self.wigetRoot)
+	-- eidt by huangwei end
 	self.x, self.y = self.wigetRoot:getPosition()
+	-- edit by huangwei
+	-- 适应屏幕高度
+	self.y = self.y * hp.uiHelper.RA_scaleY
+	-- edit by huagnwei end
 	local back_ = self.wigetRoot:getChildByName("Panel_2")
 
 	self.component = {}
@@ -39,15 +45,17 @@ function UI_hintFrame:init()
 	for i, v in ipairs(self.component) do
 		self.opacity[i] = v:getOpacity()
 	end
+
+	self:addCCNode(self.wigetRoot)
 end
 
 function UI_hintFrame:setInfo(param_)
-	print(param_[1])
+	cclog_(param_[1])
 	local hintInfo_ = hp.gameDataLoader.getInfoBySid("hintFrame", param_[1])
 	if hintInfo_ == nil then
 		return false
 	else
-		print("what is the matter")
+		cclog_("what is the matter")
 	end
 
 	if hintInfo_.image ~= nil then
@@ -65,13 +73,14 @@ function UI_hintFrame:setInfo(param_)
 end
 
 function UI_hintFrame:pop(callBack_)
-	print("popHintFrame")
+	cclog_("popHintFrame")
 	local x_, y_ = self.wigetRoot:getPosition()
+
 	local trigOver_ = false
 	-- call back
 	local function onActionOver()
 		if trigOver_ == true then
-			print("not possible")
+			cclog_("not possible")
 			return
 		end
 		trigOver_ = true

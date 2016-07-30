@@ -7,8 +7,6 @@ require "ui/buildingHeader"
 
 UI_hallOfWar = class("UI_hallOfWar", UI)
 
-local interval = 0
-
 --init
 function UI_hallOfWar:init(building_)
 	-- data
@@ -52,16 +50,30 @@ end
 function UI_hallOfWar:changeNumber()
 	local homePageInfo_ = player.getAlliance():getUnionHomePageInfo()
 	if homePageInfo_.war > 0 then
+		if self.tab == 1 then
+			self.hintContent:setVisible(false)
+		end
 		self.uiNumIcon[1]:getChildByName("Label_3"):setString(homePageInfo_.war)
 		self.uiNumIcon[1]:setVisible(true)
 	else
+		if self.tab == 1 then
+			self.hintContent:setVisible(true)
+			self.hintContent:getChildByName("Label_43"):setString(hp.lang.getStrByID(5376))
+		end
 		self.uiNumIcon[1]:setVisible(false)
 	end
 
 	if homePageInfo_.defense > 0 then
+		if self.tab == 2 then
+			self.hintContent:setVisible(false)
+		end
 		self.uiNumIcon[2]:getChildByName("Label_3"):setString(homePageInfo_.defense)
 		self.uiNumIcon[2]:setVisible(true)
 	else
+		if self.tab == 2 then
+			self.hintContent:setVisible(true)
+			self.hintContent:getChildByName("Label_43"):setString(hp.lang.getStrByID(5377))
+		end
 		self.uiNumIcon[2]:setVisible(false)
 	end
 end
@@ -87,8 +99,8 @@ function UI_hallOfWar:initUI()
 			self:addModalUI(moreInfoBox)
 		end
 	end
-	
-	
+
+	self.hintContent = self.wigetRoot:getChildByName("Panel_42")
 	
 	-- 更多信息
 	local moreInfo_ = content_:getChildByName("Image_48")
@@ -114,8 +126,6 @@ function UI_hallOfWar:tabPage(id_)
 		self.uiTab[i]:setColor(color_[i])
 		self.uiTab[i]:setScale(scale_[i])
 		self.uiTabText[i]:setColor(color_[i])
-		self.uiTabText[i]:setScale(scale_[i])
-		self.uiNumIcon[i]:setScale(scale_[i])
 	end
 
 	self.tab = id_
@@ -143,7 +153,7 @@ function UI_hallOfWar:initCallBack()
 	local function onJoinAttackTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			require "ui/union/war/rallyWarDetail"
-			ui_ = UI_rallyWarDetail.new(sender:getTag())
+			local ui_ = UI_rallyWarDetail.new(sender:getTag())
 			self:addUI(ui_)
 		end
 	end
@@ -209,12 +219,12 @@ function UI_hallOfWar:onMsg(msg_, param_)
 	end
 end
 
-function UI_hallOfWar:close()
+function UI_hallOfWar:onRemove()
 	self.item:release()
 	player.getAlliance():unPrepareData(dirtyType.ATTACK, "UI_hallOfWar")
 	player.getAlliance():unPrepareData(dirtyType.DEFENSE, "UI_hallOfWar")
 	player.getAlliance():unPrepareData(dirtyType.VARIABLENUM, "UI_hallOfWar")
-	self.super.close(self)
+	self.super.onRemove(self)
 end
 
 function UI_hallOfWar:refreshPage1()
@@ -236,9 +246,11 @@ function UI_hallOfWar:refreshPage1()
 		item_:addTouchEventListener(self.onJoinAttackTouched)
 		local content_ = item_:getChildByName("Panel_33")
 		-- 攻击者
-		content_:getChildByName("Label_34"):setString(string.format(hp.lang.getStrByID(1855), v.ownerInfo.union, v.ownerInfo.name))
+		content_:getChildByName("Label_34_2"):setString(hp.lang.getStrByID(5404))
+		content_:getChildByName("Label_34"):setString(v.ownerInfo.totalName)
 		-- 被攻击者
-		content_:getChildByName("Label_34_0"):setString(string.format(hp.lang.getStrByID(1856), v.targetInfo.union, v.targetInfo.name))
+		content_:getChildByName("Label_34_0_0"):setString(hp.lang.getStrByID(5405))
+		content_:getChildByName("Label_34_0"):setString(v.targetInfo.totalName)
 		-- 城池名称
 		content_:getChildByName("Label_34_1"):setString(string.format(hp.lang.getStrByID(1857), v.targetInfo.city))
 		
@@ -278,9 +290,11 @@ function UI_hallOfWar:refreshPage2()
 		item_:addTouchEventListener(self.onJoinDefenseTouched)
 		local content_ = item_:getChildByName("Panel_33")
 		-- 攻击者
-		content_:getChildByName("Label_34"):setString(string.format(hp.lang.getStrByID(1855), v.ownerInfo.union, v.ownerInfo.name))
+		content_:getChildByName("Label_34_2"):setString(hp.lang.getStrByID(5404))
+		content_:getChildByName("Label_34"):setString(v.ownerInfo.totalName)
 		-- 被攻击者
-		content_:getChildByName("Label_34_0"):setString(string.format(hp.lang.getStrByID(1856), v.targetInfo.union, v.targetInfo.name))
+		content_:getChildByName("Label_34_0_0"):setString(hp.lang.getStrByID(5405))
+		content_:getChildByName("Label_34_0"):setString(v.targetInfo.totalName)
 		-- 城池名称
 		content_:getChildByName("Label_34_1"):setString(string.format(hp.lang.getStrByID(1857), v.targetInfo.city))
 		
@@ -301,13 +315,6 @@ function UI_hallOfWar:refreshPage2()
 end
 
 function UI_hallOfWar:heartbeat(dt_)
-	interval = interval + dt_
-	if interval < 1 then
-		return
-	end
-
-	interval = 0
-
 	self:updateInfo()
 end
 
@@ -320,7 +327,7 @@ function UI_hallOfWar:updateInfo()
 			warInfo_ = player.getAlliance():getRallyDefenseInfo()[i]
 		end
 		local lastTime_ = warInfo_.lastTime - player.getServerTime()
-		local percent = hp.common.round(100 - lastTime_ / warInfo_.totalTime * 100)
+		local percent = 100 - lastTime_ / warInfo_.totalTime * 100
 		self.uiLoadingBar[i]:setPercent(percent)
 		local countTime_ = hp.datetime.strTime(lastTime_)
 		self.uiCountTime[i]:setString(countTime_)

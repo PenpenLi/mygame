@@ -40,13 +40,18 @@ function hp.common.getMinNumber(list_)
 		return nil
 	end
 
-	local min = list_[1]
+	local min = nil
+	local index = nil
 	for i,v in pairs(list_) do
-		if min > v then
+		if min == nil then
 			min = v
+			index = i
+		elseif min > v then
+			min = v
+			index = i
 		end
 	end
-	return min
+	return min, index
 end
 
 -- 获取列表中的最大值
@@ -61,13 +66,64 @@ function hp.common.getMaxNumber(list_)
 		return nil
 	end
 
-	local max = list_[1]
+	local max = nil
+	local index = nil
 	for i,v in pairs(list_) do
-		if max < v then
+		if max == nil then
 			max = v
+			index = i
+		elseif max < v then
+			max = v
+			index = i
 		end
 	end
-	return max
+	return max, index
+end
+
+-- 与
+function hp.common.band(num_, des_)
+	local dNum_ = {}
+	local dDes_ = {}
+	local dResult_ = {}
+
+	local temp_ = num_
+	while temp_ > 0 do
+		table.insert(dNum_, temp_%2)
+		temp_ = math.floor(temp_/2)
+	end
+
+	local temp_ = des_
+	while temp_ > 0 do
+		table.insert(dDes_, temp_%2)
+		temp_ = math.floor(temp_/2)
+	end
+
+	local len_ = table.getn(dNum_)
+	if len_ < table.getn(dDes_) then
+		len_ = table.getn(dDes_)
+	end
+
+	for i=1,len_ do
+		local t_ = 0
+		if (dNum_[i] == 1) and (dDes_[i] == 1) then
+			t_ = 1
+			return 1
+		end
+		-- table.insert(dResult_, t_)
+	end
+	return 0
+end
+
+-- 获得旋转角度
+-- 仅针对初始角度为零的图
+function hp.common.rotateAngle(vector_)
+	-- 大小
+	local angle_ = math.deg(math.acos((vector_[1] / math.sqrt(math.pow(vector_[1], 2) + math.pow(vector_[2], 2)))))
+	-- 方向
+	if vector_[2] > 0 then
+		angle_ = -angle_
+	end
+	return angle_
 end
 
 -- 
@@ -169,6 +225,38 @@ function hp.common.utf8_strSub(str_, n_)
 	return string.sub(str_, 1, pos)
 end
 
+-- 
+-- name : utf8_strLen
+-- desc : 获取utf-8字符串长度，一个汉字算两个字符
+-- @param str_ : 字符串
+-------------------------------------------
+function hp.common.utf8_strLen(str_)
+	local n = 0
+	local len = #str_
+	local byte = 0
+
+	local pos = 1
+	while pos<=len do
+		byte = string.byte(str_, pos)
+		if byte >= 192 then
+		-- 汉字
+			n = n+2
+			if byte >= 240 then
+				pos = pos+4
+			elseif byte >= 224 then
+				pos = pos+3
+			else
+				pos = pos+2
+			end
+		else
+			n = n+1
+			pos = pos+1
+		end
+	end
+
+	return n
+end
+
 --数值转换  超过1千用K表示，精确到小数点后一位
 function hp.common.changeNumUnit(num)
 	if num > 1000 then 
@@ -180,4 +268,33 @@ function hp.common.changeNumUnit(num)
 		return temp.."K"
 	end
 	return num
+end
+
+--数值转换  超过指定值之后用K表示，精确到小数点后一位
+function hp.common.changeNumUnit1(num,limit)
+	if num > limit then 
+		local temp=string.format("%0.1f", num/1000)
+		local len = string.len(temp)
+		if string.sub(temp, len, len) == "0" then
+			return string.sub(temp, 1, len-2) .."K"
+		end
+		return temp.."K"
+	end
+	return num
+end
+
+
+-- 字符串拆分
+function hp.common.splitString(str, symbol)
+	local str1 = ""
+	local str2 = ""
+	for i = 1, string.len(str) do
+		local ch = string.sub(str, i, i)
+		if symbol == ch then
+			str1 = string.sub(str, 1, i - 1)
+			str2 = string.sub(str, i + 1, -1)
+			return str1,str2
+		end
+	end
+	return str
 end

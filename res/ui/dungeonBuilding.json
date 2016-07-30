@@ -729,7 +729,7 @@
                           "capInsetsY": 0,
                           "fileName": null,
                           "fileNameData": {
-                            "path": "GUI/image.png",
+                            "path": "common/line.png",
                             "plistFile": "",
                             "resourceType": 0
                           },

@@ -3,17 +3,23 @@
 --
 --================================================
 
-
 config = config or {}
 
+
+config.debug = 2 --0, 1, 2
+
+config.versionCode = 3
+config.baseVersion = "1.2"
+config.version = "1.2.0"
+config.checkUpdate = true --是否检查更新
+config.forceUpdate = false --强制更新
 
 
 -- server
 ------------------------------------
 config.server =
 {
-	domain = "http://123.57.221.218:8681/",
-	timeout = 10,
+	timeout = 10.0,
 	
 	cmdLogin = "action/login",
 	cmdCreate = "action/create",
@@ -37,6 +43,7 @@ config.dirUI =
 {
 	root        =    "ui/",
 	common      =    "ui/common/", --通用资源
+	font        =    "ui/font/", --艺术字体
 	building    =    "ui/building/", --建筑
 	map         =    "ui/map/", --地图
 	soldier     =    "ui/soldier/", --士兵
@@ -51,10 +58,20 @@ config.dirUI =
 	hero		=	 "ui/hero/", --英雄
 	heroHeadpic =	 "ui/heroHeadpic/", --英雄头像
 	icon		=	 "ui/unionIcon/", --工会图标
-	headPic     =    "ui/headpic/", --玩家头像
 	unionGift	=	 "ui/unionGift/", --联盟礼包
 	bossHead	=	 "ui/bossHead/",	-- 世界boss
 	animation	=	 "ui/animation/",	-- 动画
+	animationPng	=	 "ui/animationPng/",	-- 整个图片动画
+	copyBack	=	 "ui/copyBack/",	-- 副本背景图
+	quest		=	 "ui/quest/",	-- 任务图标
+	copy 		=	 "ui/copy/",	-- 副本建筑
+	battleBg 	=	 "ui/battleBg/",	-- 副本战斗背景
+	particle 	=	 "ui/particle/",	-- 粒子系统
+	effect		=    "ui/effect/",		-- 效果
+	title		=    "ui/title/",		-- 头衔	
+	cityElement =    "ui/cityElement/",	-- 城内的装饰元素
+	fortress    =    "ui/fortress/", --要塞图片
+	world 		=	 "ui/world/",		-- 世界地图
 }
 
 
@@ -66,16 +83,13 @@ config.interval =
 	gameHeartbeat = 0.2,
 	playerHeartbeat = 0.5,
 	sceneHeartbeat = 0.2,
-	uiHeartbeat = 0.5,
+	uiHeartbeat = 0.2,
 	objHeartbeat = 0.5,
 	
 	bufferCmdSync = 5.0,
 
-	dataSync = 20.0,	--数据同步
-	chatRoomSync = 2.0, --聊天同步
+	chatRoomSync = 5.0, --聊天同步
 }
-
-config.skipGuid = true;
 
 
 
@@ -84,3 +98,15 @@ config.skipGuid = true;
 -- 蓝色 #FF5AE0E8
 -- 绿色 #FF0D3B04
 -- 黄色 #FFEFF008
+
+
+-- 白色 #FFF5F1DF
+-- 红色 #FFF44242
+-- 黄色 #FFFFB555
+
+-- 加灰色 #
+
+-- #FF00FFFF
+
+-- cocos compile -p android -j 4 -m release --ap 19
+-- cocos compile -p android -j 4 -m debug --ap 19

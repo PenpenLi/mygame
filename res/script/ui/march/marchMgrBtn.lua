@@ -16,7 +16,7 @@ function UI_marchMgrBtn:init()
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			require "ui/march/marchManagerUI"
-			ui_ = UI_marchManagerUI.new()
+			local ui_ = UI_marchManagerUI.new()
 			self:addUI(ui_)
 		end
 	end
@@ -25,24 +25,57 @@ function UI_marchMgrBtn:init()
 	-- ===============================
 	local wigetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "bigMapArmyBtn.json")
 	local image_ = wigetRoot:getChildByName("Panel_2"):getChildByName("Image_3")
-	image_:getChildByName("Image_4"):addTouchEventListener(onButtonTouched)
-	self.num = image_:getChildByName("Image_5"):getChildByName("Label_6")
+	soldier_ = image_:getChildByName("Image_4")
+	image_:addTouchEventListener(onButtonTouched)
+
+	require "ui/common/effect.lua"
+	self.conflictLight = inLight(soldier_:getVirtualRenderer(),4)
+	self.conflictLight:setVisible(false)
+	soldier_:addChild(self.conflictLight)
+
+	local function conflictShow()
+		if self.conflictLight == nil then
+			return
+		end
+
+		local show_ = player.marchMgr.getConflict()
+		self.conflictLight:setVisible(show_)
+	end
+	self.conflictShow = conflictShow
+	conflictShow()
+
+	self.numBg = image_:getChildByName("Image_5")
+	self.num = self.numBg:getChildByName("Label_6")
 
 	-- addCCNode
 	-- ===============================
 	self:addCCNode(wigetRoot)
 
 	self:registMsg(hp.MSG.MARCH_ARMY_NUM_CHANGE)
+	self:registMsg(hp.MSG.MARCH_MANAGER)
 
 	self:updateInfo()
 end
 
 function UI_marchMgrBtn:updateInfo()
-	self.num:setString(player.getMarchMgr().getFieldArmyNum())
+	local num_ = player.getMarchMgr().getFieldArmyNum()
+	self.num:setString(num_)
+	if num_ == 0 then
+		self.numBg:setVisible(false)
+	else
+		self.numBg:setVisible(true)
+	end
 end
 
 function UI_marchMgrBtn:onMsg(msg_, param_)
 	if msg_ == hp.MSG.MARCH_ARMY_NUM_CHANGE then
 		self:updateInfo()
+	elseif msg_ == hp.MSG.MARCH_MANAGER then
+		if param_ == nil then
+			return
+		end
+		if param_.msgType == 1 then
+			self.conflictShow()
+		end
 	end
 end

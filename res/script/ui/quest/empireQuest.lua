@@ -7,7 +7,7 @@ require "ui/fullScreenFrame"
 UI_empireQuest = class("UI_empireQuest", UI)
 
 local questTypeName = {1428, 1429, 1430, 1431, 1432, 1433, 1434}
-local titleImage = {"quest_31.png", "quest_32.png", "quest_33.png", "quest_34.png", "quest_35.png", "quest_36.png", "quest_37.png"}
+local titleImage = {"cd_icon_remedy.png", "cd_icon_build.png", "quest_33.png", "quest_34.png", "cd_icon_equip.png", "cd_icon_research.png", "cd_icon_march.png"}
 
 --init
 function UI_empireQuest:init()
@@ -16,42 +16,24 @@ function UI_empireQuest:init()
 	self.listRecord = {}
 	self.uiItemList = {}
 	self.itemPos = {0}
+	self.itemInfoList = {}
+	self.finishList = {}
 
 	-- call back
 
 	local function OnQuestTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			require "ui/quest/questDetail"
-			ui_ = UI_questDetail.new(sender:getTag())
+			local ui_ = UI_questDetail.new(sender:getTag())
 			self:addUI(ui_)
 		end
 	end
 	self.OnQuestTouched = OnQuestTouched
 
-	local function OnCollectResponse(status, response, tag)
-		if status ~= 200 then
-			return
-		end
-
-		local data = hp.httpParse(response)
-		if data.result == 0 then
-			self:onMissionComplete(data.sid)
-			player.guide.step(4005)
-		end
-	end
-
 	local function OnCollectTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then			
-			local cmdData={operation={}}
-			local oper = {}
-			oper.channel = 2
-			oper.type = 1
-			oper.sid = sender:getTag()
-			cmdData.operation[1] = oper
-			local cmdSender = hp.httpCmdSender.new(OnCollectResponse)
-			cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
-			self.hahaha = sender:getTag()
+			self:showLoading(player.questManager.httpReqCollectEmpireReward(sender:getTag(), self, sender))
 		end
 	end
 	self.OnCollectTouched = OnCollectTouched
@@ -61,6 +43,7 @@ function UI_empireQuest:init()
 	self:initUI()
 
 	local uiFrame = UI_fullScreenFrame.new()
+	uiFrame:setTopShadePosY(888)
 	uiFrame:setTitle(hp.lang.getStrByID(1400))
 	-- addCCNode
 	-- ===============================
@@ -73,15 +56,15 @@ function UI_empireQuest:init()
 	self.branchHeight_ = self.uiItem:getSize().height
 
 	-- register msg
-	self:registMsg(hp.MSG.MISSION_COMPLETE)
-	self:registMsg(hp.MSG.MISSION_MAIN_REFRESH)
+	self:registMsg(hp.MSG.MISSION_COLLECT)
+	self:registMsg(hp.MSG.MISSION_REFRESH)
 	self:registMsg(hp.MSG.GUIDE_STEP)
 
 	-- 进行新手引导绑定
 	-- ================================
 	local function bindGuideUI( step )
 		if step==4005 then
-			player.guide.bind2Node(step, self.mainCollectBtn, self.OnCollectTouched)
+			player.guide.bind2Node111(step, self.mainCollectBtn, self.OnCollectTouched)
 		end
 	end
 	self.bindGuideUI = bindGuideUI
@@ -121,43 +104,51 @@ end
 
 -- 刷新主线任务
 function UI_empireQuest:refreshMainTask()
-	local info_ = player.getMainQuestInfo()
-	local mainQuestInfo_ = hp.gameDataLoader.getInfoBySid("quests", info_.id)
+	local info_ = player.questManager.getMainQuestInfo()
+	-- 没有任务了
+	if info_ == nil then
+		self.mainQuest:setVisible(false)
+		self.wigetRoot:getChildByName("Panel_15257"):setVisible(false)
+		local size_ = self.mainQuest:getSize()
+		local size1_ = self.listView:getSize()
+		size1_.height = size1_.height + size_.height
+		self.listView:setSize(size1_)
+		return
+	end
+	local mainQuestInfo_ = hp.gameDataLoader.getInfoBySid("quests", info_.id)	
 	self.mainQuestBg:setTag(info_.id)
 	self.mainQuest:getChildByName("Label_15265"):setString(mainQuestInfo_.name)
 	self.mainQuest:getChildByName("Label_15266"):setString(mainQuestInfo_.text)
 
 	-- 主线图标
-	if mainQuestInfo_.parameter1 == 1001 then
-		self.mainImage:loadTexture(config.dirUI.building.."fudi_icon.png")
-	elseif mainQuestInfo_.parameter1 == 1018 then
-		self.mainImage:loadTexture(config.dirUI.building.."wall_icon.png")
-	else
-		local buildInfo_ = hp.gameDataLoader.multiConditionSearch("upgrade", {{"buildSid", mainQuestInfo_.parameter1}, {"level", mainQuestInfo_.parameter2}})
-		self.mainImage:loadTexture(config.dirUI.building..buildInfo_.img)
-	end
+	self.mainImage:loadTexture(config.dirUI.quest..mainQuestInfo_.image)
 
 	-- 领奖按钮
-	self.mainCollectBtn:setTag(info_.id)
-	self.mainCollectBtn:setVisible(info_.reward)
-	self.mainCollectBtn:setTouchEnabled(info_.reward)
+	-- self.mainCollectBtn:setTag(info_.id)
+	-- self.mainCollectBtn:setVisible(info_.reward)
+	-- self.mainCollectBtn:setTouchEnabled(info_.reward)
 end
 
 -- 刷新任务奖励
 function UI_empireQuest:refreshQuestList()
-	if self.finishList_ ~= nil then
-		for i, v in ipairs(self.finishList_) do
-			self.listView:removeChild(v)
+	do return end
+	if self.finishList ~= nil then
+		for i, v in ipairs(self.finishList) do
+			local index_ = self.listView:getIndex(v.item)
+			self.listView:removeItem(index_)
 		end
-		self.finishList_ = {}
+		self.finishList = {}
 	end
-	if table.getn(player.getBranchReward()) > 0 then
-		self.finishList_ = {}
-		self.finishList_[1] = self.uiTitle:clone()
-		self.finishList_[1]:getChildByName("Panel_15286"):getChildByName("Label_18652"):setString(hp.lang.getStrByID(1435))
-		for i, v in ipairs(player.getBranchReward()) do
+	if table.getn(player.questManager.getBranchReward()) > 0 then
+		self.finishList = {}
+		local item_ = self.uiTitle:clone()
+		item_:getChildByName("Panel_15286"):getChildByName("Label_18652"):setString(hp.lang.getStrByID(1435))
+		local ele_ = {item = item_, id = -1}
+		table.insert(self.finishList, ele_)
+		for i, v in ipairs(player.questManager.getBranchReward()) do
 			local questInfo_ = hp.gameDataLoader.getInfoBySid("quests", v)
 			if questInfo_.type ~= 1 then
+				local ele_ = {}
 				local rewardQuest_ = self.uiItem:clone()
 				local rewardContent_ = rewardQuest_:getChildByName("Panel_18648")
 				local collect_ = rewardContent_:getChildByName("ImageView_20423")
@@ -173,25 +164,35 @@ function UI_empireQuest:refreshQuestList()
 				rewardContent_:getChildByName("Label_18649"):setString(questInfo_.name)
 				rewardContent_:getChildByName("Label_18650"):setString(questInfo_.text)
 
-				self.finishList_[i + 1] = rewardQuest_
+				ele_.id = v
+				ele_.item = rewardQuest_
+				table.insert(self.finishList, ele_)
+			else
+				cclog_(string.format("UI_empireQuest:refreshQuestList,quest:%d in BranchReward, type=1, impossible",v))
 			end
 		end
 
 		-- 加入列表
-		for i, v in ipairs(self.finishList_) do
-			self.listView:insertCustomItem(v, i - 1)
+		for i, v in ipairs(self.finishList) do
+			self.listView:insertCustomItem(v.item, i - 1)
+			if i == 1 then
+				v.item:setLocalZOrder(1)
+			else
+				v.item:setLocalZOrder(0)
+			end
 		end
 
-		self.itemPos[1] = table.getn(self.finishList_)
+		self.itemPos[1] = table.getn(self.finishList)
 	end	
 end
 
 -- 刷新支线任务
 function UI_empireQuest:refreshBranchTask()
-	for i, v in ipairs(player.getBranchQuest()) do
+	for i, v in ipairs(player.questManager.getBranchQuest()) do
 		if self.listRecord[i] ~= nil then
 			for j, w in ipairs(self.listRecord[i]) do
-				self.listView:removeChild(v)
+				local index_ = self.listView:getIndex(w)
+				self.listView:removeItem(index_)
 			end
 			self.listRecord[i] = nil
 		end
@@ -222,6 +223,9 @@ function UI_empireQuest:refreshBranchTask()
 			-- 加入列表
 			for j, w in ipairs(self.listRecord[i]) do
 				self.listView:insertCustomItem(w, self.itemPos[i] + j - 1)
+					if j == 1 then
+					w:setLocalZOrder(1)
+				end
 			end
 
 			self.itemPos[i + 1] = table.getn(self.listRecord[i]) + self.itemPos[i]
@@ -242,43 +246,47 @@ function UI_empireQuest:refreshTasks(type_)
 	end
 end
 
-function UI_empireQuest:onMissionComplete(questID_)
-	local questInfo_ = hp.gameDataLoader.getInfoBySid("quests", questID_)
-	-- 更新资源
-	for j, w in ipairs(questInfo_.reward) do
-		local rewardInfo_ = hp.gameDataLoader.getInfoBySid("rewards", w)
-		for i, v in ipairs(rewardInfo_.resource) do
-			if v ~= 0 then
-				local resourceInfo_ = hp.gameDataLoader.getInfoBySid("resInfo", i)
-				player.addResource(resourceInfo_.code, v)
-			end
+function UI_empireQuest:removeBranchReward(questID_)
+	cclog_("removeBranchReward")
+	for i, v in ipairs(self.finishList) do
+		if v.id == questID_ then
+			table.remove(self.finishList, i)
+			self.listView:removeItem(self.listView:getIndex(v.item))
+			cclog_("removeBranchReward success")
+			break
 		end
+	end	
+
+	if table.getn(self.finishList) == 1 then
+		self.listView:removeItem(self.listView:getIndex(self.finishList[1].item))
 	end
+end
+
+function UI_empireQuest:onMissionCollect(questID_)
+	local questInfo_ = hp.gameDataLoader.getInfoBySid("quests", questID_)
 
 	if questInfo_.type == 1 then
-		player.removeMainReward(questID_)
 		self:refreshMainTask()
 	else
-		player.removeBranchReward(questID_)
-		self:refreshQuestList()
+		self:removeBranchReward(questID_)
 	end
-
 	
 	self.listView:refreshView()
 end
 
 function UI_empireQuest:onMsg(msg_, parm_)
-	if msg_ == hp.MSG.MISSION_COMPLETE then
-		self:onMissionComplete(parm_)
-	elseif msg_ == hp.MSG.MISSION_MAIN_REFRESH then
+	if msg_ == hp.MSG.MISSION_COLLECT then
+		self:onMissionCollect(parm_)
+		player.guide.step(4005)
+	elseif msg_ == hp.MSG.MISSION_REFRESH then
 		self:refreshTasks(parm_)
 	elseif msg_ == hp.MSG.GUIDE_STEP then
 		self.bindGuideUI(parm_)
 	end
 end
 
-function UI_empireQuest:close()
+function UI_empireQuest:onRemove()
 	self.uiItem:release()
 	self.uiTitle:release()
-	self.super.close(self)
+	self.super.onRemove(self)
 end

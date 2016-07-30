@@ -6,6 +6,8 @@ require "ui/fullScreenFrame"
 
 UI_unionDesc = class("UI_unionDesc", UI)
 
+local MAX_LEN = 75	-- 字数
+
 --init
 function UI_unionDesc:init()
 	-- data
@@ -19,11 +21,14 @@ function UI_unionDesc:init()
 	self:initUI()
 
 	local uiFrame = UI_fullScreenFrame.new()
+	uiFrame:setTopShadePosY(888)
 	uiFrame:setTitle(hp.lang.getStrByID(5138))
 	-- addCCNode
 	-- ===============================
 	self:addChildUI(uiFrame)
 	self:addCCNode(self.wigetRoot)
+
+	self.onEditChangeTouched()
 end
 
 function UI_unionDesc:initUI()
@@ -37,6 +42,9 @@ function UI_unionDesc:initUI()
 	local desc_ = content_:getChildByName("Label_30_1")
 	desc_:setString(player.getAlliance():getBaseInfo().message)
 	self.descEdit = hp.uiHelper.labelBind2EditBox(desc_)
+	self.descEdit.setMaxLength(MAX_LEN * 2)
+	self.descEdit.setOnChangedHandle(self.onEditChangeTouched)
+	self.descEdit.setString(player.getAlliance():getBaseInfo().message)
 
 	self.wigetRoot:getChildByName("Panel_15291_0"):getChildByName("Image_26"):addTouchEventListener(self.onCancelTouched)
 	self.wigetRoot:getChildByName("Panel_15291_0"):getChildByName("Image_26_0"):addTouchEventListener(self.onUpdateTouched)
@@ -54,6 +62,13 @@ function UI_unionDesc:initCallBack()
 		end
 	end
 
+	-- 文字输入相应
+	local function onEditChangeTouched()
+		local str_ = self.descEdit.getString()
+		local len_ = math.ceil(hp.common.utf8_strLen(str_) / 2)
+		self.wordNum:setString(string.format("%d/%d", len_, MAX_LEN))
+	end
+
 	local function onUpdateResponse(status, response, tag)
 		if status ~= 200 then
 			return
@@ -62,6 +77,7 @@ function UI_unionDesc:initCallBack()
 		local data = hp.httpParse(response)
 		if data.result == 0 then
 			-- 发通知
+			Scene.showMsg({1022})
 			self:close()
 		end
 	end
@@ -78,9 +94,11 @@ function UI_unionDesc:initCallBack()
 			cmdData.operation[1] = oper
 			local cmdSender = hp.httpCmdSender.new(onUpdateResponse)
 			cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+			self:showLoading(cmdSender, sender)
 		end
 	end
 
 	self.onCancelTouched = onCancelTouched
 	self.onUpdateTouched = onUpdateTouched
+	self.onEditChangeTouched = onEditChangeTouched
 end

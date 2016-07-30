@@ -25,15 +25,9 @@ function UI_guideOper:init(guideInfo)
 
 	--
 	--================
-	local panelFrame = widgetRoot:getChildByName("Panel_frame")
 	local panelCont = widgetRoot:getChildByName("Panel_cont")
-	local bgImg = panelFrame:getChildByName("Image_bg")
 	local pointImg = panelCont:getChildByName("Image_point")
 	local touchImg = panelCont:getChildByName("Image_touchPoint")
-	local bLeft = touchImg:getChildByName("Image_left")
-	local bTop = touchImg:getChildByName("Image_top")
-	local bRight = touchImg:getChildByName("Image_right")
-	local bBottom = touchImg:getChildByName("Image_bottom")
 
 	-- 放置箭头
 	local function posPoint()
@@ -49,41 +43,36 @@ function UI_guideOper:init(guideInfo)
 			pointImg:setRotation(90)
 			pointImg:setPosition(px-sz.width/2, py)
 		elseif guideInfo.pointDir==4 then
-			pointImg:setRotation(px+sz.width/2, py)
+			pointImg:setRotation(270)
+			pointImg:setPosition(px+sz.width/2, py)
 		end
 	end
 	-- 箭头呼吸动画
-	local aUp = cc.ScaleTo:create(1, 1.1*hp.uiHelper.RA_scale)
-	local aDown = cc.ScaleTo:create(0.5, 1.0*hp.uiHelper.RA_scale)
+	local aUp = cc.ScaleTo:create(0.8, 1.2*hp.uiHelper.RA_scale)
+	local aDown = cc.ScaleTo:create(0.4, 1.0*hp.uiHelper.RA_scale)
 	local scaleSq = cc.Sequence:create(aUp, aDown)
 	local scaleRep = cc.RepeatForever:create(scaleSq)
 	pointImg:runAction(scaleRep)
+
 	-- 边框
 	if guideInfo.type==2 then
-	-- 隐藏边框
-		bLeft:setVisible(false)
-		bTop:setVisible(false)
-		bRight:setVisible(false)
-		bBottom:setVisible(false)
-
 		game.curScene:removeAllUI()
 		game.curScene:removeAllModalUI()
 		bindBuild = game.curScene:getBuilding(guideInfo.bType, guideInfo.bSid)
 		bindBuild:Scroll2Here(1)
 		posPoint()
-	else
-		-- 边框动画
-		local aOut = cc.FadeOut:create(1)
-		local aIn = cc.FadeIn:create(0.5)
-		local aSq = cc.Sequence:create(aOut, aIn)
-		local aRep = cc.RepeatForever:create(aSq)
-		bLeft:runAction(aRep)
-		bTop:runAction(aRep:clone())
-		bRight:runAction(aRep:clone())
-		bBottom:runAction(aRep:clone())
+
+		local actLight = cc.TintTo:create(0.4, 255, 255, 0)
+		local actDark = cc.TintTo:create(0.8, 192, 192, 192)
+		local actBuild = cc.RepeatForever:create(cc.Sequence:create(actDark, actLight))
+		bindBuild.ccNode:runAction(actBuild)
 	end
 	-- 点击处理
 	local function btnOnTouched(sender, eventType)
+		if eventType==TOUCH_EVENT_ENDED then
+			touchImg:setTouchEnabled(false)
+		end
+		
 		if guideInfo.type==2 then
 		--处理地块
 			if eventType==TOUCH_EVENT_BEGAN then
@@ -97,6 +86,8 @@ function UI_guideOper:init(guideInfo)
 			else
 				if eventType==TOUCH_EVENT_ENDED then
 					bindBuild:onClicked()
+					bindBuild.ccNode:stopAllActions()
+					bindBuild.ccNode:setColor(cc.c3b(255, 255, 255))
 					player.guide.step(guideInfo.step)
 				else
 					bindBuild:onLostFocus()
@@ -116,23 +107,23 @@ function UI_guideOper:init(guideInfo)
 		sz = cc.size(p2.x-p1.x, p2.y-p1.y)
 		local p = cc.p(p1.x+sz.width/2, p1.y+sz.height/2)
 
-		bgImg:setPosition(p)
 		touchImg:setPosition(p)
 		touchImg:setSize(sz)
 		touchImg:setScale(1.0)
-		local bSz = bLeft:getSize()
-		bSz.width = bSz.width*hp.uiHelper.RA_scale
-		bSz.height = sz.height + bSz.width
-		bLeft:setPosition(0, sz.height/2)
-		bLeft:setSize(bSz)
-		bRight:setPosition(sz.width, sz.height/2)
-		bRight:setSize(bSz)
-		bSz.height = sz.width + bSz.width
-		bTop:setPosition(sz.width/2, sz.height)
-		bTop:setSize(bSz)
-		bBottom:setPosition(sz.width/2, 0)
-		bBottom:setSize(bSz)
 		posPoint()
+
+		local touchWave = hp.sequenceAniHelper.createAnimSprite("common", "touchWave", 12, 0.1)
+		touchWave:setPosition(sz.width/2, sz.height/2)
+		if guideInfo.pointDir==1 then
+			touchWave:setRotation(180)
+		elseif guideInfo.pointDir==2 then
+			touchWave:setRotation(0)
+		elseif guideInfo.pointDir==3 then
+			touchWave:setRotation(270)
+		elseif guideInfo.pointDir==4 then
+			touchWave:setRotation(90)
+		end
+		touchImg:addChild(touchWave)
 
 		bindNode = ccNode
 		bindTouchedFun = nodeTouchedFun

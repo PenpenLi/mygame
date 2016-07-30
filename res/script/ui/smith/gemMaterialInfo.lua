@@ -19,10 +19,16 @@ function UI_gemMaterialInfo:init(type_,data_)
 	local widgetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "gemInfo.json")
 
 	-- ===============================
-	self:addCCNode(widgetRoot)
 	
+	
+	--local infoP=widgetRoot:getChildByName("Panel_info")
+	
+	--设置锚点
+	--infoP:setPosition(320,650)
+	--infoP:setAnchorPoint(0.5,0.5)
 
-	local infoPanel = widgetRoot:getChildByName("Panel_info"):getChildByName("ImageView_base"):getChildByName("Image_88")
+
+	local infoPanel = widgetRoot:getChildByName("Panel_cont")
 	local attrsListView=infoPanel:getChildByName("ListView_attrs")
 	local attrDemo=attrsListView:getChildByName("Label_attr")
 	self.attrDemo=attrDemo
@@ -36,7 +42,7 @@ function UI_gemMaterialInfo:init(type_,data_)
 	if type==1 then
 		title = hp.lang.getStrByID(3518)
 		imgBgPath = string.format("%scolorframe_%d.png", config.dirUI.common, info.level)
-		imgPath = string.format("%s%d.png", config.dirUI.gem, info.sid)
+		imgPath = string.format("%s%d.png", config.dirUI.gem, info.type)
 		for i,v in ipairs(info.key) do
 			local attrInfo = hp.gameDataLoader.getInfoBySid("attr", v)
 			local attrNode=self.attrDemo:clone()
@@ -56,8 +62,8 @@ function UI_gemMaterialInfo:init(type_,data_)
 
 	infoPanel:getChildByName("Label_title"):setString(title)
 	infoPanel:getChildByName("Image_icon_bg"):loadTexture(imgBgPath)
-	infoPanel:getChildByName("Image_icon_bg"):getChildByName("Image_icon"):loadTexture(imgPath)
-	infoPanel:getChildByName("Label_name"):setString(info.name)
+	infoPanel:getChildByName("Image_icon"):loadTexture(imgPath)
+	infoPanel:getChildByName("Image_88_0"):getChildByName("Label_name"):setString(info.name)
 	
 
 	--关闭宝石信息面板
@@ -69,6 +75,10 @@ function UI_gemMaterialInfo:init(type_,data_)
 	end
 	local closeGem = widgetRoot:getChildByName("Image_bg")
 	closeGem:addTouchEventListener(onGemCloseTouched)
+
+
+
+	self:addCCNode(widgetRoot)
 
 end
 

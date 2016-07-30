@@ -4,28 +4,42 @@
 --================================================
 require "scene/Scene"
 
+local kmapHttpHelper = require("scene/assist/kmapHttpHelper")
+
 
 kingdomMap = class("kingdomMap", Scene)
 
 
-local mykr = 2
-local mykl = 2
+local refreshTickCont = 12.0 --定时刷新时间
+local posViewTickCont = 11.0 --移动地图时，将计时调整时间
+
+local myServerInfo = nil --自己的服务器
+local myPosServerInfo = nil --自己位置的服务器
+local activityServerInfo = nil --世界活动敌对服务器
+
+local myPosServerX = 2
+local myPosServerY = 2
 
 local g_resTextColor = cc.c4b(255, 216, 0, 255)
 local g_allyTextColor = cc.c4b(107, 229, 225, 255)
 local g_enemyTextColor = cc.c4b(255, 83, 83, 255)
+local g_myUnionID = 0
 local g_myUnionName = ""
+local g_myID = 0
 local g_myName = ""
 
 local function getMyInfo()
 	local alliance = player.getAlliance()
-	if alliance:getUnionID()==0 then
+	g_myUnionID = alliance:getUnionID()
+	if g_myUnionID==0 then
 		g_myUnionName = ""
 	else
 		g_myUnionName = alliance:getBaseInfo().name	--发送者公会
 	end
 	g_myName = player.getName()
+	g_myID = player.getID()
 end
+
 
 --
 --=========================================================
@@ -36,10 +50,8 @@ function kingdomMap:init()
 	getMyInfo()
 	--data
 	--============================
-	self.mapRefreshFlag = false
-	self.mapRefreshOk = true
-	self.centerPosition = {kx=1, ky=1, x=0, y=0}
-	self.tickCount = 10
+	self.centerPosition = {kx=-1, ky=-1, x=0, y=0}
+	self.tickCount = 0
 	self.objs = {}
 	self.armys = {}
 	self.armyObjs = {}
@@ -53,6 +65,9 @@ function kingdomMap:init()
 	self:initMapView()
 	self:initArmyView()
 	self:initResInfo()
+	self:initFortress()
+	self:initGuideLayer()
+	kmapHttpHelper.init(self)
 
 	-- [[ mapLayer ]]
 	-- 地图层
@@ -71,8 +86,8 @@ function kingdomMap:init()
 		self.mapScrollView:initWithViewSize(game.visibleSize, self.mapContainer)
 
 		-- mapInfo
-		self.labelMapInfo = cc.Label:createWithTTF("", "font/main.ttf", 28)
-		self.labelMapInfo:setPosition(game.visibleSize.width/2, 200)
+		self.labelMapInfo = cc.Label:createWithTTF("", "font/main.ttf", math.ceil(28*hp.uiHelper.RA_scale))
+		self.labelMapInfo:setPosition(game.visibleSize.width/2, 200*hp.uiHelper.RA_scaleY)
 	self.mapLayer:addChild(self.mapScrollView)
 	self.mapLayer:addChild(self.labelMapInfo)
 
@@ -88,20 +103,28 @@ function kingdomMap:init()
 		self:posMapView(px, py)
 
 		local kdCoor = self:coWorld2Kindom(cc.p(game.visibleSize.width/2, game.visibleSize.height/2))
-		self.labelMapInfo:setString(string.format("k:%d-%d x:%d y:%d", kdCoor.kx, kdCoor.ky, kdCoor.x, kdCoor.y))
-		self.centerPosition = {kx=kdCoor.kx, ky=kdCoor.ky, x=kdCoor.x, y=kdCoor.y}
+		local serverInfo = player.serverMgr.getServerByPos(kdCoor.kx, kdCoor.ky)
+		self.labelMapInfo:setString(player.serverMgr.formatPosition(kdCoor, true))
+
+		if self.centerPosition.kx~=kdCoor.kx or self.centerPosition.ky~=kdCoor.ky then
+			self:resetFortressPos(kdCoor.kx, kdCoor.ky)
+		end
+		self.centerPosition = kdCoor
 	end
 	self.mapScrollView:setContentSize(cc.size(self.pw, self.ph))
 	self.mapScrollView:setBounceable(false)
-	--self.mapScrollView:setMaxScale(2)
-	--self.mapScrollView:setMinScale(1)
-	self.mapScrollView:setZoomScale(1.2)
+	local minScale = hp.uiHelper.RA_scale
+	--self.mapScrollView:setMinScale(minScale)
+	--self.mapScrollView:setMaxScale(2*minScale)
+	self.mapScrollView:setZoomScale(1.2*minScale)
 	self.mapScrollView:setDelegate()
 	self.mapScrollView:registerScriptHandler(onScrolled, 0)
 	self.bgLayer:addChild(self.viewLayer)
+	self.bgLayer:addChild(self.fortressLayer)
 	self.bgLayer:addChild(self.armyLayer)
+	self.bgLayer:addChild(self.guideLayer)
 
-	self:gotoPosition(0, player.getPosition())
+	self:gotoPosition(player.serverMgr.getMyPosition())
 
 	-- [[ touchLayer ]]
 	-- 地图触屏处理层
@@ -129,7 +152,7 @@ function kingdomMap:init()
 	--==========================
 	-- top信息
 	self.infoLayer = cc.Layer:create()
-	require "ui/bigMap/topMenu" 
+	require "ui/bigMap/common/topMenu" 
 	local topMenu = UI_topMenu.new()
 	topMenu:onAdd(self)
 	self.infoLayer:addChild(topMenu.layer)
@@ -159,11 +182,10 @@ function kingdomMap:init()
 	--==========================
 	self.menuLayer = cc.Layer:create()
 	require "ui/mainMenu"
-	local mainMenu = UI_mainMenu.new()
+	local mainMenu = UI_mainMenu.new(3)
 	mainMenu:onAdd(self)
 	self.menuLayer:addChild(mainMenu.layer)
 	table.insert(self.uis, mainMenu)
-	mainMenu.setMapIconState()
 	self.mainMenu = mainMenu
 
 	-- [[ modalUILayer ]]
@@ -184,6 +206,23 @@ function kingdomMap:init()
 
 	-- add message
 	self:registMsg(hp.MSG.MAP_ARMY_ATTACK)
+	self:registMsg(hp.MSG.UNION_JOIN_SUCCESS)
+	self:registMsg(hp.MSG.UNION_NOTIFY)
+	self:registMsg(hp.MSG.KING_BATTLE)
+	self:registMsg(hp.MSG.CITY_POS_CHANGED)
+	self:registMsg(hp.MSG.KINGDOM_ACTIVITY)
+
+	-- 2级地图指定地图信息管理
+	self.conflictManager = require("playerData/conflictManager")
+	self.conflictManager.init()
+
+	self.sourceUIHelper = require("scene/assist/sourceUIHelper")
+	self.sourceUIHelper.init()
+end
+
+-- onEnter
+function kingdomMap:onEnter()
+	self:onEnterAnim()
 end
 
 function kingdomMap:coWorld2Kindom(coWorld)
@@ -194,17 +233,15 @@ function kingdomMap:coWorld2Kindom(coWorld)
 	local x = showp.x%(self.mapInfo.map.w*2)
 	local y = showp.y%self.mapInfo.map.h
 	return {kx=kx,ky=ky,x=x,y=y}
-end	
-
+end
 
 -- addUI
 function kingdomMap:addUI(ui_)
 	ui_.uiType_ = 0
-	ui_:onAdd(self)
 	self.uiLayer:addChild(ui_.layer)
 	table.insert(self.uis, ui_)
 	table.insert(self.UIs, ui_)
-	self.mainMenu.setMapIconState()
+	ui_:onAdd(self)
 end
 
 -- removeUI
@@ -225,10 +262,9 @@ function kingdomMap:removeUI(ui_)
 			break
 		end
 	end
-	self.mainMenu.setMapIconState()
 end
 
--- removeUI
+-- removeAllUI
 function kingdomMap:removeAllUI()
 	for i=#self.UIs, 1, -1 do
 		local UI = self.UIs[i]
@@ -243,7 +279,6 @@ function kingdomMap:removeAllUI()
 	end
 
 	self.UIs = {}
-	self.mainMenu.setMapIconState()
 end
 
 
@@ -304,31 +339,49 @@ end
 function kingdomMap:initMapInfo()
 	--
 	--===============================
+	-- local serverList = {}
+	-- for i, srvInfo in ipairs(game.data.serverList) do
+	-- 	serverList[srvInfo.y] = serverList[srvInfo.y] or {}
+	-- 	serverList[srvInfo.y][srvInfo.x] = srvInfo
+	-- end
+
 	local mapInfo = require(config.dirUI.map .. "kingdomMapInfo")
 	local mapData = cc.FileUtils:getInstance():getStringFromFile(config.dirUI.map .. "data.client")
-	local maps = {
-					{mapData, mapData, mapData},
-					{mapData, mapData, mapData},
-					{mapData, mapData, mapData},
-				}
 	self.mapInfo = mapInfo
-	self.maps = maps
-	
+	self.mapData = mapData
+
+	myServerInfo = player.serverMgr.getMyServer()
+	myPosServerInfo = player.serverMgr.getMyPosServer()
+	myPosServerY = myPosServerInfo.y
+	myPosServerX = myPosServerInfo.x
+
+	-- 获取跨服活动的服务器信息
+	local activity = player.kingdomActivityMgr.getActivity()
+	if activity and activity.status == UNION_ACTIVITY_STATUS.OPEN then
+		activityServerInfo = player.serverMgr.getServerBySid(activity.serverID)
+	else
+		activityServerInfo = nil
+	end
+
+
+	-- 世界地图的大小(国家)
+	local sz = player.serverMgr.getWorldSize()
 	-- 地图的总宽高(瓦片)
-	self.w = mapInfo.map.w * table.getn(maps[1])
-	self.h = mapInfo.map.h * table.getn(maps)
+	self.w = mapInfo.map.w * sz.width
+	self.h = mapInfo.map.h * sz.height
 	-- 一个王国地图的宽高(像素)
 	self.kpw = mapInfo.map.w * mapInfo.map.tilew
 	self.kph = mapInfo.map.h * mapInfo.map.tileh / 2
 	-- 地图的总宽高(像素)
-	self.pw = self.kpw * table.getn(maps[1]) + mapInfo.map.tilew/2
-	self.ph = self.kph * table.getn(maps) + mapInfo.map.tileh/2
+	self.pw = self.kpw * sz.width + mapInfo.map.tilew/2
+	self.ph = self.kph * sz.height + mapInfo.map.tileh/2
 	
 	-- 瓦片纹理、纹理矩形
 	local tileTextures = {}
 	local tileTexturesRect = {}
 	for i, v in ipairs(mapInfo.imgs) do
 		local texture2D = cc.Director:getInstance():getTextureCache():addImage(config.dirUI.map .. v.path)
+		texture2D:retain()
 		local gid = v.firstid
 		for h=0, v.h-1 do
 			for w=0, v.w-1 do
@@ -350,8 +403,9 @@ function kingdomMap:initMapView()
 	local px = mapInfo.tileSet.x
 	local py = mapInfo.tileSet.y
 
-	local viewW = math.ceil(game.visibleSize.width*2/(tilew*2))
-	local viewH = math.ceil(game.visibleSize.height*2/(tileh))
+	local minScale = hp.uiHelper.RA_scale
+	local viewW = math.ceil(game.visibleSize.width*2/(tilew*2*minScale))
+	local viewH = math.ceil(game.visibleSize.height*2/(tileh*minScale))
 	self.viewW = viewW
 	self.viewH = viewH
 	local w = viewW*3
@@ -363,10 +417,12 @@ function kingdomMap:initMapView()
 	-- 创建精灵
 	local viewLayer = cc.Layer:create()
 	local viewGroundLayer = cc.Layer:create()
-	local viewObjLayer = cc.Layer:create()
+	local viewLevelLayer = cc.Layer:create()
+	local viewIconLayer = cc.Layer:create()
 	local viewDescLayer = cc.Layer:create()
 	viewLayer:addChild(viewGroundLayer)
-	viewLayer:addChild(viewObjLayer)
+	viewLayer:addChild(viewLevelLayer)
+	viewLayer:addChild(viewIconLayer)
 	viewLayer:addChild(viewDescLayer)
 
 	local viewSprites = {}
@@ -374,8 +430,16 @@ function kingdomMap:initMapView()
 	local objNode = nil
 	local descBgNode = nil
 	local descNode = nil
+	local vipNode = nil
+	local markNode = nil
+	local titleNode = nil
+	local plateSprite = nil
+	local lvSprite = nil
+
 	local xTmp = 1
 	local yTmp = 1
+	local xTmp1 = 1
+	local yTmp1 = 1
 
 	local xoffset = mapInfo.tileSet.w/2+px
 	local yOffset = mapInfo.tileSet.h/2+py
@@ -388,35 +452,65 @@ function kingdomMap:initMapView()
 			objNode = cc.Sprite:create()
 			descBgNode = cc.Sprite:create(config.dirUI.map .. "name_bg.png")
 			descNode = cc.Label:createWithTTF("", "font/main.ttf", 20)
-			descNode:setPosition(84, 12)
+			vipNode = cc.Sprite:create()
+			markNode = cc.Sprite:create()
+			titleNode = cc.Sprite:create()
+			plateSprite = cc.Sprite:create(config.dirUI.building .. "lvPlate.png")
+			lvSprite = cc.Sprite:create()
+			plateSprite:addChild(lvSprite)
+			plateSprite:setVisible(false)
+
+			-- ground and obj
 			if i%2==1 then
 				xTmp = psx+tilew*j+px
 				yTmp = psy-tileh/2*i-py-tileh/4
-				groundNode:setPosition(xTmp, yTmp)
-				objNode:setPosition(xTmp+xoffset, yTmp+yOffset)
-				descBgNode:setPosition(xTmp+xoffset, yTmp+yOffset-tileh/2)
 			else
 				xTmp = psx+tilew*j+tilew/2+px
 				yTmp = psy-tileh/2*i-py-tileh/4
-				groundNode:setPosition(xTmp, yTmp)
-				objNode:setPosition(xTmp+xoffset, yTmp+yOffset)
-				descBgNode:setPosition(xTmp+xoffset, yTmp+yOffset-tileh/2)
 			end
+			groundNode:setPosition(xTmp, yTmp)
+			objNode:setPosition(tilew/2+10, 30)
+			objNode:setAnchorPoint(0.5, 0)
+			groundNode:addChild(objNode)
+
+			-- other infos
+			xTmp1 = xTmp+xoffset
+			yTmp1 = yTmp+yOffset-tileh/2
+			descBgNode:setPosition(xTmp1, yTmp1)
+			descNode:setPosition(xTmp1, yTmp1-2)
+			yTmp1 = yTmp+yOffset
+			markNode:setPosition(xTmp1, yTmp1+50)
+			titleNode:setPosition(xTmp1-70, yTmp1+50)
+			plateSprite:setPosition(xTmp1+tilew/4, yTmp1-tileh/4)		
+			lvSprite:setPosition(30, 30)	
+			plateSprite:setScale(0.5)
 
 			viewGroundLayer:addChild(groundNode)
-			viewObjLayer:addChild(objNode)
 			viewDescLayer:addChild(descBgNode)
-			descBgNode:addChild(descNode)
+			viewDescLayer:addChild(descNode)
+			descBgNode:addChild(vipNode)
+			vipNode:setScale(0.4)
+			vipNode:setPosition(-8, 14)
+			viewIconLayer:addChild(markNode)
+			viewIconLayer:addChild(titleNode)			
+			viewLevelLayer:addChild(plateSprite)
 
 			viewSprites[i][j] = {
 				groundNode = groundNode,
 				objNode = objNode,
 				descBgNode = descBgNode,
 				descNode = descNode,
+				vipNode = vipNode,
+				markNode = markNode,
+				titleNode = titleNode,
+				plateSprite = plateSprite,
+				lvSprite = lvSprite
 				}
 		end
 	end
 
+	--
+	-- 
 	local x = tilew*viewW/2
 	local y = tileh*viewH/2
 	local viewRect = {}
@@ -481,30 +575,36 @@ function kingdomMap:initResInfo()
 		local resImgPath = string.format("%sres%d.png", config.dirUI.map, v.sid)
 		resInfo.info = v
 		resInfo.texture2D = cc.Director:getInstance():getTextureCache():addImage(resImgPath)
+		resInfo.texture2D:retain()
 		resInfos[v.sid] = resInfo
 	end
 
-	local homeImgPath = config.dirUI.map .. "home_icon.png"
-	local homeTexture2D = cc.Director:getInstance():getTextureCache():addImage(homeImgPath)
+	local homeTexture2D = {}
+	local hostileTexture2D = {}
+	local x = 1
+	for i=1, 5 do
+		homeTexture2D[i] = cc.Director:getInstance():getTextureCache():addImage(config.dirUI.map .. "home_icon"..i..".png")
+		hostileTexture2D[i] = cc.Director:getInstance():getTextureCache():addImage(config.dirUI.map .. "hostile_home"..i..".png")
+		homeTexture2D[i]:retain()
+		hostileTexture2D[i]:retain()
+	end
 
 	-- boss info
 	local bossInfos = {}
 	for i, v in ipairs(game.data.boss) do
 		local bossInfo_ = {}
-		local bossImagePath = config.dirUI.common.."boss1.png"
-		bossInfo_.texture2D = cc.Director:getInstance():getTextureCache():addImage(bossImagePath)
-		bossInfo_.info = v
-		bossInfos[v.sid] = bossInfo_
+		bossInfos[v.sid] = v
 	end
 
 	self.resInfos = resInfos
 	self.homeTexture2D = homeTexture2D
+	self.hostileTexture2D = hostileTexture2D
 	self.bossInfos = bossInfos
 end
 
 
 -- posMapView
-function kingdomMap:posMapView(tileX, tileY, mustFlag_)
+function kingdomMap:posMapView(tileX, tileY, mustRefresh)
 	if tileY%2~=0 then
 		tileY = tileY-1
 	end
@@ -512,153 +612,38 @@ function kingdomMap:posMapView(tileX, tileY, mustFlag_)
 	local viewW = self.viewW
 	local viewH = self.viewH
 
-	if mustFlag_==nil and self.viewTileX~=nil and self.viewTileY~=nil then
-		local x_ = self.viewTileX-tileX
-		local y_ = self.viewTileY-tileY
-		if -viewW<x_ and x_<viewW and -viewH<y_ and y_<viewH then
-			return
+	if mustRefresh then
+	else
+		if mustFlag_==nil and self.viewTileX~=nil and self.viewTileY~=nil then
+			local x_ = self.viewTileX-tileX
+			local y_ = self.viewTileY-tileY
+			if -viewW<x_ and x_<viewW and -viewH<y_ and y_<viewH then
+				return
+			end
 		end
 	end
-	
-	if mustFlag_==nil then
-		self.mapRefreshFlag = true
-	end
 
+	-- 停顿一下，请求地图信息
+	self.tickCount = posViewTickCont
 
 	self.viewTileX = tileX
 	self.viewTileY = tileY
+	self:refreshMapViewObjs()
 
 	local x1 = tileX-viewW+1
 	local x2 = tileX+2*viewW
 	local y1 = tileY-2*viewH+1
 	local y2 = tileY+viewH
-
 	local h = self.h
 	local w = self.w
-
-
 	local kh = self.mapInfo.map.h
 	local kw = self.mapInfo.map.w
-	local kr = 1
-	local r = 1
-	local kl = 1
-	local l = 1
-
-	local viewSprites = self.viewSprites
-	local tileTextures = self.tileTextures
-	local tileTexturesRect = self.tileTexturesRect
-	local maps = self.maps
-	local kmap = nil
-	local gid = 1
-
-	local sp = nil
-	local strPos = nil
-	local objTmp = nil
-	-- viewSprites[i][j] = {
-	-- 			groundNode = groundNode,
-	-- 			objNode = objNode,
-	--			descBgNode = descBgNode,
-	-- 			descNode = descNode,
-	-- 			}
-
-	local i = 1
-	local j = 1
-	for y=y1, y2 do
-		j = 1
-		if y<1 or y>h then
-			for x=x1, x2 do
-				viewSprites[i][j].groundNode:setVisible(false)
-				j = j+1
-			end
-		else
-			kr = math.ceil(y/kh)
-			r = y - (kr-1)*kh
-			for x=x1, x2 do
-				if x<1 or x>w then
-					viewSprites[i][j].groundNode:setVisible(false)
-				else
-					sp = viewSprites[i][j]
-					kl = math.ceil(x/kw)
-					l = x - (kl-1)*kw
-					kmap = maps[kr][kl]
-					gid = string.byte(kmap, (r-1)*kw+l)
-					sp.groundNode:setVisible(true)
-					sp.groundNode:setTexture(tileTextures[gid])
-					sp.groundNode:setTextureRect(tileTexturesRect[gid])
-
-					strPos = string.format("%d-%d", x-1, y-1)
-					objTmp = self.objs[strPos]
-
-					sp.objNode:removeAllChildren()
-					if objTmp~=nil then
-						if objTmp.type==1 then
-							local x = 1
-							sp.objNode:setVisible(true)
-							sp.objNode:setTexture(self.homeTexture2D)
-							sp.objNode:setTextureRect(self.homeTexture2D:getContentSize())
-							sp.descBgNode:setVisible(true)
-							local str = objTmp.name
-							if objTmp.unionName ~= "" then
-								str = "["..objTmp.unionName.."]"..objTmp.name
-							end
-							sp.descNode:setString(str)
-							if g_myUnionName=="" then
-								if g_myName==objTmp.name then
-									sp.descNode:setTextColor(g_allyTextColor)
-								else
-									sp.descNode:setTextColor(g_enemyTextColor)
-								end
-							else
-								if g_myUnionName==objTmp.unionName then
-									sp.descNode:setTextColor(g_allyTextColor)
-								else
-									sp.descNode:setTextColor(g_enemyTextColor)
-								end
-							end
-							if objTmp.proCD>0 then
-							--新手保护中。。
-								local ani = hp.sequenceAniHelper.createAnimation1(31001, 14, 0.1)
-								ani:setPosition(116, 80)
-								sp.objNode:addChild(ani)
-							end
-						elseif objTmp.type==2 then
-							local resInfo = self.resInfos[objTmp.sid]
-							sp.objNode:setVisible(true)
-							sp.objNode:setTexture(resInfo.texture2D)
-							sp.objNode:setTextureRect(resInfo.texture2D:getContentSize())
-							sp.descBgNode:setVisible(true)
-							sp.descNode:setString(resInfo.info.name)
-							sp.descNode:setTextColor(g_resTextColor)
-						elseif objTmp.type==4 then
-							-- self.bossTexture2D
-							local bossInfo_ = self.bossInfos[objTmp.sid]
-							sp.objNode:setVisible(true)
-							-- sp.objNode:setTexture(bossInfo_.texture2D)
-							-- sp.objNode:setTextureRect(bossInfo_.texture2D:getContentSize())
-							sp.objNode:setTextureRect(cc.size(0, 0))
-							local aniNode = hp.sequenceAniHelper.createAnimation(bossInfo_.info.animation)
-							sp.objNode:addChild(aniNode)
-							sp.descBgNode:setVisible(true)
-							sp.descNode:setString(bossInfo_.info.name)
-							sp.descNode:setTextColor(g_enemyTextColor)
-						end
-					else
-						sp.objNode:setVisible(false)
-						sp.descBgNode:setVisible(false)
-					end
-				end
-				j = j+1
-			end
-		end
-		i = i+1
-	end
-
 
 	-- 获取边界焦点
-	kl = math.ceil(x2/kw)
-	l = (kl-1)*kw-tileX
-	kr = math.ceil(y2/kh)
-	r = tileY - (kr-1)*kh
+	local kl = math.ceil(x2/kw)
+	local l = (kl-1)*kw-tileX
+	local kr = math.ceil(y2/kh)
+	local r = tileY - (kr-1)*kh
 	local x = (l+0.25)*self.mapInfo.map.tilew
 	local y = (r-0.5)*self.mapInfo.map.tileh/2
 	local viewRect = self.viewRect
@@ -681,18 +666,26 @@ function kingdomMap:posMapView(tileX, tileY, mustFlag_)
 	local kr3 = kr
 	local kl3 = kl-1
 
-	self.viewMask1:setVisible(true)
-	self.viewMask2:setVisible(true)
-	self.viewMask3:setVisible(true)
-	self.viewMask4:setVisible(true)
-	if kr1==mykr and kl1==mykl then
+	-- 自己国家 和 开启国战的活动国家 亮起
+	if (activityServerInfo and kr1==activityServerInfo.y and kl1==activityServerInfo.x) or (kr1==myServerInfo.y and kl1==myServerInfo.x) then
 		self.viewMask1:setVisible(false)
-	elseif kr2==mykr and kl2==mykl then
+	else
+		self.viewMask1:setVisible(true)
+	end
+	if (activityServerInfo and kr2==activityServerInfo.y and kl2==activityServerInfo.x) or (kr2==myServerInfo.y and kl2==myServerInfo.x) then
 		self.viewMask2:setVisible(false)
-	elseif kr3==mykr and kl3==mykl then
+	else
+		self.viewMask2:setVisible(true)
+	end
+	if (activityServerInfo and kr3==activityServerInfo.y and kl3==activityServerInfo.x) or (kr3==myServerInfo.y and kl3==myServerInfo.x) then
 		self.viewMask3:setVisible(false)
-	elseif kr==mykr and kl==mykl then
+	else
+		self.viewMask3:setVisible(true)
+	end
+	if (activityServerInfo and kr==activityServerInfo.y and kl==activityServerInfo.x) or (kr==myServerInfo.y and kl==myServerInfo.x) then
 		self.viewMask4:setVisible(false)
+	else
+		self.viewMask4:setVisible(true)
 	end
 
 	self.viewMask1:setPosition(x, y)
@@ -702,21 +695,20 @@ function kingdomMap:posMapView(tileX, tileY, mustFlag_)
 	self.viewBorderH:setPosition(x, y)
 	self.viewBorderV:setPosition(x, y)
 
-
 	self.viewLayer:setPosition(tileX*self.mapInfo.map.tilew, self.ph-tileY*(self.mapInfo.map.tileh/2))
 end
 
 -- 刷新地图上的物体
-function kingdomMap:refreshMapViewObjs(tileX, tileY)
+function kingdomMap:refreshMapViewObjs()
+	local tileX = self.viewTileX
+	local tileY = self.viewTileY
+
 	if tileY%2~=0 then
 		tileY = tileY-1
 	end
 
 	local viewW = self.viewW
 	local viewH = self.viewH
-
-	self.viewTileX = tileX
-	self.viewTileY = tileY
 
 	local x1 = tileX-viewW+1
 	local x2 = tileX+2*viewW
@@ -725,10 +717,9 @@ function kingdomMap:refreshMapViewObjs(tileX, tileY)
 
 	local h = self.h
 	local w = self.w
-
-
 	local kh = self.mapInfo.map.h
 	local kw = self.mapInfo.map.w
+	
 	local kr = 1
 	local r = 1
 	local kl = 1
@@ -737,13 +728,14 @@ function kingdomMap:refreshMapViewObjs(tileX, tileY)
 	local viewSprites = self.viewSprites
 	local tileTextures = self.tileTextures
 	local tileTexturesRect = self.tileTexturesRect
-	local maps = self.maps
-	local kmap = nil
+	local mapData = self.mapData
 	local gid = 1
 
 	local sp = nil
 	local strPos = nil
 	local objTmp = nil
+
+	local bMainTable = game.data.main
 	-- viewSprites[i][j] = {
 	-- 			groundNode = groundNode,
 	-- 			objNode = objNode,
@@ -757,48 +749,64 @@ function kingdomMap:refreshMapViewObjs(tileX, tileY)
 		j = 1
 		if y<1 or y>h then
 			for x=x1, x2 do
-				--viewSprites[i][j].groundNode:setVisible(false)
+				sp = viewSprites[i][j]
+				sp.objNode:removeAllChildren()
+				sp.markNode:setVisible(false)
+				sp.titleNode:setVisible(false)					
+				sp.plateSprite:setVisible(false)
+				sp.groundNode:setVisible(false)
+				sp.descBgNode:setVisible(false)
+				sp.descNode:setVisible(false)
+
 				j = j+1
 			end
 		else
 			kr = math.ceil(y/kh)
 			r = y - (kr-1)*kh
 			for x=x1, x2 do
+				sp = viewSprites[i][j]
+				sp.objNode:removeAllChildren()
+				sp.markNode:setVisible(false)
+				sp.titleNode:setVisible(false)					
+				sp.plateSprite:setVisible(false)
+
 				if x<1 or x>w then
-					--viewSprites[i][j].groundNode:setVisible(false)
+					sp.groundNode:setVisible(false)
+					sp.descBgNode:setVisible(false)
+					sp.descNode:setVisible(false)
 				else
-					sp = viewSprites[i][j]
-					-- kl = math.ceil(x/kw)
-					-- l = x - (kl-1)*kw
-					-- kmap = maps[kr][kl]
-					-- gid = string.byte(kmap, (r-1)*kw+l)
-					-- sp.groundNode:setVisible(true)
-					-- sp.groundNode:setTexture(tileTextures[gid])
-					-- sp.groundNode:setTextureRect(tileTexturesRect[gid])
+					local vipLv = 0
+					sp.groundNode:setVisible(true)
 
 					strPos = string.format("%d-%d", x-1, y-1)
 					objTmp = self.objs[strPos]
-					sp.objNode:removeAllChildren()
 					if objTmp~=nil then
+					-- 地面上有物体
 						if objTmp.type==1 then
-							local x = 1
-							sp.objNode:setVisible(true)
-							sp.objNode:setTexture(self.homeTexture2D)
-							sp.objNode:setTextureRect(self.homeTexture2D:getContentSize())
-							sp.descBgNode:setVisible(true)
+						-- 城池
+							local homeTexture
+							if activityServerInfo and objTmp.serverID==activityServerInfo.sid then
+							-- 跨服活动开启
+								homeTexture=self.hostileTexture2D[bMainTable[objTmp.level].mapImg]
+							else
+								homeTexture=self.homeTexture2D[bMainTable[objTmp.level].mapImg]
+							end
+
+							sp.objNode:setTexture(homeTexture)
+							sp.objNode:setTextureRect(homeTexture:getContentSize())
 							local str = objTmp.name
 							if objTmp.unionName ~= "" then
-								str = "["..objTmp.unionName.."]"..objTmp.name
+								str = hp.lang.getStrByID(21)..objTmp.unionName..hp.lang.getStrByID(22)..objTmp.name
 							end
 							sp.descNode:setString(str)
-							if g_myUnionName=="" then
+							if g_myUnionID==0 then
 								if g_myName==objTmp.name then
 									sp.descNode:setTextColor(g_allyTextColor)
 								else
 									sp.descNode:setTextColor(g_enemyTextColor)
 								end
 							else
-								if g_myUnionName==objTmp.unionName then
+								if g_myUnionID==objTmp.unionID then
 									sp.descNode:setTextColor(g_allyTextColor)
 								else
 									sp.descNode:setTextColor(g_enemyTextColor)
@@ -806,37 +814,146 @@ function kingdomMap:refreshMapViewObjs(tileX, tileY)
 							end
 							if objTmp.proCD>0 then
 							--新手保护中。。
-								local ani = hp.sequenceAniHelper.createAnimation1(31001, 14, 0.1)
+								local ani = hp.sequenceAniHelper.createAnimSprite("bigMap", "protect", 12, 0.1)
 								ani:setPosition(116, 80)
 								sp.objNode:addChild(ani)
 							end
+
+							local fireTime_ = objTmp.defeated-player.getServerTime()
+							if fireTime_ > 0 then
+								local ani = hp.sequenceAniHelper.createAnimSprite("bigMap", "fire", 12, 0.1)
+								ani:setPosition(116, 96)
+								sp.objNode:addChild(ani)
+							end
+							sp.plateSprite:setVisible(true)
+							sp.lvSprite:setTexture(string.format("%slv%d.png", config.dirUI.building, objTmp.level))
+							-- 俘虏
+							if objTmp.captive > 0 then
+								sp.markNode:setVisible(true)
+								sp.markNode:setTexture(config.dirUI.common.."kd_10.png")
+							else
+								sp.markNode:setVisible(false)
+							end
+							-- 头衔
+							if objTmp.title ~= 0 and objTmp ~= nil then
+								sp.titleNode:setVisible(true)
+								sp.titleNode:setTexture(config.dirUI.title..objTmp.title..".png")
+							end
+							--vip
+							if objTmp.vipCD>0 and objTmp.vipLv>0 then
+								vipLv = objTmp.vipLv
+								sp.vipNode:setTexture(config.dirUI.common.."vip_icon_"..vipLv..".png")
+							end
 						elseif objTmp.type==2 then
+						-- 资源点
 							local resInfo = self.resInfos[objTmp.sid]
-							sp.objNode:setVisible(true)
+							local objTmpArmy = self.armyObjs[strPos]
 							sp.objNode:setTexture(resInfo.texture2D)
 							sp.objNode:setTextureRect(resInfo.texture2D:getContentSize())
-							sp.descBgNode:setVisible(true)
 							sp.descNode:setString(resInfo.info.name)
 							sp.descNode:setTextColor(g_resTextColor)
+							if objTmpArmy then
+							--有军队在采集
+								local armyInfo = objTmpArmy.armyInfo
+								if armyInfo.pid==g_myID then
+								-- 自己
+									sp.markNode:setTexture(config.dirUI.common.."kd_7.png")
+								elseif armyInfo.unionID==0 or armyInfo.unionID~=g_myUnionID then
+								-- 敌军
+									sp.markNode:setTexture(config.dirUI.common.."kd_9.png")
+								else
+								-- 盟友
+									sp.markNode:setTexture(config.dirUI.common.."kd_8.png")
+								end
+								sp.markNode:setVisible(true)
+							end
 						elseif objTmp.type==4 then
-							-- self.bossTexture2D
-							local bossInfo_ = self.bossInfos[objTmp.sid]
+						-- 野怪
+							local bossInfo = self.bossInfos[objTmp.sid]
 							sp.objNode:setVisible(true)
-							-- sp.objNode:setTexture(bossInfo_.texture2D)
-							-- sp.objNode:setTextureRect(bossInfo_.texture2D:getContentSize())
 							sp.objNode:setTextureRect(cc.size(0, 0))
-							local aniNode = hp.sequenceAniHelper.createAnimation(bossInfo_.info.animation)
+							local aniNode = hp.sequenceAniHelper.createAnimation(bossInfo.animation)
+							local hpBg = cc.Sprite:create(config.dirUI.common .. "boss_hp_proBg3.png")
+							local hp = cc.Sprite:create(config.dirUI.common .. "boss_hp_pro3.png")
+							hpBg:addChild(hp)
+							hp:setAnchorPoint(0, 0)
+							hp:setPosition(2, 2)
+							hp:setTextureRect(cc.rect(0, 0, math.ceil(objTmp.life*125/bossInfo.maxLife), 12))
+
+							hpBg:setPosition(24, 0)
+							aniNode:addChild(hpBg)
+							aniNode:setAnchorPoint(0.5, 0)
+							aniNode:setPosition(0, 24)
 							sp.objNode:addChild(aniNode)
-							sp.descBgNode:setVisible(true)
-							sp.descNode:setString(bossInfo_.info.name)
+							sp.descNode:setString(bossInfo.name)
 							sp.descNode:setTextColor(g_enemyTextColor)
 						end
+
+						sp.objNode:setVisible(true)
+						sp.descBgNode:setVisible(true)
+						sp.descNode:setVisible(true)
+						sp.descBgNode:setTextureRect(cc.rect(0, 0, sp.descNode:getContentSize().width+20, 28))
+
+						if vipLv>0 then
+							sp.vipNode:setVisible(true)
+						else
+							sp.vipNode:setVisible(false)
+						end
+						--地表用平地设置
+						sp.groundNode:setTexture(tileTextures[1])
+						sp.groundNode:setTextureRect(tileTexturesRect[1])
 					else
-						-- changed by huanghaitao
-						-- begin
-						sp.objNode:setVisible(false)
-						sp.descBgNode:setVisible(false)
-						-- end
+					-- 空地
+						local objTmpArmy = self.armyObjs[strPos]
+						if objTmpArmy~=nil then
+						-- 有驻军
+							sp.objNode:setTexture(config.dirUI.map.."camp.png")
+							sp.objNode:setVisible(true)
+							sp.descBgNode:setVisible(false)
+							sp.descNode:setVisible(false)
+							-- 地表用平地设置
+							sp.groundNode:setTexture(tileTextures[1])
+							sp.groundNode:setTextureRect(tileTexturesRect[1])
+
+							-- 营地改为不显示玩家名
+							-- local armyInfo = objTmpArmy.armyInfo
+							-- local str = armyInfo.name
+							-- if armyInfo.unionID ~= 0 then
+							-- 	str = hp.lang.getStrByID(21)..armyInfo.unionName..hp.lang.getStrByID(22)..armyInfo.name
+							-- else
+							-- 	str = armyInfo.name
+							-- end
+							-- sp.descNode:setString(str)
+							-- if g_myUnionID==0 then
+							-- 	if g_myName==armyInfo.name then
+							-- 		sp.descNode:setTextColor(g_allyTextColor)
+							-- 	else
+							-- 		sp.descNode:setTextColor(g_enemyTextColor)
+							-- 	end
+							-- else
+							-- 	if g_myUnionID==armyInfo.unionID then
+							-- 		sp.descNode:setTextColor(g_allyTextColor)
+							-- 	else
+							-- 		sp.descNode:setTextColor(g_enemyTextColor)
+							-- 	end
+							-- end
+							-- sp.descBgNode:setVisible(true)
+							-- sp.descNode:setVisible(true)
+							-- sp.descBgNode:setTextureRect(cc.rect(0, 0, sp.descNode:getContentSize().width+20, 28))
+
+						else
+						-- 无驻军
+							sp.objNode:setVisible(false)
+							sp.descBgNode:setVisible(false)
+							sp.descNode:setVisible(false)
+
+							-- 获取并设置地表
+							kl = math.ceil(x/kw)
+							l = x - (kl-1)*kw
+							gid = string.byte(mapData, (r-1)*kw+l)
+							sp.groundNode:setTexture(tileTextures[gid])
+							sp.groundNode:setTextureRect(tileTexturesRect[gid])
+						end
 					end
 				end
 				j = j+1
@@ -877,15 +994,22 @@ function kingdomMap:onTouchBegan(touchs_)
 			self.tileInfo.tileType = self.tileType
 			self.tileInfo.position = self:coWorld2Kindom(cc.p(touchs_[1], touchs_[2]))
 			self.tileInfo.objInfo = self.touchedInfo
-			if self.touchedInfo ~= nil then
-				if self.touchedInfo.type==3 then
-				--军队
-					self.spriteTouched = self.touchedInfo.armyNode
-				else
-					self.spriteTouched = self.viewSprites[i][j].objNode
-				end
+
+			local p_ = self.tileInfo.position
+			if (p_.x == 255 and p_.y == 511) or (p_.x == 255 and p_.y == 509) or 
+				(p_.x == 254 and p_.y == 510) or (p_.x == 256 and p_.y == 510) then
+				-- 重镇
+				self.spriteTouched = self.fortress
+				self.touchedInfo = {type=10}
+				self.tileInfo.position.x = 255
+				self.tileInfo.position.y = 511
 			else
-				self.spriteTouched = self.viewSprites[i][j].groundNode
+				if self.touchedInfo ~= nil then
+				-- 点击到了物体(城池、资源点、boss、驻军)
+					self.spriteTouched = self.viewSprites[i][j].objNode
+				else
+					self.spriteTouched = self.viewSprites[i][j].groundNode
+				end
 			end
 			self.spriteTouched:updateDisplayedColor(cc.c3b(128, 128, 128))
 		else
@@ -926,86 +1050,108 @@ function kingdomMap:onTouchEnded(touchs_)
 		local spriteTmp = self.spriteTouched
 		self.spriteTouched = nil
 		spriteTmp:updateDisplayedColor(cc.c3b(255, 255, 255))
+		self:removeGuidePoint()
+
+		local tpos = self.tileInfo.position
+		local ui_ = nil
 		if self.touchedInfo ~= nil then
 			if self.touchedInfo.type == 1 then
+			-- 城市
+				local cityInfo = self.touchedInfo
+				if g_myID == cityInfo.id then
 				-- 自己城市
-				if player.getID() == self.touchedInfo.id then
-					require "ui/bigMap/myCity"
+					require "ui/bigMap/city/myCity"
 					ui_ = UI_myCity.new(self.tileInfo)
 					self:addModalUI(ui_)
-				elseif player.getAlliance():getUnionID() == 0 then
-					require "ui/bigMap/enemyCity"
+				elseif g_myUnionID==0 or g_myUnionID~=cityInfo.unionID then
+				-- 敌方城市
+					require "ui/bigMap/city/enemyCity"
 					ui_ = UI_enemyCity.new(self.tileInfo)
 					self:addModalUI(ui_)
-				elseif player.getAlliance():getUnionID() == self.touchedInfo.unionID then
-					require "ui/bigMap/unionCity"
-					ui_ = UI_unionCity.new(self.tileInfo)
-					self:addModalUI(ui_)					
 				else
-					require "ui/bigMap/enemyCity"
-					ui_ = UI_enemyCity.new(self.tileInfo)
+				-- 友军城市
+					require "ui/bigMap/city/unionCity"
+					ui_ = UI_unionCity.new(self.tileInfo)
 					self:addModalUI(ui_)
 				end
 			elseif self.touchedInfo.type == 2 then
-				-- 资源
-				if self.touchedInfo.armyInfo == nil then
-					require "ui/bigMap/UISource"
-					local ui_ = UI_source.new(self.tileInfo)
+			-- 资源点
+				local armyInfo = self.touchedInfo.armyInfo
+				if armyInfo == nil then
+				-- 无人占领
+					require "ui/bigMap/source/UISource"
+					ui_ = UI_source.new(self.tileInfo)
 					self:addModalUI(ui_)
 				else
-					print("==========================", self.touchedInfo.armyInfo.pid, player.getID())
-					if self.touchedInfo.armyInfo.pid == player.getID() then
-						require "ui/bigMap/UISource"
-						local ui_ = UI_source.new(self.tileInfo)
-						self:addModalUI(ui_)
-					else
-						if player.getAlliance():getUnionID() == 0 then
-							require "ui/bigMap/enemySource"
-							local ui_ = UI_enemySource.new(self.tileInfo)
-							self:addModalUI(ui_)
-						elseif player.getAlliance():getUnionID() == self.touchedInfo.armyInfo.unionID then
-							require "ui/bigMap/unionSource"
-							local ui_ = UI_unionSource.new(self.tileInfo)
+					if g_myID == armyInfo.pid then
+					-- 自己占领
+						local resourceInfo = hp.gameDataLoader.getInfoBySid("resources", self.tileInfo.objInfo.sid)		
+						if resourceInfo.growth == 0 then
+							-- 钻石
+							require "ui/bigMap/source/mySourceGold"
+							ui_ = UI_mySourceGold.new(self.tileInfo)
 							self:addModalUI(ui_)
 						else
-							require "ui/bigMap/enemySource"
-							local ui_ = UI_enemySource.new(self.tileInfo)
+							-- 一般资源
+							require "ui/bigMap/source/mySource"
+							ui_ = UI_mySource.new(self.tileInfo)
 							self:addModalUI(ui_)
-						end
+						end						
+					elseif g_myUnionID==0 or g_myUnionID~=armyInfo.unionID then
+					-- 敌方占领
+						require "ui/bigMap/source/enemySource"
+						ui_ = UI_enemySource.new(self.tileInfo)
+						self:addModalUI(ui_)
+					else
+					-- 友军占领
+						require "ui/bigMap/source/unionSource"
+						ui_ = UI_unionSource.new(self.tileInfo)
+						self:addModalUI(ui_)
 					end
 				end
+				self.sourceUIHelper.openSourceUI(ui_)
 			elseif self.touchedInfo.type == 3 then
-				-- 军队				
-				-- 自己部队
-				if self.touchedInfo.armyInfo.pid == player.getID() then
-					require "ui/bigMap/myArmyCamp"
-					local ui_ = UI_myArmyCamp.new(self.tileInfo)
+			-- 军队
+				local armyInfo = self.touchedInfo.armyInfo
+				if g_myID == armyInfo.pid then
+				-- 自己军队
+					require "ui/bigMap/camp/myArmyCamp"
+					ui_ = UI_myArmyCamp.new(self.tileInfo)
+					self:addModalUI(ui_)
+				elseif g_myUnionID==0 or g_myUnionID~=armyInfo.unionID then
+				-- 敌方军队
+					require "ui/bigMap/camp/enemyCamp"
+					ui_ = UI_enemyCamp.new(self.tileInfo)
 					self:addModalUI(ui_)
 				else
-					if player.getAlliance():getUnionID() == 0 then
-						require "ui/bigMap/enemyCamp"
-						local ui_ = UI_enemyCamp.new(self.tileInfo)
-						self:addModalUI(ui_)
-					elseif player.getAlliance():getUnionID() == self.touchedInfo.armyInfo.unionID then
-						require "ui/bigMap/unionCamp"
-						local ui_ = UI_unionCamp.new(self.tileInfo)
-						self:addModalUI(ui_)					
-					else
-					-- 敌人部队
-						require "ui/bigMap/enemyCamp"
-						local ui_ = UI_enemyCamp.new(self.tileInfo)
-						self:addModalUI(ui_)
-					end
+				-- 友军军队
+					require "ui/bigMap/camp/unionCamp"
+					ui_ = UI_unionCamp.new(self.tileInfo)
+					self:addModalUI(ui_)
 				end
 			elseif self.touchedInfo.type == 4 then
+			-- Boss
 				require "ui/bigMap/boss"
-				local ui_ = UI_boss.new(self.tileInfo)
+				ui_ = UI_boss.new(self.tileInfo)
+				self:addModalUI(ui_)
+			elseif self.touchedInfo.type == 10 then
+			-- 重镇
+				require "ui/bigMap/battle/fortress"
+				ui_ = UI_fortress.new(self.tileInfo)
 				self:addModalUI(ui_)
 			end
 		else
-			require("ui/bigMap/emptyGround")
-			ui = UI_emptyGround.new(self.tileInfo)
-			self:addModalUI(ui)
+		-- 空地
+			require("ui/bigMap/common/emptyGround")
+			ui_ = UI_emptyGround.new(self.tileInfo)
+			self:addModalUI(ui_)
+		end
+
+		-- 清除之前点击出现的军队信息
+		self:removeArmyByClick()
+		if tpos.kx==myPosServerX and tpos.ky==myPosServerY then
+		-- 如果点击是本国，获取点击地块数据
+			self.conflictManager.httpReqRequestData(self.tileInfo.position.x, self.tileInfo.position.y)
 		end
 	end
 end
@@ -1033,7 +1179,7 @@ function kingdomMap:pTile2Map(p_)
 	--local scale = self.mapScrollView:getZoomScale()
 	local mapInfo = self.mapInfo.map
 	local x = (p_.x+0.5) * mapInfo.tilew
-	local y = (p_.y+0.5) * mapInfo.tileh/2
+	local y = (p_.y+1) * mapInfo.tileh/2
 	if p_.y%2~=0 then
 		x = x+mapInfo.tilew/2
 	end
@@ -1103,12 +1249,34 @@ end
 -- public
 --======================================================
 -- 跳转到一个坐标
-function kingdomMap:gotoPosition(kingdom_, p_)
+-- @p_: 坐标点
+-- @kName_: 国家名字
+-- @kSid_: 国家sid
+function kingdomMap:gotoPosition(p_, kName_, kSid_)
+	-- 获取国家坐标
+	local kx = myPosServerX
+	local ky = myPosServerY
+	local kServer = nil
+
+	if kSid_ then
+	-- 通过sid获取国家服务器信息
+		kServer = player.serverMgr.getServerBySid(kSid_)
+	end
+	if kName_ and kServer==nil then
+	-- 通过名字获取国家服务器信息
+		kServer = player.serverMgr.getServerByName(kName_)
+	end
+	if kServer then
+		kx = kServer.x
+		ky = kServer.y
+	end
+
+	-- 设置具体偏移坐标
 	local scale = self.mapScrollView:getZoomScale()
 	local mapInfo = self.mapInfo.map
 	local p = self:pReal2Tile(p_)
-	local x_ = (mykl-1)*mapInfo.w+p.x
-	local y_ = (mykr-1)*mapInfo.h+p.y
+	local x_ = (kx-1)*mapInfo.w+p.x
+	local y_ = (ky-1)*mapInfo.h+p.y
 	local x = (x_+1) * mapInfo.tilew - mapInfo.tilew/2
 	local y = (y_+1) * mapInfo.tileh/2
 	if y_%2==1 then
@@ -1117,8 +1285,11 @@ function kingdomMap:gotoPosition(kingdom_, p_)
 
 	x = x*scale - game.visibleSize.width/2
 	y = (self.ph-y)*scale - game.visibleSize.height/2
-
 	self.mapScrollView:setContentOffset(cc.p(-x, -y))
+end
+
+function kingdomMap:getCurPosition()
+	return self.centerPosition
 end
 
 -- getTileType
@@ -1130,194 +1301,260 @@ function kingdomMap:getTileType(p_)
 	local kl = math.ceil((p_.x+1)/mapInfo.map.w)
 	local px = p_.x%mapInfo.map.w
 	local py = p_.y%mapInfo.map.h
-	local kmap = self.maps[kr][kl]
-	local gid = string.byte(kmap, py*mapInfo.map.w+px+1)
+	local gid = string.byte(self.mapData, py*mapInfo.map.w+px+1)
 
-	print(kr, kl, px, py, gid, mapInfo.tiles[gid])
+	cclog_(kr, kl, px, py, gid, mapInfo.tiles[gid])
 	return mapInfo.tiles[gid]
 end
 
 -- add by huanghaitao test
 -- begin
 function kingdomMap:objAppearOnMap()
-	print("kingdomMap:objAppearOnMap")
+	cclog_("kingdomMap:objAppearOnMap")
 	self:requestMapInfo()
 end
 
-function kingdomMap:requestMapInfo()
-	-- 刷新地图
-	local cmdData={}
-	cmdData.type = 1
-	cmdData.x = self.centerPosition.x
-	cmdData.y = self.centerPosition.y
-	cmdData.range = self.viewH
+-- onResponseMapInfo
+-- 响应返回地图信息
+function kingdomMap:onResponseMapInfo(kx_, ky_, x_, y_, range_, dataInfo_)
+	if not self:isValid() then
+	-- 地图已经退出
+		return
+	end
 
+	local mapInfo = self.mapInfo.map
+	local xs = (kx_-1)*mapInfo.w
+	local ys = (ky_-1)*mapInfo.h
 
-	local function onHttpResponse(status, response, tag)
-		if not self:isValid() then
-		-- 地图已经退出
-			return
-		end
-
-		self.mapRefreshOk = true
-		self.tickCount = 0
-
-		if status~=200 then
-			return
-		end
-
-		local resInfo = hp.httpParse(response)
-		if resInfo.result~=0 then
-			return
-		end
-
-		local mapInfo = self.mapInfo.map
-		local xs = (mykl-1)*mapInfo.w
-		local ys = (mykr-1)*mapInfo.h
-
-		-- 清除以前的数据
-		local p = self:pReal2Tile(cc.p(cmdData.x, cmdData.y))
-		local pOriginX=xs+p.x
-		local pOriginY=ys+p.y
-		for i=pOriginX-cmdData.range, pOriginX+cmdData.range do
-			for j=pOriginY-cmdData.range, pOriginY+cmdData.range do
-				local strPos = string.format("%d-%d", i, j)
-				if self.objs[strPos]~=nil then
-					self.objs[strPos] = nil
+	-- 清除以前的数据
+	x_ = math.floor(x_/2)
+	for i=x_-range_, x_+range_ do
+		if 0<=i and i<mapInfo.w then
+			for j=y_-range_, y_+range_ do
+				if 0<=j and j<mapInfo.h then
+					local strPos = string.format("%d-%d", xs+i, ys+j)
+					if self.objs[strPos]~=nil then
+						self.objs[strPos] = nil
+					end
 				end
 			end
 		end
-
-		-- type 1-城市 2-资源 3-军队 4-boss
-		if resInfo.city~=nil then
-		-- 城市
-			for i,v in ipairs(resInfo.city) do
-				local p = self:pReal2Tile(cc.p(v[3], v[4]))
-				local strPos = string.format("%d-%d", xs+p.x, ys+p.y)
-				local objTmp = {}
-				self.objs[strPos] = objTmp
-				objTmp.id = v[1] 
-				objTmp.type = 1
-				objTmp.name = v[2]
-				objTmp.unionID = v[6]
-				objTmp.unionName = v[7]
-				objTmp.power = v[8]
-				objTmp.kill = v[9]
-				objTmp.image = v[10]
-				objTmp.proCD = v[11]	--新手保护
-				objTmp.vipCD = v[12]	--vip
-				objTmp.conCD = v[13]	--免侦查
-			end
-		end
-		if resInfo.pool~=nil then
-		-- 资源点
-			for i,v in ipairs(resInfo.pool) do
-				local p = self:pReal2Tile(cc.p(v[3], v[4]))
-				local strPos = string.format("%d-%d", xs+p.x, ys+p.y)
-				local objTmp = {}
-				self.objs[strPos] = objTmp
-				objTmp.type = 2
-				objTmp.sid = v[1]
-				objTmp.resNum = v[2]
-			end
-		end
-		if resInfo.army~=nil then
-		-- 军队
-			self.armyObjs = {}
-			for i, armyInfo in ipairs(self.armys) do
-				self.armyLayer:removeChild(armyInfo.ccLayer)
-				self.armys = {}
-			end
-			
-			for i, v in ipairs(resInfo.army) do
-				self:addArmy(v)
-			end
-		end
-		if resInfo.boss~=nil then
-		-- boss boss1.png
-			for i, v in ipairs(resInfo.boss) do
-				local p = self:pReal2Tile(cc.p(v[3], v[4]))
-				local strPos = string.format("%d-%d", xs+p.x, ys+p.y)
-				local objTmp = {}
-				self.objs[strPos] = objTmp
-				objTmp.type = 4
-				objTmp.sid = v[1]
-				objTmp.life = v[2]
-			end
-		end
-
-		self:refreshMapViewObjs(self.viewTileX, self.viewTileY)
 	end
 
-	local cmdSender = hp.httpCmdSender.new(onHttpResponse)
-	cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdWorld)
+	-- type 1-城市 2-资源 3-军队 4-boss
+	if dataInfo_.city~=nil then
+	-- 城市
+		for i,v in ipairs(dataInfo_.city) do
+			local p = self:pReal2Tile(cc.p(v[3], v[4]))
+			local strPos = string.format("%d-%d", xs+p.x, ys+p.y)
+			local objTmp = {}
+			self.objs[strPos] = objTmp
+			objTmp.id = v[1] 
+			objTmp.type = 1
+			objTmp.name = v[2]
+			objTmp.captive = v[5]
+			objTmp.unionID = v[6]
+			objTmp.unionName = v[7]
+			objTmp.power = v[8]
+			objTmp.kill = v[9]
+			objTmp.image = v[10]
+			objTmp.proCD = v[11]	--新手保护
+			objTmp.vipCD = v[12]	--vip
+			objTmp.conCD = v[13]	--免侦查
+			objTmp.level = v[14]	-- 府邸等级
+			objTmp.defeated = v[15] + player.getServerTime() -- 冒火时间
+			objTmp.title = v[16]
+			objTmp.vipLv = v[17]	--VIP等级
+			objTmp.serverID = v[18]	--所属服务器的ID
+		end
+	end
+	if dataInfo_.pool~=nil then
+	-- 资源点
+		for i,v in ipairs(dataInfo_.pool) do
+			local p = self:pReal2Tile(cc.p(v[3], v[4]))
+			local strPos = string.format("%d-%d", xs+p.x, ys+p.y)
+			local objTmp = {}
+			self.objs[strPos] = objTmp
+			objTmp.type = 2
+			objTmp.sid = v[1]
+			objTmp.resNum = v[2]
+		end
+	end
+	
+	if kx_==myPosServerX and ky_==myPosServerY and dataInfo_.army~=nil then
+	-- 军队
+		for k, armyInfo in pairs(self.armys) do
+			if armyInfo.byClick ~= true then
+				self:removeArmy(k)
+			else
+				armyInfo.needShow = false
+			end
+		end
+		self.armyObjs = {}
+
+		for i, v in ipairs(dataInfo_.army) do
+			self:addArmy(v)
+		end
+	end
+	if dataInfo_.boss~=nil then
+	-- boss boss1.png
+		for i, v in ipairs(dataInfo_.boss) do
+			local p = self:pReal2Tile(cc.p(v[3], v[4]))
+			local strPos = string.format("%d-%d", xs+p.x, ys+p.y)
+			local objTmp = {}
+			self.objs[strPos] = objTmp
+			objTmp.type = 4
+			objTmp.sid = v[1]
+			objTmp.life = v[2]
+		end
+	end
+
+	self:refreshMapViewObjs()
+end
+
+-- onResponseMapInfo
+-- 向服务器请求地图信息
+function kingdomMap:requestMapInfo()
+	self.tickCount = 0
+	kmapHttpHelper.requireData(self.centerPosition)
 end
 -- end
 
 --
 function kingdomMap:heartbeat(dt)
-
 	self.super.heartbeat(self, dt)
-	if self.tickCount<1 then
-		self.tickCount = self.tickCount+dt
-		return
-	end
 
 	-- 检查行军部队
 	self:checkArmy(dt)
 
+	-- 定时刷新地图信息
 	self.tickCount = self.tickCount+dt
-	if self.tickCount>12 or self.mapRefreshFlag then
-		self.mapRefreshFlag = true
+	if self.tickCount>=refreshTickCont then
 		self.tickCount = 0
-	end
-
-	if self.mapRefreshFlag and self.mapRefreshOk then
-		self.mapRefreshFlag = false
-		self.mapRefreshOk = false
 		self:requestMapInfo()
 	end
+
+	self.conflictManager.heartBeat(dt)
+	kmapHttpHelper.heartbeat(dt)
 end
 
 -- initArmyView
 -- 初始化行军
 function kingdomMap:initArmyView()
 	local armyLayer = cc.Layer:create()
-	local armyTexture = cc.Director:getInstance():getTextureCache():addImage(config.dirUI.map .. "army.png")
-	local armyRext = {}
-
-	for i=0, 2 do
-		for j=0, 3 do
-			table.insert(armyRext, cc.rect(j*69, i*69, 69, 69))
-		end
-	end
 
 	self.armyLayer = armyLayer
-	self.armyTexture = armyTexture
-	self.armyRext = armyRext
 end
 
+-- initGuideLayer
+function kingdomMap:initGuideLayer()
+	local guideLayer = cc.Layer:create()
+	self.guideLayer = guideLayer
+end
 
--- 添加行军
-function kingdomMap:addArmy(armyInfo_)
-	local armyInfo = self.armys[armyInfo_[1]]
-	if armyInfo~=nil then
-		-- 部队已存在
-		self.armys[armyInfo_[1]] = nil
-		self.armyLayer:removeChild(armyInfo.ccLayer)
-		if armyInfo.pStart.x==armyInfo.pEnd.x and armyInfo.pStart.y==armyInfo.pEnd.y then
-			-- 部队为驻扎部队
-			local strPos = string.format("%d-%d", armyInfo.pEnd.x, armyInfo.pEnd.y)
-			if self.armyObjs[strPos]~=nil then
-				self.armyObjs[strPos]= nil
-			end
+-- initFortress()
+-- 初始化重镇
+function kingdomMap:initFortress()
+	local fortressLayer_ = cc.Layer:create()
+	-- 重镇
+	local city_ = cc.Sprite:create(config.dirUI.fortress.."fortress.png")
+	local size_ = city_:getContentSize()
+	local p1 = self:pTile2Map(cc.p(127,1024+511))
+	local p2 = self:pTile2Map(cc.p(127,1024+509))
+	local x_, y_ = p1.x, (p1.y + p2.y) / 2
+	-- 光圈
+	local shine_ = cc.Sprite:create(config.dirUI.common.."kd_12.png")
+	shine_:setAnchorPoint(0.5, 0.5)
+	shine_:setPosition(size_.width/2, size_.height/2)
+	city_:addChild(shine_)
+	-- 头顶标记
+	local mark_ = cc.Sprite:create(config.dirUI.common.."kd_13.png")
+	mark_:setAnchorPoint(0.5, 0.5)
+	mark_:setPosition(size_.width/2, size_.height/2 + 180)
+	city_:addChild(mark_)
+
+	local function updateFortressInfo()
+		if info_ == nil then
+			return
+		end
+		local info_ = player.fortressMgr.getFortressInfo()
+		if info_.open == globalData.OPEN_STATUS.OPEN then
+			shine_:setVisible(false)
+		else
+			shine_:setVisible(true)
+		end
+
+		if info_.pid == 0 then
+			mark_:setVisible(false)
+		else
+			mark_:setVisible(true)
 		end
 	end
+	self.updateFortressInfo = updateFortressInfo
+	updateFortressInfo()
 
+	city_:setPosition(x_, y_)
+	fortressLayer_:addChild(city_)
+	self.fortressLayer = fortressLayer_
+	self.fortress = city_
+end
+
+-- 重置重镇
+function kingdomMap:resetFortressPos(kx_, ky_)
+	local kInfo = player.serverMgr.getServerByPos(kx_, ky_)
 	local mapInfo = self.mapInfo.map
-	local xs = (mykl-1)*mapInfo.w
-	local ys = (mykr-1)*mapInfo.h
+	local tx = (kx_-1/2)*mapInfo.w
+	local ty = (ky_-1/2)*mapInfo.h
 
+	local p1 = self:pTile2Map(cc.p(tx-1, ty-1))
+	local p2 = self:pTile2Map(cc.p(tx-1, ty-3))
+	self.fortress:setTexture(config.dirUI.fortress..kInfo.img)
+	self.fortress:setPosition(p1.x, (p1.y + p2.y) / 2)
+end
+
+-- 移除军队
+function kingdomMap:removeArmy(armyId_)
+	local armyInfo = self.armys[armyId_]
+	if armyInfo==nil then
+	-- 部队不存在
+		return
+	end
+
+	self.armys[armyId_] = nil
+
+	if armyInfo.type==0 then
+	-- 行军
+		self.armyLayer:removeChild(armyInfo.ccLayer)
+	elseif armyInfo.type==1 then
+	-- 驻扎
+		local strPos = string.format("%d-%d", armyInfo.pEnd.x, armyInfo.pEnd.y)
+		self.armyObjs[strPos]= nil
+	elseif armyInfo.type==2 then
+	-- 采集
+		local strPos = string.format("%d-%d", armyInfo.pEnd.x, armyInfo.pEnd.y)
+		self.armyObjs[strPos]= nil
+	end
+end
+
+-- 移除点击出现的军队
+function kingdomMap:removeArmyByClick()
+	for k, armyInfo in pairs(self.armys) do
+		cclog_("armyInfo.needShow",k,armyInfo.needShow)
+		if armyInfo.byClick == true and armyInfo.needShow == false then
+			self:removeArmy(k)
+		else
+			armyInfo.byClick = false
+		end
+	end
+end
+
+-- 添加行军
+function kingdomMap:addArmy(armyInfo_, byClick_)
+	local mapInfo = self.mapInfo.map
+	local xs = (myPosServerX-1)*mapInfo.w
+	local ys = (myPosServerY-1)*mapInfo.h
+
+	-- 解析army数据
 	local armyInfo = {}
 	armyInfo.id = armyInfo_[1]
 	armyInfo.pid = armyInfo_[2]
@@ -1338,31 +1575,137 @@ function kingdomMap:addArmy(armyInfo_)
 	armyInfo.image = armyInfo_[22]
 	armyInfo.name = armyInfo_[23]
 	armyInfo.rank = armyInfo_[24]
+	if byClick_ == true then
+		armyInfo.byClick = true
+		armyInfo.needShow = false
+		cclog_("self.armys[armyId_]",self.armys[armyInfo.id],armyInfo.id)
+		if self.armys[armyInfo.id] ~= nil then
+			armyInfo.needShow = self.armys[armyInfo.id].needShow
+		end
+	else
+		armyInfo.needShow = true
+		armyInfo.byClick = false
+		if self.armys[armyInfo.id] ~= nil then
+			armyInfo.byClick = self.armys[armyInfo.id].byClick
+		end
+	end
+
+	self:removeArmy(armyInfo.id)
 	self.armys[armyInfo.id] = armyInfo
 
-	local ccLayer = cc.Layer:create()
-	armyInfo.ccLayer = ccLayer
-
-	local spriteArmy = nil
 	local nowTime = player.getServerTime()
 	local p1 = self:pTile2Map(armyInfo.pStart)
 	local p2 = self:pTile2Map(armyInfo.pEnd)
 
-	--if armyInfo.tEnd==armyInfo.tStart or nowTime>armyInfo.tEnd then
-	if armyInfo.pStart.x==armyInfo.pEnd.x and armyInfo.pStart.y==armyInfo.pEnd.y then
-		-- 部队为驻扎部队
-		spriteArmy = hp.sequenceAniHelper.createAnimation(21001)--cc.Sprite:createWithSpriteFrame(cc.SpriteFrame:createWithTexture(self.armyTexture, self.armyRext[1]))
-		spriteArmy:setPosition(p2)
-		local strPos = string.format("%d-%d", armyInfo.pEnd.x, armyInfo.pEnd.y)
-		self.armyObjs[strPos] = {}
-		self.armyObjs[strPos].type = 3
-		self.armyObjs[strPos].armyNode = spriteArmy
-		self.armyObjs[strPos].armyInfo = armyInfo
-	else
-		--行军路线
-		local armyLine = cc.DrawNode:create()
-		armyLine:drawSegment(p1, p2, 2, cc.c4f(1, 0, 1, 1))
-		ccLayer:addChild(armyLine)
+	if armyInfo.type==0 then
+	-- 行军
+		local ccLayer = cc.Layer:create()
+		ccLayer:setLocalZOrder(1)
+
+		-- 连线
+		local function createLine(p1, p2, type_)
+			local ccLayer = cc.Layer:create()
+			local leftPath_ = config.dirUI.common.."foot_left1.png"
+			local rightPath_ = config.dirUI.common.."foot_right1.png"
+			if type_ == globalData.ARMY_BELONG.ENEMY then
+				leftPath_ = config.dirUI.common.."foot_left1.png"
+				rightPath_ = config.dirUI.common.."foot_right1.png"
+			elseif type_ == globalData.ARMY_BELONG.ME then
+				leftPath_ = config.dirUI.common.."foot_left2.png"
+				rightPath_ = config.dirUI.common.."foot_right2.png"
+			elseif type_ == globalData.ARMY_BELONG.ALLIANCE then
+				leftPath_ = config.dirUI.common.."foot_left2.png"
+				rightPath_ = config.dirUI.common.."foot_right2.png"
+			end
+
+			local interval_ = 50
+			local lrInterval_ = {0.2,8}
+
+			local vector_ = {p2.x-p1.x,p2.y-p1.y}
+			local distance_ = math.sqrt(math.pow(vector_[1],2)+math.pow(vector_[2],2))
+			local num_ = math.floor(distance_ / interval_)
+			local delta_ = {}
+			delta_.x = (vector_[1])/num_
+			delta_.y = (vector_[2])/num_
+			-- 旋转角度
+			local angle_ = hp.common.rotateAngle(vector_)
+
+			local y_ = {}
+			local x_ = {}
+			if vector_[1] == 0 then
+				y_[1] = p1.y
+				x_[1] = p1.x + lrInterval_[2]
+				y_[2] = p1.y
+				x_[2] = p1.x - lrInterval_[2]
+			else
+				y_[1] = p1.y + lrInterval_[2]*vector_[1]/distance_
+				x_[1] = p1.x - vector_[2]*(y_[1]-p1.y)/vector_[1]
+				y_[2] = p1.y - lrInterval_[2]*vector_[1]/distance_
+				x_[2] = p1.x - vector_[2]*(y_[2]-p1.y)/vector_[1]
+			end
+
+			local leftBegin_ = {x=0,y=0}
+			local rightBegin_ = {x=0,y=0}
+			if ((x_[1] - p1.x)*vector_[2] - (y_[1] - p1.y)*vector_[1]) > 0 then
+				-- 左脚起点
+				leftBegin_.x = x_[2] - lrInterval_[1]*delta_.x
+				leftBegin_.y = y_[2] - lrInterval_[1]*delta_.y
+
+				-- 右脚起点
+				rightBegin_.x = x_[1] + lrInterval_[1]*delta_.x
+				rightBegin_.y = y_[1] + lrInterval_[1]*delta_.y
+			elseif ((x_[2] - p1.x)*vector_[2] - (y_[2] - p1.y)*vector_[1]) > 0 then
+				-- 左脚起点
+				leftBegin_.x = x_[1] - lrInterval_[1]*delta_.x
+				leftBegin_.y = y_[1] - lrInterval_[1]*delta_.y
+
+				-- 右脚起点
+				rightBegin_.x = x_[2] + lrInterval_[1]*delta_.x
+				rightBegin_.y = y_[2] + lrInterval_[1]*delta_.y
+			else
+			end
+
+			local left_ = nil
+			local right_ = nil
+			for i = 1, num_-1 do
+				--left
+				left_ = cc.Sprite:create(leftPath_)
+				local pos_ = {x=leftBegin_.x+delta_.x*i,y=leftBegin_.y+delta_.y*i}
+				left_:setPosition(pos_.x,pos_.y)
+				ccLayer:addChild(left_)
+
+				right_ = cc.Sprite:create(rightPath_)
+				local pos_ = {x=rightBegin_.x+delta_.x*i,y=rightBegin_.y+delta_.y*i}
+				right_:setPosition(pos_.x,pos_.y)
+				ccLayer:addChild(right_)
+
+				-- 旋转
+				left_:setRotation(angle_)
+				right_:setRotation(angle_)
+			end
+			return ccLayer
+		end
+		local type_ = 1
+		if armyInfo.unionID==0 then
+			if g_myName==armyInfo.name then
+				type_ = globalData.ARMY_BELONG.ME
+			else
+				type_ = globalData.ARMY_BELONG.ENEMY
+			end
+		else
+			if g_myUnionID==armyInfo.unionID then
+				type_ = globalData.ARMY_BELONG.ALLIANCE
+			else
+				type_ = globalData.ARMY_BELONG.ENEMY
+			end
+		end
+		local feet_ = createLine(p1,p2,type_)
+		ccLayer:addChild(feet_)
+
+		-- local armyLine = cc.DrawNode:create()
+		-- armyLine:drawSegment(p1, p2, 2, cc.c4f(1, 0, 1, 1))
+		-- ccLayer:addChild(armyLine)
+
 		local ratioTime = (nowTime-armyInfo.tStart)/(armyInfo.tEnd-armyInfo.tStart)
 		if ratioTime<0 then
 			ratioTime = 0
@@ -1372,17 +1715,34 @@ function kingdomMap:addArmy(armyInfo_)
 		pNow.y = p1.y + (p2.y-p1.y)*ratioTime
 
 		-- 行军动画
-		spriteArmy = hp.sequenceAniHelper.createAnimation(21002)
+		spriteArmy = hp.sequenceAniHelper.createAnimSprite("bigMap", "march", 6, 0.2)
+		spriteArmy:setAnchorPoint(0.5, 0.2)
 		spriteArmy:setPosition(pNow)
 		spriteArmy:runAction(cc.MoveTo:create(armyInfo.tEnd-nowTime, p2))
 
 		if pNow.x>p2.x then
 			spriteArmy:setScaleX(-1)
 		end
-	end
 
-	ccLayer:addChild(spriteArmy)
-	self.armyLayer:addChild(ccLayer)
+		ccLayer:addChild(spriteArmy)
+		self.armyLayer:addChild(ccLayer)
+		armyInfo.ccLayer = ccLayer
+	elseif armyInfo.type==1 then
+	-- 驻扎		
+		local strPos = string.format("%d-%d", armyInfo.pEnd.x, armyInfo.pEnd.y)
+		local objTmp = {}
+		self.armyObjs[strPos] = objTmp
+		objTmp.type = 3
+		objTmp.armyNode = spriteArmy
+		objTmp.armyInfo = armyInfo
+	elseif armyInfo.type==2 then
+	-- 采集
+		local strPos = string.format("%d-%d", armyInfo.pEnd.x, armyInfo.pEnd.y)
+		local objTmp = {}
+		self.armyObjs[strPos] = objTmp
+		objTmp.type = 3
+		objTmp.armyInfo = armyInfo
+	end
 end
 
 -- 检查行军
@@ -1398,7 +1758,6 @@ function kingdomMap:checkArmy(dt)
 		-- 地图已经退出
 			return
 		end
-
 		self.armyRefreashOk = true
 
 		if status~=200 then
@@ -1411,18 +1770,7 @@ function kingdomMap:checkArmy(dt)
 
 		for i,v in ipairs(changedArmys) do
 		-- 移除之前部队状态
-			if self.armys[v]~=nil then
-				local armyInfo = self.armys[v]
-				self.armys[v] = nil
-				self.armyLayer:removeChild(armyInfo.ccLayer)
-				if armyInfo.pStart.x==armyInfo.pEnd.x and armyInfo.pStart.y==armyInfo.pEnd.y then
-					-- 部队为驻扎部队
-					local strPos = string.format("%d-%d", armyInfo.pEnd.x, armyInfo.pEnd.y)
-					if self.armyObjs[strPos]~=nil then
-						self.armyObjs[strPos]= nil
-					end
-				end
-			end
+			self:removeArmy(v)
 		end
 
 		if resInfo.army~=nil then
@@ -1431,12 +1779,14 @@ function kingdomMap:checkArmy(dt)
 				self:addArmy(v)
 			end
 		end
+
+		self:refreshMapViewObjs()
 	end
 
 	local nowTime = player.getServerTime()
 	for k, armyInfo in pairs(self.armys) do
-		if armyInfo.pStart.x~=armyInfo.pEnd.x or armyInfo.pStart.y~=armyInfo.pEnd.y then
-		-- 非驻扎部队
+		if armyInfo.type==0 or armyInfo.type==2 then
+		-- 行军、采集
 			if nowTime>armyInfo.tEnd then
 				-- 部队已到达
 				table.insert(changedArmys, k)
@@ -1445,16 +1795,104 @@ function kingdomMap:checkArmy(dt)
 	end
 
 	if #changedArmys>0 then
+		self.armyRefreashOk = false
 		local cmdData={}
 		cmdData.type = 2
 		cmdData.id = changedArmys
 		local cmdSender = hp.httpCmdSender.new(onHttpResponse)
-		cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdWorld)
+		cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdWorld, nil, nil, myPosServerInfo.url)
 	end
 end
 
 function kingdomMap:onMsg(msg_, param_)
+	self.super.onMsg(self, msg_, param_)
+	
 	if msg_ == hp.MSG.MAP_ARMY_ATTACK then
-		self:addArmy(param_)
+		self:addArmy(param_.army, param_.byClick)
+		self:refreshMapViewObjs()
+	elseif msg_==hp.MSG.UNION_JOIN_SUCCESS or (msg_==hp.MSG.UNION_NOTIFY and param_.msgType==2 ) then
+		getMyInfo()
+		self:requestMapInfo()
+	elseif msg_ == hp.MSG.KING_BATTLE then
+		if param_.msgType ~= 2 then
+			self.updateFortressInfo()
+		end
+	elseif msg_ == hp.MSG.CITY_POS_CHANGED then
+		myServerInfo = player.serverMgr.getMyServer()
+		myPosServerInfo = player.serverMgr.getMyPosServer()
+		myPosServerY = myPosServerInfo.y
+		myPosServerX = myPosServerInfo.x
+		self:posMapView(self.viewTileX, self.viewTileY, true)
+	elseif msg_ == hp.MSG.KINGDOM_ACTIVITY then
+		-- 获取跨服活动的服务器信息
+		local activity = player.kingdomActivityMgr.getActivity()
+		if activity and activity.status == UNION_ACTIVITY_STATUS.OPEN then
+			activityServerInfo = player.serverMgr.getServerBySid(activity.serverID)
+		else
+			activityServerInfo = nil
+		end
+		self:posMapView(self.viewTileX, self.viewTileY, true)
+	end
+end
+
+function kingdomMap:preExit()
+	self.sourceUIHelper.exit()
+	self.conflictManager.exit()
+	self.super.preExit(self)
+end
+
+
+--
+-- 导航箭头
+-- showGuidePoint
+function kingdomMap:showGuidePoint(p_, kName_, kSid_)
+	local guidePoint = self.guidePoint
+	if guidePoint==nil then
+		guidePoint = cc.Sprite:create(config.dirUI.common .. "guide_point.png")
+		self.guideLayer:addChild(guidePoint)
+		self.guidePoint = guidePoint
+
+		guidePoint:setScaleY(-1)
+		guidePoint:setAnchorPoint(0.5, 1)
+			-- 跳跃动画
+		local aJump = cc.JumpBy:create(0.8, cc.p(0, 0), 50, 1)
+		local jumpRep = cc.RepeatForever:create(aJump)
+		guidePoint:runAction(jumpRep)
+
+	end
+
+	-- 获取国家坐标
+	local kx = myPosServerX
+	local ky = myPosServerY
+	local kServer = nil
+
+	if kSid_ then
+	-- 通过sid获取国家服务器信息
+		kServer = player.serverMgr.getServerBySid(kSid_)
+	end
+	if kName_ and kServer==nil then
+	-- 通过名字获取国家服务器信息
+		kServer = player.serverMgr.getServerByName(kName_)
+	end
+	if kServer then
+		kx = kServer.x
+		ky = kServer.y
+	end
+	
+	-- 设置具体偏移坐标
+	local mapInfo = self.mapInfo.map
+	local p = self:pReal2Tile(p_)
+	local x_ = (kx-1)*mapInfo.w+p.x
+	local y_ = (ky-1)*mapInfo.h+p.y
+	local p = self:pTile2Map(cc.p(x_, y_))
+	guidePoint:setPosition(p)
+end
+
+--
+-- removeGuidePoint
+function kingdomMap:removeGuidePoint()
+	if self.guidePoint~=nil then
+		self.guideLayer:removeChild(self.guidePoint)
+		self.guidePoint = nil
 	end
 end

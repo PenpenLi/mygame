@@ -1,14 +1,14 @@
-资源ID	资源名称	部队图片	对应表名	代码名
-sid	name		table	code
-sid	name	image	table	code
-INT	string	string	string	string
-1	钻石	gold.png	10	gold
-2	白银	silver.png	20	silver
-3	粮草	food.png	20	food
-4	木材	wood.png	20	wood
-5	石材	rock.png	30	rock
-6	生铁	mine.png	30	mine
-7	武将经验	exp.png	30	exp
-8	赌资	material_icon.png	40	chip
-9	VIP积分	vip_icon.png	40	vip_exp
-10	战力	power.png	40	power
+资源ID	资源名称	部队图片	对应表名	代码名	对应建筑名	大图片
+sid	name		table	code	build	
+sid	name	image	table	code	build	imageBig
+INT	string	string	string	string	string	string
+1	钻石	gold.png	10	gold	暂无	gold.png
+2	白银	silver.png	20	silver	钱庄	silver_big.png
+3	粮草	food.png	20	food	农田	food_big.png
+4	木材	wood.png	20	wood	伐木场	wood_big.png
+5	石材	rock.png	30	rock	采石场	rock_big.png
+6	生铁	mine.png	30	mine	铁矿厂	mine_big.png
+7	武将经验	exp.png	30	exp	暂无	exp.png
+8	赌资	material_icon.png	40	chip	暂无	material_icon.png
+9	VIP积分	vip_icon.png	40	vip_exp	暂无	vip_icon.png
+10	战力	power.png	40	power	暂无	power.png

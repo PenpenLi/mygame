@@ -38,11 +38,11 @@ function itemUsedFunc(itemInfo, rstData)
 		end
 	elseif itemInfo.funStyle==9 then
 		-- 传送
-		player.setPosition(rstData.x, rstData.y)
+		player.serverMgr.moveCity(rstData.x, rstData.y, rstData.k, true)
 		if game.curScene.mapLevel == 2 then
-			scene:removeAllModalUI()
-			scene:removeAllUI()
-			game.curScene:gotoPosition("K", cc.p(rstData.x, rstData.y))
+			game.curScene:removeAllModalUI()
+			game.curScene:removeAllUI()
+			game.curScene:gotoPosition(cc.p(rstData.x, rstData.y))
 		end
 	elseif itemInfo.funStyle==13 then
 		-- 加速行军
@@ -54,11 +54,15 @@ function itemUsedFunc(itemInfo, rstData)
 		elseif itemType==23000 then
 			if itemInfo.funStyle==5 then
 			-- 免战牌
-				cdBox.setCD(cdBox.CDTYPE.PEACE, tonumber(rstData.cd))
+				cdBox.setCD(cdBox.CDTYPE.PEACE, rstData.cd[1], rstData.cd[2])
 			elseif itemInfo.funStyle==6 then
 			-- 反侦察
-				cdBox.setCD(cdBox.CDTYPE.FORBIDVIEW, tonumber(rstData.cd))
+				cdBox.setCD(cdBox.CDTYPE.FORBIDVIEW, rstData.cd[1], rstData.cd[2])
 			end
 		end
+	end
+
+	if rstData.buff ~= nil then
+		player.bufManager.addBuff(rstData.buff)
 	end
 end

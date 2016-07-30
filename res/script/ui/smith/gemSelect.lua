@@ -26,6 +26,15 @@ function UI_gemSelect:init(equip_, pos_, embedGemCallback_)
 	self:addChildUI(uiFrame)
 	self:addCCNode(widgetRoot)
 
+
+	-- desc
+	local contNode = widgetRoot:getChildByName("Panel_cont")
+	local attrText = contNode:getChildByName("Label_attr")
+	local btnEmbed = contNode:getChildByName("Image_embed")
+	local txtEmbed = contNode:getChildByName("Label_embed")
+	local btnClose = contNode:getChildByName("Image_close")
+	local txtClose = contNode:getChildByName("Label_close")
+
 	local function onHttpResponse(status, response, tag)
 		if status==200 then
 			local data = hp.httpParse(response)
@@ -41,9 +50,7 @@ function UI_gemSelect:init(equip_, pos_, embedGemCallback_)
 		end
 	end
 	--
-	local isEmbeding = false
 	local function embed()
-		isEmbeding = true
 		local cmdData={operation={}}
 		local oper = {}
 		oper.channel = 7
@@ -54,14 +61,8 @@ function UI_gemSelect:init(equip_, pos_, embedGemCallback_)
 		cmdData.operation[1] = oper
 		local cmdSender = hp.httpCmdSender.new(onHttpResponse)
 		cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper, 1)
+		self:showLoading(cmdSender, btnEmbed)
 	end
-	-- desc
-	local contNode = widgetRoot:getChildByName("Panel_cont")
-	local attrText = contNode:getChildByName("Label_attr")
-	local btnEmbed = contNode:getChildByName("Image_embed")
-	local txtEmbed = contNode:getChildByName("Label_embed")
-	local btnClose = contNode:getChildByName("Image_close")
-	local txtClose = contNode:getChildByName("Label_close")
 	local function onBtnTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
@@ -147,7 +148,7 @@ function UI_gemSelect:init(equip_, pos_, embedGemCallback_)
 					local gemBg = itemBg:getChildByName("Image_bg")
 					local gemImg = itemNode:getChildByName("Image_gem")
 					gemBg:loadTexture(string.format("%scolorframe_%d.png", config.dirUI.common, gemInfo.level))
-					gemImg:loadTexture(string.format("%s%d.png", config.dirUI.gem, gemInfo.sid))
+					gemImg:loadTexture(string.format("%s%d.png", config.dirUI.gem, gemInfo.type))
 					itemNode:getChildByName("Label_num"):setString(gemNum)
 					gemBg:setTag(gemInfo.sid)
 					gemBg:addTouchEventListener(onGemTouched)

@@ -19,28 +19,34 @@ function UI_unionShopMain:init()
 	self:initUI()	
 
 	local uiFrame = UI_fullScreenFrame.new()
+	uiFrame:hideTopBackground()
+	uiFrame:setTopShadePosY(830)
 	uiFrame:setTitle(hp.lang.getStrByID(5128))
 
 	-- addCCNode
 	-- ===============================
 	self:addChildUI(uiFrame)
 	self:addCCNode(self.widgetRoot)
+
+	self:registMsg(hp.MSG.UNION_NOTIFY)
 end
 
 function UI_unionShopMain:initCallBack()
 	local function onHelpTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)		
 		if eventType == TOUCH_EVENT_ENDED then
+			require "ui/union/shop/unionShopContribute"
+			local ui_ = UI_unionShopContribute.new()
+			self:addModalUI(ui_)
 		end
 	end
 
 	local function onMoreInfoTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)		
 		if eventType == TOUCH_EVENT_ENDED then
-			require "ui/union/shop/unionShopInfo"
-			local moreInfoBox = UI_unionShopInfo.new()
-			self:addModalUI(moreInfoBox)
-		
+			require "ui/union/shop/unionShopContribute"
+			local ui_ = UI_unionShopContribute.new()
+			self:addModalUI(ui_)		
 		end
 	end
 
@@ -50,21 +56,24 @@ function UI_unionShopMain:initCallBack()
 			local tag_ = sender:getTag()
 			if tag_ == 1 then
 				require "ui/union/shop/unionShop"
-				ui_ = UI_unionShop.new()
+				local ui_ = UI_unionShop.new()
 				self:addUI(ui_)
 			elseif tag_ == 2 then				
 				local authority_ = hp.gameDataLoader.getInfoBySid("allienceRank", player.getAlliance():getMyUnionInfo():getRank())
-				print("player.getAlliance():getMyUnionInfo():getRank()",player.getAlliance():getMyUnionInfo():getRank())
+				cclog_("player.getAlliance():getMyUnionInfo():getRank()",player.getAlliance():getMyUnionInfo():getRank())
 				if authority_.shopBuy == 1 then
 					require "ui/union/shop/unionShopCatalog"
-					ui_ = UI_unionShopCatalog.new()
+					local ui_ = UI_unionShopCatalog.new()
 					self:addUI(ui_)
 				else
 					require "ui/union/shop/unionShopCatalogBuy"
-					ui_ = UI_unionShopCatalogBuy.new()
+					local ui_ = UI_unionShopCatalogBuy.new()
 					self:addUI(ui_)
 				end
 			elseif tag_ == 3 then
+				require "ui/union/shop/unionShopHistory"
+				local ui_ = UI_unionShopHistory.new()
+				self:addUI(ui_)				
 			end
 		end
 	end
@@ -77,8 +86,9 @@ end
 function UI_unionShopMain:initUI()
 	self.widgetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "unionShopMain.json")
 	local content_ = self.widgetRoot:getChildByName("Panel_26_0")
-	print("player.getAlliance():getFunds()",player.getAlliance():getFunds())
-	content_:getChildByName("Label_62"):setString(hp.lang.getStrByID(7001).."      "..tostring(player.getAlliance():getMyUnionInfoBase().contribute))
+	cclog_("player.getAlliance():getFunds()",player.getAlliance():getFunds())
+	self.uiMoney = content_:getChildByName("Label_62")
+	self.uiMoney:setString(hp.lang.getStrByID(7001).."      "..tostring(player.getAlliance():getMyUnionInfoBase().contribute))
 	content_:getChildByName("Image_7"):getChildByName("Image_63"):addTouchEventListener(self.onHelpTouched)
 
 	local listView_ = self.widgetRoot:getChildByName("ListView_36")
@@ -95,6 +105,10 @@ function UI_unionShopMain:initUI()
 	moreInfo_:getChildByName("Label_62"):setString(hp.lang.getStrByID(1030))
 end
 
-function UI_unionShopMain:close()
-	self.super.close(self)
+function UI_unionShopMain:onMsg(msg_, param_)
+	if msg_ == hp.MSG.UNION_NOTIFY then
+		if param_.msgType == 4 then
+			self.uiMoney:setString(hp.lang.getStrByID(7001).."      "..tostring(player.getAlliance():getMyUnionInfoBase().contribute))
+		end
+	end
 end

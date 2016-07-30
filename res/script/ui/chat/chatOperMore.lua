@@ -62,6 +62,10 @@ function UI_chatOperMore:init(chatInfo_)
 				self:close()
 				self:addModalUI(ui)
 			elseif sender==btnViewPlayer then
+				require("ui/common/playerInfo")
+				local ui = UI_playerInfo.new(chatInfo_.srcId, chatInfo_.srcServerId)
+				self:close()
+				self:addModalUI(ui)
 			elseif sender==btnBlock then
 			elseif sender==btnCancle then
 				self:close()
@@ -77,6 +81,8 @@ function UI_chatOperMore:init(chatInfo_)
 	btnAddFrient:getChildByName("Label_text"):setString(hp.lang.getStrByID(3603))
 	btnSendMail:getChildByName("Label_text"):setString(hp.lang.getStrByID(3604))
 	btnViewPlayer:getChildByName("Label_text"):setString(hp.lang.getStrByID(3605))
+	btnViewPlayer:getChildByName("Image_headIcon"):loadTexture(config.dirUI.heroHeadpic .. chatInfo_.srcIcon .. ".png")
 	btnBlock:getChildByName("Label_text"):setString(hp.lang.getStrByID(3606))
+	btnBlock:getChildByName("Image_headIcon"):loadTexture(config.dirUI.heroHeadpic .. chatInfo_.srcIcon .. ".png")
 	btnCancle:getChildByName("Label_text"):setString(hp.lang.getStrByID(2412))
 end

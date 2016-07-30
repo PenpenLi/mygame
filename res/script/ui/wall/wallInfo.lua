@@ -50,7 +50,7 @@ function UI_wallInfo:initUI()
 
 	-- 总兵力 消耗
 	local Panel_1344 = listView:getChildByName("Panel_1344")
-	listView:removeChild(Panel_1344)
+	listView:removeItem(listView:getIndex(Panel_1344))
 
 	local function adjustHeight(parent_, panelList_, listView_, num_)
 		local deltaHeight = 31 * num_
@@ -71,7 +71,7 @@ function UI_wallInfo:initUI()
 
 	-- 我的军队
 	local Panel_5194 = listView:getChildByName("Panel_5194")
-	listView:removeChild(Panel_5194)
+	listView:removeItem(listView:getIndex(Panel_5194))
 
 	-- 兵营信息
 	local Panel_5196 = listView:getChildByName("Panel_5196")
@@ -104,7 +104,7 @@ function UI_wallInfo:initUI()
 
 	-- 总兵营奖励
 	local Panel_5197 = listView:getChildByName("Panel_5197")
-	listView:removeChild(Panel_5197)
+	listView:removeItem(listView:getIndex(Panel_5197))
 
 	-- 额外福利
 	local title_ = self.uiTitle:clone()
@@ -126,9 +126,9 @@ function UI_wallInfo:initUI()
 	end
 end
 
-function UI_wallInfo:close()
+function UI_wallInfo:onRemove()
 	self.uiItem:release()
 	self.uiSubTitle:release()
 	self.uiTitle:release()
-	self.super.close(self)
+	self.super.onRemove(self)
 end

@@ -19,6 +19,7 @@ function UI_allotSkillPoint:init(parent_, skillNode_, hero_, skillId_)
 	-- ===============================
 	local wigetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "skillInfo.json")
 	local uiFrame = UI_popFrame.new(wigetRoot, skillInfo.name)
+	uiFrame:setBgOpacity(192)
 
 
 	-- addCCNode
@@ -35,7 +36,7 @@ function UI_allotSkillPoint:init(parent_, skillNode_, hero_, skillId_)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			if sender==btnUp then
-				parent_.allotSkillPoint1(skillNode_, 1)
+				parent_.allotSkillPointByUI(skillNode_, 1, self, sender)
 			end
 		end
 	end
@@ -46,6 +47,7 @@ function UI_allotSkillPoint:init(parent_, skillNode_, hero_, skillId_)
 
 		local imgNode = contNode:getChildByName("ImageView_research")
 		imgNode:loadTexture(config.dirUI.skill .. skillId_ .. ".png")
+		imgNode:getChildByName("name"):setString(skillInfo.name)
 		imgNode:getChildByName("progress"):setPercent(skillLv*100/skillInfo.maxLv)
 		imgNode:getChildByName("desc"):setString(string.format("%d/%d", skillLv, skillInfo.maxLv))
 
@@ -80,4 +82,8 @@ function UI_allotSkillPoint:init(parent_, skillNode_, hero_, skillId_)
 	end
 	refreshInfo()
 	self.refreshInfo = refreshInfo
+
+	-- 渐入渐出
+	self:moveIn(1, 0.2)
+	uiFrame:setCloseEvent(function() self:moveOut(2, 0.2, 1) end)
 end

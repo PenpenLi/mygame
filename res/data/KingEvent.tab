@@ -1,0 +1,5 @@
+活动ID	持续时间	联盟目标点数	点数1奖励礼包类型	点数2奖励礼包类型	点数3奖励礼包类型	个人目标点数	点数1奖励及数量	点数2奖励及数量	点数3奖励及数量	目标1类型	目标1参数	目标1点数	目标2类型	目标2参数	目标2点数	目标3类型	目标3参数	目标3点数	个人名次ID奖励	联盟名次ID奖励
+																				
+sid	time	unionTarget	unionReward1	unionReward2	unionReward3	soloTarget	soloReward1	soloReward2	soloReward3	target1	type1	score1	target2	type2	score2	target3	type3	score3	soloRank	unionRank
+int	int	ints	int	int	int	ints	ints	ints	ints	int	ints	ints	int	ints	ints	int	ints	ints	int	int
+101	82800	625000|1250000|5000000	2	3	4	8000|25000|70000	20001|1	21306|2	21306|4	6	1|2|3|4	1|5|40|100	7	2|3|4	1|20|100	8	1|2|3|4|5	1|5|20|40|100	1001	1001

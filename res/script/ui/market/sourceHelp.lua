@@ -22,6 +22,7 @@ function UI_sourceHelp:init(playerID_)
 	self.taxRateData = 0
 	self.taxData = 0
 	self.playerID = playerID_
+	self.targetMem = player.getAlliance():getMemberByID(self.playerID)
 
 	-- ui data
 	self.resource = {}	-- 顶部UI
@@ -38,6 +39,8 @@ function UI_sourceHelp:init(playerID_)
 	self:initUI()	
 
 	local uiFrame = UI_fullScreenFrame.new()
+	uiFrame:hideTopBackground()
+	uiFrame:setTopShadePosY(888)
 	uiFrame:setTitle(hp.lang.getStrByID(1701))
 
 	-- addCCNode
@@ -59,18 +62,16 @@ function UI_sourceHelp:initData()
 			self.resNumLoaded[i] = self.resNumber[i]
 		end
 	end
-	-- 运送速度加成
-	local helper = require "playerData/helper"
-	local speedAdd_ = helper.getAdditionByID(201)
 
-	-- 行军速度
-	local armyInfo_ = hp.gameDataLoader.getTable("army")
-	local speed_ = armyInfo_[1].moveSpeed
-	for i, v in ipairs(armyInfo_) do
-		if speed_ > v.moveSpeed then
-			speed_ = v.moveSpeed
-		end
+	-- 运送速度加成
+	local unitMarchTime_ = {}
+	for i = 1, globalData.TOTAL_LEVEL do
+		local info_ = player.soldierManager.getArmyInfoByType(i)
+		local unitTime_ = player.helper.getResourceTransTime(info_.moveSpeed, i)
+		table.insert(unitMarchTime_, unitTime_)
 	end
+
+	local speed_ = hp.common.getMaxNumber(unitMarchTime_)
 
 	-- 市场信息	
 	local market_ = player.buildingMgr.getMaxLvBuildingBySid(1015)
@@ -85,10 +86,17 @@ function UI_sourceHelp:initData()
 		end
 	end
 
-	local destination_ = player.getAlliance():getMemberByID(self.playerID):getPosition()
-	local mainCityPos_ = player.getPosition()
+	local destination_ = self.targetMem:getPosition()
+	local mainCityPos_ = player.serverMgr.getMyPosition()
 	local distance_ = math.sqrt(math.pow(mainCityPos_.x - destination_.x, 2) + math.pow(mainCityPos_.y - destination_.y, 2))
-	self.costTime = math.floor(distance_ * speed_) / (1 + speedAdd_)
+	self.costTime = distance_ * speed_
+
+	-- 跨服
+	if self.targetMem:getPosition().k ~= player.serverMgr.getMyPosServer().sid then
+		self.myServer = false
+	else
+		self.myServer = true
+	end
 end
 
 function UI_sourceHelp:initUI()
@@ -106,10 +114,14 @@ function UI_sourceHelp:initUI()
 	self.content:getChildByName("Label_29838"):setString(hp.lang.getStrByID(1700))
 
 	self.helpBtn = self.content:getChildByName("ImageView_20457_Copy0")
-	self.helpBtn:getChildByName("Label_20458"):setString(hp.lang.getStrByID(5150))
+	self.helpBtn:getChildByName("Label_20458"):setString(hp.lang.getStrByID(5214))
 	self.helpBtn:addTouchEventListener(self.onHelpTouched)
 	self.time = self.helpBtn:getChildByName("ImageView_20459"):getChildByName("Label_20460")
-	self.time:setString(hp.datetime.strTime(self.costTime))
+	if not self.myServer then
+		self.time:setString(hp.lang.getStrByID(5516))
+	else
+		self.time:setString(hp.datetime.strTime(self.costTime))
+	end
 
 	self.listView = self.widgetRoot:getChildByName("ListView_8344")
 	local sourceContent = self.listView:getChildByName("Panel_27745"):getChildByName("Panel_29802")
@@ -124,9 +136,9 @@ function UI_sourceHelp:initUI()
 	self.listView:removeLastItem()
 end
 
-function UI_sourceHelp:close()
+function UI_sourceHelp:onRemove()
 	self.item:release()
-	self.super.close(self)
+	self.super.onRemove(self)
 end
 
 function UI_sourceHelp:initShow()
@@ -136,7 +148,7 @@ function UI_sourceHelp:initShow()
 		local resInfo_ = hp.gameDataLoader.getInfoBySid("resInfo", resouceMap[i])
 		if resInfo_ ~= nil then
 			-- 图片
-			content_:getChildByName("ImageView_29818"):loadTexture(config.dirUI.common..resInfo_.image)
+			content_:getChildByName("ImageView_29818"):loadTexture(config.dirUI.common..resInfo_.imageBig)
 			-- 名称
 			content_:getChildByName("Label_8358"):setString(resInfo_.name)
 			-- 滑动条
@@ -149,7 +161,6 @@ function UI_sourceHelp:initShow()
 			-- 资源数
 			self.resouceNum[i] = content_:getChildByName("ImageView_8363"):getChildByName("TextField_9428")
 			self.resouceNum[i]:setTag(i)
-			self.resouceNum[i]:addEventListenerTextField(self.onTextFieldChange)
 		end
 		self.resource[i]:setString(tostring(self.resNumber[i]))
 		self.listView:pushBackCustomItem(item_)
@@ -161,13 +172,15 @@ end
 
 function UI_sourceHelp:initCallBack()
 	-- 改变某种资源
-	local function changeResource(type_, num_)
+	local function changeResource(type_, num_, change_)
 		-- 文字
-		self.resouceNum[type_]:setText(tostring(num_))
+		self.resouceNum[type_]:setString(tostring(num_))
 
 		-- 进度条
-		local per_ = hp.common.round(num_ / self.resNumLoaded[type_] * 100)
-		self.slider[type_]:setPercent(per_)
+		if change_ then
+			local per_ = num_ / self.resNumLoaded[type_] * 100
+			self.slider[type_]:setPercent(per_)
+		end
 	end
 
 	local function onSliderPercentChange(sender, eventType)
@@ -180,11 +193,11 @@ function UI_sourceHelp:initCallBack()
 		self.percent[tag_] = per
 
 		-- update resource number
-		local restNum_ = self.loaded - self.totalNumber + tonumber(self.resouceNum[tag_]:getStringValue())
+		local restNum_ = self.loaded - self.totalNumber + tonumber(self.resouceNum[tag_]:getString())
 		local resNum = hp.common.round(self.resNumLoaded[tag_] * per / 100)
 		if resNum > self.loaded then
 			resNum = self.loaded
-			self.percent[tag_] = hp.common.round(resNum / self.resNumLoaded[tag_] * 100)
+			self.percent[tag_] = resNum / self.resNumLoaded[tag_] * 100
 			sender:setPercent(self.percent[tag_])
 		end
 
@@ -192,8 +205,8 @@ function UI_sourceHelp:initCallBack()
 			changeOtherRes_ = true
 		end
 
-		local delta = resNum - tonumber(self.resouceNum[tag_]:getStringValue())
-		self.resouceNum[tag_]:setText(tostring(resNum))
+		local delta = resNum - tonumber(self.resouceNum[tag_]:getString())
+		self.resouceNum[tag_]:setString(tostring(resNum))
 
 		-- update tax
 		self.totalNumber = self.totalNumber + delta
@@ -212,7 +225,7 @@ function UI_sourceHelp:initCallBack()
 			local restTotal_ = 0
 			for i = 1, 5 do
 				if i ~= tag_ then
-					restTotal_ = restTotal_ + tonumber(self.resouceNum[i]:getStringValue())
+					restTotal_ = restTotal_ + tonumber(self.resouceNum[i]:getString())
 				end
 			end
 
@@ -221,18 +234,18 @@ function UI_sourceHelp:initCallBack()
 				local used_ = 0
 				for i = 1, 5 do
 					if i ~= tag_ then
-						local per_ = tonumber(self.resouceNum[i]:getStringValue()) / restTotal_
+						local per_ = tonumber(self.resouceNum[i]:getString()) / restTotal_
 						used_ = used_ + math.floor(restNumber_ * per_)
-						changeResource(i, math.floor(restNumber_ * per_))
+						changeResource(i, math.floor(restNumber_ * per_), true)
 						index_ = index_ + 1
 					end
 				end
 				-- 补全
-				changeResource(tag_, self.loaded - used_)								
+				changeResource(tag_, self.loaded - used_, false)								
 			else
 				for i = 1, 5 do
 					if i ~= tag_ then
-						changeResource(i, 0)
+						changeResource(i, 0, true)
 					end
 				end
 			end			
@@ -257,48 +270,47 @@ function UI_sourceHelp:initCallBack()
 		if data.result == 0 then
 			local total_ = 0
 			for i, v in ipairs(resName_) do 
-				local res_ = tonumber(self.resouceNum[i]:getStringValue())
+				local res_ = tonumber(self.resouceNum[i]:getString())
 				player.expendResource(resName_[i], res_)
 				total_ = res_ + total_
 			end
 			Scene.showMsg({1006, total_})
+			self:close()
 		end
-		self:close()
 	end
 
 	local function onHelpTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)		
 		if eventType == TOUCH_EVENT_ENDED then
-			if self.costTime > 28800 then
-				require "ui/msgBox/msgBox"
-				ui_ = UI_msgBox.new(hp.lang.getStrByID(5076), hp.lang.getStrByID(5075), hp.lang.getStrByID(1209),
-					hp.lang.getStrByID(2412), onConfirm2Touched)
-				self:addModalUI(ui_)
+			if not self.myServer then
+				require "ui/common/successBox"
+    			local box_ = UI_successBox.new(hp.lang.getStrByID(5516), hp.lang.getStrByID(5518), nil)
+      			self:addModalUI(box_)
+			elseif self.costTime > 3600 then
+				require "ui/common/successBox"
+    			local box_ = UI_successBox.new(hp.lang.getStrByID(5076), hp.lang.getStrByID(5075), nil)
+      			self:addModalUI(box_)
+				return 
 			end
 			local cmdData={operation={}}
 			local oper = {}
 			oper.channel = 6
 			oper.type = 5		
-			print(self.playerID)
-			local playerInfo_ = player.getAlliance():getMemberByID(self.playerID)
-			oper.x = playerInfo_:getPosition().x
-			oper.y = playerInfo_:getPosition().y
+			cclog_(self.playerID)
+			oper.x = self.targetMem:getPosition().x
+			oper.y = self.targetMem:getPosition().y
+			oper.k = self.targetMem:getPosition().k
 			for i, v in ipairs(resName_) do
-				oper[resName_[i]] = tonumber(self.resouceNum[i]:getStringValue())
-				print(resName_[i])
+				oper[resName_[i]] = tonumber(self.resouceNum[i]:getString())
+				cclog_(resName_[i])
 			end
 			cmdData.operation[1] = oper
 			local cmdSender = hp.httpCmdSender.new(onHelpRespond)
 			cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+			self:showLoading(cmdSender, sender)
 		end
 	end
 
-	local function onTextFieldChange(sender, eventType)
-		local tag_ = sender:getTag()
-
-	end
-
 	self.onSliderPercentChange = onSliderPercentChange
-	self.onTextFieldChange = onTextFieldChange
 	self.onHelpTouched = onHelpTouched
 end

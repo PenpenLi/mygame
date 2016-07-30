@@ -57,12 +57,14 @@ function UI_chatRoom_invites:init()
 			local itemCont = item:getChildByName("Panel_cont")
 			local headImg = itemCont:getChildByName("Image_head")
 			local nameLabel = itemCont:getChildByName("Label_name")
-			local uinonLabel = itemCont:getChildByName("Label_uinon")
 			local timeLabel = itemCont:getChildByName("Label_time")
 			local btnAccept = itemCont:getChildByName("Image_accept")
 			local btnRefuse = itemCont:getChildByName("Image_refuse")
-			nameLabel:setString(string.format(hp.lang.getStrByID(3625), fInfo.name))
-			uinonLabel:setString(string.format(hp.lang.getStrByID(3626), fInfo.union))
+			if string.len(fInfo.union)>0 then
+				nameLabel:setString(hp.lang.getStrByID(21) .. fInfo.union .. hp.lang.getStrByID(22) .. fInfo.name)
+			else
+				nameLabel:setString(fInfo.name)
+			end
 			timeLabel:setString(os.date(hp.lang.getStrByID(3627), fInfo.time))
 			btnAccept:setTag(fInfo.localId)
 			btnRefuse:setTag(fInfo.localId)
@@ -78,11 +80,13 @@ function UI_chatRoom_invites:init()
 		local itemCont = item:getChildByName("Panel_cont")
 		local headImg = itemCont:getChildByName("Image_head")
 		local nameLabel = itemCont:getChildByName("Label_name")
+		local timeLabel = itemCont:getChildByName("Label_time")
 		if string.len(fInfo.union)>0 then
-			nameLabel:setString(string.format("(%s)%s", fInfo.union, fInfo.name))
+			nameLabel:setString(hp.lang.getStrByID(21) .. fInfo.union .. hp.lang.getStrByID(22) .. fInfo.name)
 		else
 			nameLabel:setString(fInfo.name)
 		end
+		timeLabel:setString(os.date(hp.lang.getStrByID(3627), fInfo.time))
 		invitesList:pushBackCustomItem(item)
 		sendNum = sendNum+1
 	end

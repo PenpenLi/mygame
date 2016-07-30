@@ -3,11 +3,12 @@
 -- 成功弹出框
 --===================================
 require "ui/frame/popFrame"
+require "ui/frame/popFrameRed"
 
 UI_successBox = class("UI_successBox", UI)
 
 --init
-function UI_successBox:init(title_, text_, callBack_)
+function UI_successBox:init(title_, text_, callBack_, color_)
 	-- data
 	-- ===============================
 	self.text = text_
@@ -20,7 +21,12 @@ function UI_successBox:init(title_, text_, callBack_)
 	-- ===============================
 	self:initUI()
 
-	local popFrame = UI_popFrame.new(self.wigetRoot, title_)
+	local popFrame = nil
+	if color_ == "red" then
+		popFrame = UI_popFrameRed.new(self.wigetRoot, title_)
+	else
+		popFrame = UI_popFrame.new(self.wigetRoot, title_)
+	end
 	-- addCCNode
 	-- ===============================
 	self:addChildUI(popFrame)
@@ -34,7 +40,11 @@ function UI_successBox:initUI()
 	content_:getChildByName("Label_30165"):setString(self.text)
 
 	local okButton = content_:getChildByName("ImageView_30166")
-	okButton:getChildByName("Label_30167"):setString(hp.lang.getStrByID(1209))
+	self.buttonText = okButton:getChildByName("Label_30167")
+	if color_ == "red" then
+		self.buttonText:setColor(cc.c3b(255, 255, 255))
+	end
+	self.buttonText:setString(hp.lang.getStrByID(5200))
 	okButton:addTouchEventListener(self.onOKTouched)
 end
 
@@ -50,4 +60,8 @@ function UI_successBox:initCallBack()
 	end
 
 	self.onOKTouched = onOKTouched
+end
+
+function UI_successBox:setButtonText(str_)
+	self.buttonText:setString(str_)
 end

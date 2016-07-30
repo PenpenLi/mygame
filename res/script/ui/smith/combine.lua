@@ -39,6 +39,8 @@ function UI_combine:init(type_)
 	-- ===============================
 	local uiFrame = UI_fullScreenFrame.new()
 	uiFrame:setTitle(hp.lang.getStrByID(3302))
+	uiFrame:setTopShadePosY(550)
+	uiFrame:setBottomShadePosY(202)
 	local widgetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "combine.json")
 
 	-- addCCNode
@@ -57,6 +59,17 @@ function UI_combine:init(type_)
 				player.addItem(rscSid+1, 1)
 				unselectMaterial()
 				refreshMaterialList()
+				if headerType == 1 then
+					local gemInfo = hp.gameDataLoader.getInfoBySid("gem", rscSid+1)
+					require("ui/smith/gemMaterialInfo")
+					local ui = UI_gemMaterialInfo.new(1,gemInfo)
+					self:addModalUI(ui)
+				elseif headerType==2 then
+					local materialInfo = hp.gameDataLoader.getInfoBySid("equipMaterial", rscSid+1)
+					require("ui/smith/gemMaterialInfo")
+					local ui = UI_gemMaterialInfo.new(2,materialInfo)
+					self:addModalUI(ui)
+				end
 			end
 		end
 
@@ -88,6 +101,13 @@ function UI_combine:init(type_)
 	local getBtn = contPanel:getChildByName("Image_get")
 	moreInfoBtn:getChildByName("Label_text"):setString(hp.lang.getStrByID(1030))
 	combineBtn:getChildByName("Label_text"):setString(hp.lang.getStrByID(3302))
+	
+	
+	require "ui/common/effect.lua"
+	local light = nil
+	light = inLight(combineBtn:getVirtualRenderer(),1)
+	combineBtn:addChild(light)
+	
 	local getTxt = getBtn:getChildByName("Label_text")
 	getTxt:setString(hp.lang.getStrByID(3305))
 	
@@ -105,9 +125,7 @@ function UI_combine:init(type_)
 		end
 	end
 	
-	
 	--更多信息
-	
 	local function onMoreBtnTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
@@ -121,16 +139,17 @@ function UI_combine:init(type_)
 	combineBtn:addTouchEventListener(onBtnTouched)
 	getBtn:addTouchEventListener(onBtnTouched)
 	combineBtn:setTouchEnabled(false)
+	light:setVisible(false)
 
 	-- tab
 	-----------------------------
 	local tabPanel = widgetRoot:getChildByName("Panel_headTab")
 	local tabGem = tabPanel:getChildByName("ImageView_gem")
 	local gemIcon = tabGem:getChildByName("Image_icon")
-	local gemText = tabGem:getChildByName("Label_name")
+	tabGem:getChildByName("Label_name"):setString(hp.lang.getStrByID(3308))
 	local tabMaterial = tabPanel:getChildByName("ImageView_material")
 	local materialIcon = tabMaterial:getChildByName("Image_icon")
-	local materialText = tabMaterial:getChildByName("Label_name")
+	tabMaterial:getChildByName("Label_name"):setString(hp.lang.getStrByID(3309))
 	local typeSelected = tabGem
 	local scaleSelected = tabGem:getScale()
 	local colorSelected = tabGem:getColor()
@@ -250,7 +269,7 @@ function UI_combine:init(type_)
 
 		mframe:loadTexture(string.format("%scolorframe_%d.png", config.dirUI.common, materialInfo.level+lvDiff))
 		if headerType==1 then
-			itemImg:loadTexture(string.format("%s%d.png", config.dirUI.gem, materialInfo.sid))
+			itemImg:loadTexture(string.format("%s%d.png", config.dirUI.gem, materialInfo.type))
 		else
 			itemImg:loadTexture(string.format("%s%d.png", config.dirUI.material, materialInfo.type))
 		end
@@ -328,7 +347,7 @@ function UI_combine:init(type_)
 			srcNodes[i].frame:setVisible(true)
 			srcNodes[i].frame:loadTexture(string.format("%scolorframe_%d.png", config.dirUI.common, materialInfo.level+lvDiff))
 			if headerType==1 then
-				srcNodes[i].img:loadTexture(string.format("%s%d.png", config.dirUI.gem, materialInfo.sid))
+				srcNodes[i].img:loadTexture(string.format("%s%d.png", config.dirUI.gem, materialInfo.type))
 			else
 				srcNodes[i].img:loadTexture(string.format("%s%d.png", config.dirUI.material, materialInfo.type))
 			end
@@ -357,27 +376,28 @@ function UI_combine:init(type_)
 			dstFrame:setVisible(true)
 			dstFrame:loadTexture(string.format("%scolorframe_%d.png", config.dirUI.common, dstMaterialInfo.level+lvDiff))
 			if headerType==1 then
-				dstImg:loadTexture(string.format("%s%d.png", config.dirUI.gem, dstMaterialInfo.sid))
+				dstImg:loadTexture(string.format("%s%d.png", config.dirUI.gem, dstMaterialInfo.type))
 			else
 				dstImg:loadTexture(string.format("%s%d.png", config.dirUI.material, dstMaterialInfo.type))
 			end
 			combineInfo:setVisible(true)
 			fromFrame:loadTexture(string.format("%scolorframe_%d.png", config.dirUI.common, materialInfo.level+lvDiff))
 			if headerType==1 then
-				fromImg:loadTexture(string.format("%s%d.png", config.dirUI.gem, materialInfo.sid))
+				fromImg:loadTexture(string.format("%s%d.png", config.dirUI.gem, materialInfo.type))
 			else
 				fromImg:loadTexture(string.format("%s%d.png", config.dirUI.material, materialInfo.type))
 			end
 			fromText:setString(materialInfo.name)
 			toFrame:loadTexture(string.format("%scolorframe_%d.png", config.dirUI.common, dstMaterialInfo.level+lvDiff))
 			if headerType==1 then
-				toImg:loadTexture(string.format("%s%d.png", config.dirUI.gem, dstMaterialInfo.sid))
+				toImg:loadTexture(string.format("%s%d.png", config.dirUI.gem, dstMaterialInfo.type))
 			else
 				toImg:loadTexture(string.format("%s%d.png", config.dirUI.material, dstMaterialInfo.type))
 			end
 			toText:setString(dstMaterialInfo.name)
 			combineBtn:loadTexture(config.dirUI.common .. "button_green.png")
 			combineBtn:setTouchEnabled(true)
+			light:setVisible(true)
 		end
 	end
 
@@ -410,6 +430,7 @@ function UI_combine:init(type_)
 		dstFrame:setVisible(false)
 		combineBtn:loadTexture(config.dirUI.common .. "button_gray.png")
 		combineBtn:setTouchEnabled(false)
+		light:setVisible(false)
 	end
 end
 

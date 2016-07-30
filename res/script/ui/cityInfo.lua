@@ -12,130 +12,15 @@ UI_cityInfo = class("UI_cityInfo", UI)
 function UI_cityInfo:init()
 	-- data
 	-- ===============================
-	self.cdItems = {}
-	local cdItems = self.cdItems
-	local isFolded = true
-
 
 	-- ui
 	-- ===============================
 	local widgetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "cityInfo.json")
 
-
 	-- addCCNode
 	-- ===============================
 	self:addCCNode(widgetRoot)
 
-
-	--英雄头像、vip、权力值
-	local infoNode = widgetRoot:getChildByName("Panel_headInfo")
-	local heroHead = infoNode:getChildByName("ImageView_head")
-	local heroFrame = heroHead:getChildByName("ImageView_photoFrame")
-	local heroExpPro = heroFrame:getChildByName("LoadingBar_exp")
-	local heroLv = heroFrame:getChildByName("Label_lv")
-	local vipBtn = heroHead:getChildByName("Image_vip")
-	local vipLabel = vipBtn:getChildByName("Label_lv")
-	local powerLabel = infoNode:getChildByName("ImageView_powerBg"):getChildByName("BitmapLabel_num")
-	local function onBtnTouched(sender, eventType)
-		hp.uiHelper.btnImgTouched(sender, eventType)
-		if eventType==TOUCH_EVENT_ENDED then
-			if sender==heroHead then
-				require "ui/hero/hero"
-				local ui  = UI_hero.new(player.hero)
-				self:addUI(ui)
-			elseif sender==vipBtn then
-				require "ui/vip/vip"
-				local ui  = UI_vip.new()
-				self:addUI(ui)
-			end
-		end
-	end
-	heroHead:addTouchEventListener(onBtnTouched)
-	vipBtn:addTouchEventListener(onBtnTouched)
-	local function setHeroLv()
-		local lv = player.getLv()
-		local exp = player.getExp()
-		local heroConstInfo = nil
-		local pointCount = 0
-		for i,v in ipairs(game.data.heroLv) do
-			if v.level==lv then
-				heroConstInfo = v
-				break
-			end
-		end
-		if heroConstInfo~=nil then
-			heroExpPro:setPercent(exp*100/heroConstInfo.exp)
-		else
-			heroExpPro:setPercent(100)
-		end
-		heroLv:setString(lv)
-	end
-	local function setVipLv()
-		vipLabel:setString("VIP" .. player.vipStatus.getLv())
-	end
-	local function setVipState()
-		if player.vipStatus.isActive() then
-			vipBtn:loadTexture(config.dirUI.common .. "main_vip_btn.png")
-		else
-			vipBtn:loadTexture(config.dirUI.common .. "main_vip_btn_inactive.png")
-		end
-	end
-	local function setPower()
-		powerLabel:setString(player.getPower())
-	end
-	local function setHeadIcon()
-		heroHead:loadTexture(config.dirUI.heroHeadpic .. player.hero.getBaseInfo().sid..".png")
-	end
-	setHeroLv()
-	setVipLv()
-	setVipState()
-	setPower()
-	setHeadIcon()
-	self.setVipState = setVipState
-	self.setVipLv = setVipLv
-	self.setHeroLv = setHeroLv
-	self.setPower = setPower
-	self.setHeadIcon = setHeadIcon
-	
-	-- 资源
-	-- rock
-	local goldItem = infoNode:getChildByName("ImageView_gold")
-	self.goldNode = goldItem:getChildByName("Label_num")
-	self.goldNode:setString(player.getResourceShow("gold"))
-	-- rock
-	local rockItem = infoNode:getChildByName("ImageView_rock")
-	self.rockNode = rockItem:getChildByName("Label_num")
-	self.rockNode:setString(player.getResourceShow("rock"))
-	-- wood
-	local woodItem = infoNode:getChildByName("ImageView_wood")
-	self.woodNode = woodItem:getChildByName("Label_num")
-	self.woodNode:setString(player.getResourceShow("wood"))
-	-- mine
-	local mineItem = infoNode:getChildByName("ImageView_mine")
-	self.mineNode = mineItem:getChildByName("Label_num")
-	self.mineNode:setString(player.getResourceShow("mine"))
-	-- food
-	local foodItem = infoNode:getChildByName("ImageView_food")
-	self.foodNode = foodItem:getChildByName("Label_num")
-	self.foodNode:setString(player.getResourceShow("food"))
-	-- silver
-	local silverItem = infoNode:getChildByName("ImageView_silver")
-	self.silverNode = silverItem:getChildByName("Label_num")
-	self.silverNode:setString(player.getResourceShow("silver"))
-
-	local function onResItemTouched(sender, eventType)
-		hp.uiHelper.btnImgTouched(sender, eventType)
-		if eventType==TOUCH_EVENT_ENDED then
-			require "ui/item/resourceItem"
-			local ui  = UI_resourceItem.new(sender:getTag())
-			self:addUI(ui)
-		end
-	end
-	rockItem:addTouchEventListener(onResItemTouched)
-	woodItem:addTouchEventListener(onResItemTouched)
-	mineItem:addTouchEventListener(onResItemTouched)
-	foodItem:addTouchEventListener(onResItemTouched)
-	silverItem:addTouchEventListener(onResItemTouched)
 
 	-- 跳动宝箱
 	--====================
@@ -195,7 +80,7 @@ function UI_cityInfo:init()
 			freeGoldBg_:setVisible(true)
 			local diamond_ = freeGoldBg_:getChildByName("Image_freeGold")
 			local label_ = freeGoldBg_:getChildByName("Label_text")
-			label_:setString(hp.lang.getStrByID(6018))
+			label_:setString(hp.lang.getStrByID(2041))
 
 			-- add animation
 			ccs.ArmatureDataManager:getInstance():addArmatureFileInfo(config.dirUI.animation.."diamond.ExportJson")
@@ -210,7 +95,7 @@ function UI_cityInfo:init()
 				hp.uiHelper.btnImgTouched(sender, eventType)
 				if eventType==TOUCH_EVENT_ENDED then
 					require "ui/guide/joinUnion"
-					ui_ = UI_unionJoinDiamond.new()
+					local ui_ = UI_unionJoinDiamond.new()
 					self:addModalUI(ui_)
 				end
 			end
@@ -230,7 +115,7 @@ function UI_cityInfo:init()
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			require "ui/union/fight/unionFightMain"
-			ui_ = UI_unionFightMain.new()
+			local ui_ = UI_unionFightMain.new()
 			self:addUI(ui_)
 		end
 	end
@@ -245,7 +130,7 @@ function UI_cityInfo:init()
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			require "ui/union/mainFunc/unionHelp"
-			ui_ = UI_unionHelp.new()
+			local ui_ = UI_unionHelp.new()
 			self:addUI(ui_)
 		end
 	end
@@ -256,7 +141,7 @@ function UI_cityInfo:init()
 
 	local function updateHelpIcon()
 		local info_ = player.getAlliance():getUnionHomePageInfo()
-		print("info_.helpinfo_.helpinfo_.helpinfo_.helpinfo_.helpinfo_.helpinfo_.helpinfo_.help",info_.help)
+		cclog_("info_.helpinfo_.helpinfo_.helpinfo_.helpinfo_.helpinfo_.helpinfo_.helpinfo_.help",info_.help)
 		if info_.help == nil then
 			return
 		end
@@ -273,6 +158,7 @@ function UI_cityInfo:init()
 	self.updateHelpIcon = updateHelpIcon
 
 	local function updateFightIcon()
+		do return end 	-- 敬请期待
 		local info_ = player.getAlliance():getUnionHomePageInfo()
 
 		if info_.joinAble == nil then
@@ -312,70 +198,305 @@ function UI_cityInfo:init()
 	updateHelpIcon()
 	updateFightIcon()
 
-	-- 主界面主线任务
-	--====================
-	local function updateMainQuest()
-		local id_ = player.getDoingMainQuestInfo()
-		local info_ = hp.gameDataLoader.getInfoBySid("quests", id_)
-
-		local back_ = contPanel:getChildByName("Image_11")
-		if info_ == nil then
-			back_:setVisible(false)
-		else
-			back_:getChildByName("Label_12"):setString(info_.text)
+	-- 增益管理器
+	local bufTouch_ = contPanel:getChildByName("Image_22")
+	local bufImage_ = bufTouch_:getChildByName("Image_28")
+	local function onBufMgrTouched(sender, eventType)
+		hp.uiHelper.btnImgTouched(sender, eventType)
+		if eventType==TOUCH_EVENT_ENDED then
+			require "ui/buf/bufManagerUI"
+			local ui_ = UI_bufManagerUI.new()
+			self:addUI(ui_)
 		end
 	end
+	bufTouch_:addTouchEventListener(onBufMgrTouched)
+
+	local function updateBufState()
+		for i, v in ipairs(hp.gameDataLoader.getTable("uiBufManager")) do
+			if v. position == 0 then
+				if player.bufManager.getAttrAddn(v.attrID) ~= 0 then
+					bufImage_:loadTexture(config.dirUI.common.."buff_2.png")
+					return
+				end
+			elseif v.position == 1 then
+				if cdBox.getCD(v.cdType) > 0 then
+					bufImage_:loadTexture(config.dirUI.common.."buff_2.png")
+					return
+				end
+			elseif v.position == 2 then
+				if player.bufManager.getSpAddnBySpID(v.attrID) ~= 0 then
+					bufImage_:loadTexture(config.dirUI.common.."buff_2.png")
+					return
+				end
+			end
+		end
+
+		bufImage_:loadTexture(config.dirUI.common.."buff_1.png")
+	end
+	self.updateBufState = updateBufState
+	updateBufState()
+
+	-- 活动进入
+	self.activityBtn = contPanel:getChildByName("Image_61")
+	-- 默认不显示
+	if player.soloActivityMgr.getActivity() == nil then
+		self.activityBtn:setVisible(false)
+	end
+	self.activityIcon = self.activityBtn:getChildByName("Image_62")
+	self.activityTime = self.activityBtn:getChildByName("Label_18_0")
+	self.activityDesc = self.activityBtn:getChildByName("Label_18")
+	self.activityInfo = {}
+	self.activityIconUrl = {"activity_5.png", "activity_21.png", "activity_22.png"}
+	self.changeTime = 0
+	self.activity_flag = 1
+	-- 心跳
+	local function onActivityHeartBeat(dt_)
+		self.activityInfo[1] = player.soloActivityMgr.getActivity()
+		self.activityInfo[2] = player.unionActivityMgr.getActivity()
+		self.activityInfo[3] = player.kingdomActivityMgr.getActivity()
+
+		local status_ = globalData.ACTIVITY_STATUS
+		local activity = self.activityInfo[self.activity_flag]
+
+		if activity and activity.status ~= status_.CLOSE then
+			-- 动画
+			if self.changeTime == 0 then
+				self.activityIcon:loadTexture(config.dirUI.common .. self.activityIconUrl[self.activity_flag])
+				local action = cc.FadeIn:create(1)
+				self.activityIcon:runAction(action)
+			elseif self.changeTime >= 4 then
+				local action = cc.FadeOut:create(0.5)
+				self.activityIcon:runAction(action)
+			end
+			-- CD
+			local cd
+			if activity.status == status_.OPEN then
+				cd = activity.endTime - player.getServerTime()
+				self.activityDesc:setString(hp.lang.getStrByID(5354))
+			else
+				cd = activity.beginTime - player.getServerTime()
+				self.activityDesc:setString(hp.lang.getStrByID(5375))
+			end
+			if cd < 0 then
+				cd = 0
+			end
+			self.activityTime:setString(hp.datetime.strTime(cd))
+			-- 时间递增
+			self.changeTime = self.changeTime + dt_
+			if self.changeTime > 5 then
+				self.changeTime = 0
+				self.activity_flag = self.activity_flag % 3 + 1
+			end
+		else
+			self.changeTime = 0
+			self.activity_flag = self.activity_flag % 3 + 1
+		end
+	end
+	self.onActivityHeartBeat = onActivityHeartBeat
+	-- 任务点击
+	local function onActivityTouched(sender, eventType)
+		hp.uiHelper.btnImgTouched(sender, eventType)
+		if eventType==TOUCH_EVENT_ENDED then
+			require "ui/activity/activityMain"
+			local ui_ = UI_activityMain.new()
+			self:addUI(ui_)
+		end
+	end
+	-- 数据刷新
+	local function activityDataUpdate()
+		local activity_ = player.soloActivityMgr.getActivity()
+		if activity_ == nil then
+			return
+		end
+
+		local status_ = globalData.ACTIVITY_STATUS
+		if activity_.status == status_.OPEN then
+			-- self.activityDesc:setString(hp.lang.getStrByID(5354))
+		elseif activity_.status == status_.NOT_OPEN then
+			-- self.activityDesc:setString(hp.lang.getStrByID(5375))
+		elseif activity_.status == status_.CLOSE then
+			-- self.activityBtn:setVisible(false)
+		end
+	end
+	self.activityDataUpdate = activityDataUpdate	
+	self.activityBtn:addTouchEventListener(onActivityTouched)
+	activityDataUpdate()
+
+	-- 主界面主线任务
+	--====================
+	local questDetailBtn_ = contPanel:getChildByName("Image_2")
+	local questDetailShadow = widgetRoot:getChildByName("Panel_frame"):getChildByName("Image_11")
+	local getMainReward_ = contPanel:getChildByName("Image_2_0")
+	getMainReward_:getChildByName("Label_3"):setString(hp.lang.getStrByID(1413))
+	--领取按钮闪光
+	hp.uiEffect.innerGlow(getMainReward_, 1)
+
+	local function updateMainQuest()
+		local main_ = player.questManager.getMainQuestInfo()
+
+		if main_ == nil then
+			contPanel:getChildByName("Label_12"):setVisible(false)
+			contPanel:getChildByName("Image_2"):setVisible(false)
+			widgetRoot:getChildByName("Panel_frame"):getChildByName("Image_11"):setVisible(false)
+			getMainReward_:setVisible(false)
+		else
+			contPanel:getChildByName("Label_12"):setVisible(true)
+			contPanel:getChildByName("Image_2"):setVisible(true)
+			widgetRoot:getChildByName("Panel_frame"):getChildByName("Image_11"):setVisible(true)
+
+			local info_ = hp.gameDataLoader.getInfoBySid("quests", main_.id)
+
+			if info_ ~= nil then
+				contPanel:getChildByName("Label_12"):setString(info_.text)
+			end
+
+			-- 未领取奖励
+			getMainReward_:setVisible(main_.reward)
+		end
+	end
+
+	local function onQuestDetailTouched(sender, eventType)
+		hp.uiHelper.btnImgTouched(sender, eventType)		
+		if eventType == TOUCH_EVENT_ENDED then
+			require "ui/quest/empireQuest"
+			local ui_ = UI_empireQuest.new()
+			self:addUI(ui_)
+		end
+	end		
+
+	local function onGetRewardTouched(sender, eventType)
+		hp.uiHelper.btnImgTouched(sender, eventType)		
+		if eventType == TOUCH_EVENT_ENDED then
+			local rewardID_ = player.questManager.getMainReward()
+			if rewardID_ ~= nil then
+				self:showLoading(player.questManager.httpReqCollectEmpireReward(rewardID_), sender)
+				player.guide.stepEx({3001})
+			end
+		end
+	end
+
+	local function mainQuestFinish()
+		local ani = hp.sequenceAniHelper.createFinishQuestAni()
+		contPanel:addChild(ani)
+		local size_ = contPanel:getSize()
+		local x_, y_ = questDetailBtn_:getPosition()
+		ani:setPosition(size_.width/2, y_)
+	end
+	
+	self.mainQuestFinish = mainQuestFinish
+	getMainReward_:addTouchEventListener(onGetRewardTouched)
+	questDetailBtn_:getChildByName("Label_3"):setString(hp.lang.getStrByID(1407))
+	questDetailBtn_:addTouchEventListener(onQuestDetailTouched)
+	questDetailShadow:addTouchEventListener(onQuestDetailTouched)
+
 	self.updateMainQuest = updateMainQuest
 	updateMainQuest()
 
+	-- 主界面支线任务
+	--====================
+	local branchQuestDetailBtn_ = contPanel:getChildByName("Image_2_1")
+	local getBranchReward_ = contPanel:getChildByName("Image_2_0_0")
+	getBranchReward_:getChildByName("Label_3"):setString(hp.lang.getStrByID(1413))
+	--领取按钮闪光
+	hp.uiEffect.innerGlow(getBranchReward_, 1)
+
+	local function updateBranchQuest()
+		local main_ = player.questManager.getBranchReward()[1]
+		cclog_("main_------------------------------------------------------------",main_)
+
+		if main_ == nil then
+			contPanel:getChildByName("Label_12_0"):setVisible(false)
+			widgetRoot:getChildByName("Panel_frame"):getChildByName("Image_11_0"):setVisible(false)
+			getBranchReward_:setVisible(false)
+		else
+			contPanel:getChildByName("Label_12_0"):setVisible(true)
+			widgetRoot:getChildByName("Panel_frame"):getChildByName("Image_11_0"):setVisible(true)
+
+			local info_ = hp.gameDataLoader.getInfoBySid("quests", main_)
+
+			if info_ ~= nil then
+				contPanel:getChildByName("Label_12_0"):setString(info_.text)
+			end
+
+			-- 未领取奖励
+			getBranchReward_:setVisible(true)
+		end
+	end
+
+	local function onGetBranchRewardTouched(sender, eventType)
+		hp.uiHelper.btnImgTouched(sender, eventType)		
+		if eventType == TOUCH_EVENT_ENDED then
+			local rewardID_ = player.questManager.getBranchReward()[1]
+			if rewardID_ ~= nil then
+				self:showLoading(player.questManager.httpReqCollectEmpireReward(rewardID_), sender)
+				player.guide.stepEx({3001})
+			end
+		end
+	end
+
+	local function branchQuestFinish()
+		local ani = hp.sequenceAniHelper.createFinishQuestAni()
+		contPanel:addChild(ani)
+		local size_ = contPanel:getSize()
+		local x_, y_ = branchQuestDetailBtn_:getPosition()
+		ani:setPosition(size_.width/2, y_)
+	end
+	
+	self.branchQuestFinish = branchQuestFinish
+	getBranchReward_:addTouchEventListener(onGetBranchRewardTouched)
+	branchQuestDetailBtn_:getChildByName("Label_3"):setString(hp.lang.getStrByID(1407))
+	branchQuestDetailBtn_:addTouchEventListener(onQuestDetailTouched)
+
+	self.updateBranchQuest = updateBranchQuest
+	updateBranchQuest()
+
+	--促销信息
+	local promotionPos = contPanel:getChildByName("Image_promotionPos")
+	local promotionAnim = hp.sequenceAniHelper.createAnimSprite("common", "promotion", 30, 0.1, 3)
+	local promotionSz = promotionPos:getSize()
+	promotionAnim:setPosition(promotionSz.width/2, promotionSz.height/2)
+	promotionPos:addChild(promotionAnim)
+	local function onPromotionTouched(sender, eventType)	
+		if eventType == TOUCH_EVENT_ENDED then
+			require "ui/goldShop/goldShop"
+			local ui = UI_goldShop.new()
+			self:addUI(ui)
+		end
+	end
+	promotionPos:addTouchEventListener(onPromotionTouched)
+
 	-- registMsg
-	self:registMsg(hp.MSG.RESOURCE_CHANGED)
-	self:registMsg(hp.MSG.VIP)
 	self:registMsg(hp.MSG.ONLINE_GIFT)
-	self:registMsg(hp.MSG.LV_CHANGED)
-	self:registMsg(hp.MSG.EXP_CHANGED)
-	self:registMsg(hp.MSG.POWER_CHANGED)
-	self:registMsg(hp.MSG.HERO_INFO_CHANGE)
 	self:registMsg(hp.MSG.UNION_JOIN_SUCCESS)
 	self:registMsg(hp.MSG.GUIDE_OVER)
 	self:registMsg(hp.MSG.UNION_DATA_PREPARED)
-	self:registMsg(hp.MSG.MISSION_MAIN_REFRESH)
-	self:registMsg(hp.MSG.MISSION_MAIN_STATUS_CHANGE)
+	self:registMsg(hp.MSG.MISSION_REFRESH)
 	self:registMsg(hp.MSG.HERO_LV_UP)
+	self:registMsg(hp.MSG.MISSION_COLLECT)
+	self:registMsg(hp.MSG.MISSION_COMPLETE)
+	self:registMsg(hp.MSG.BUF_NOTITY)
+	self:registMsg(hp.MSG.CD_CHANGED)
+	self:registMsg(hp.MSG.SOLO_ACTIVITY)
+	self:registMsg(hp.MSG.UNION_NOTIFY)	
+
+	-- 进行新手引导绑定
+	-- =========================================
+	self:registMsg(hp.MSG.GUIDE_STEP)
+	local function bindGuideUI( step )
+		if step==3001 then
+		-- 建造农田任务奖励
+			player.guide.bind2Node(step, getMainReward_, onGetRewardTouched)
+		end
+	end
+	self.bindGuideUI = bindGuideUI
 end
 
 -- onMsg
 function UI_cityInfo:onMsg(msg_, paramInfo_)
-	if msg_==hp.MSG.RESOURCE_CHANGED then
-		if paramInfo_.name=="gold" then
-			-- self.goldNode:setString(hp.common.changeNumUnit(paramInfo_.num))
-		elseif paramInfo_.name=="rock" then
-			self.rockNode:setString(hp.common.changeNumUnit(paramInfo_.num))
-		elseif paramInfo_.name=="wood" then
-			self.woodNode:setString(hp.common.changeNumUnit(paramInfo_.num))
-		elseif paramInfo_.name=="mine" then
-			self.mineNode:setString(hp.common.changeNumUnit(paramInfo_.num))
-		elseif paramInfo_.name=="food" then
-			self.foodNode:setString(hp.common.changeNumUnit(paramInfo_.num))
-		elseif paramInfo_.name=="silver" then
-			self.silverNode:setString(hp.common.changeNumUnit(paramInfo_.num))
-		end
-	elseif msg_==hp.MSG.VIP then
-		if paramInfo_==1 then
-			self.setVipLv()
-		elseif paramInfo_==3 then
-			self.setVipState()
-		end
+	if msg_==hp.MSG.GUIDE_STEP then
+		self.bindGuideUI(paramInfo_)
 	elseif msg_==hp.MSG.ONLINE_GIFT then
 		self.setOnlineBoxInfo()
-	elseif msg_==hp.MSG.LV_CHANGED then
-		self.setHeroLv()
-	elseif msg_==hp.MSG.EXP_CHANGED then
-		self.setHeroLv()
-	elseif msg_==hp.MSG.POWER_CHANGED then
-		self.setPower()
-	elseif msg_==hp.MSG.HERO_INFO_CHANGE then
-		self.setHeadIcon()
 	elseif msg_==hp.MSG.UNION_JOIN_SUCCESS then
 		if player.getFristLeague() == 0 then
 			if self.freeGoldBg_ ~= nil then
@@ -389,21 +510,57 @@ function UI_cityInfo:onMsg(msg_, paramInfo_)
 			self.updateHelpIcon()
 			self.updateFightIcon()
 		end
-	elseif msg_ == hp.MSG.MISSION_MAIN_REFRESH then
+	elseif msg_ == hp.MSG.MISSION_REFRESH then
 		if paramInfo_ == 1 then
 			self.updateMainQuest()
-		end
-	elseif msg_ == hp.MSG.MISSION_MAIN_STATUS_CHANGE then
-		if paramInfo_ == 1 then
-			self.updateMainQuest()
+		elseif paramInfo_ == 3 then
+			self.updateBranchQuest()
 		end
 	elseif msg_ == hp.MSG.HERO_LV_UP then
 		require "ui/hero/heroLevelup"
 		local ui  = UI_heroLevelup.new()
 		self:addModalUI(ui)
-	end
+	elseif msg_ == hp.MSG.MISSION_COLLECT then
+		local questInfo_ = hp.gameDataLoader.getInfoBySid("quests", paramInfo_)
+		if questInfo_.type == 1 then
+			self.updateMainQuest()
+		else
+			self.updateBranchQuest()
+		end
+	elseif msg_ == hp.MSG.MISSION_COMPLETE then
+		if paramInfo_ == 1 then
+			self.mainQuestFinish()
+		elseif paramInfo_ == 2 then
+			self.branchQuestFinish()
+		end
+	elseif msg_ == hp.MSG.BUF_NOTITY then
+		if paramInfo_.msgType == 1 then
+			self.updateBufState()
+		end
+	elseif msg_ == hp.MSG.CD_CHANGED then
+		if paramInfo_.cdType == cdBox.CDTYPE.PEACE or
+			paramInfo_.cdType == cdBox.CDTYPE.FORBIDVIEW then
+			self.updateBufState()
+		end
+	elseif msg_ == hp.MSG.SOLO_ACTIVITY then
+		if paramInfo_.msgType == 3 then
+			-- self.activityBtn:setVisible(false)
+		elseif paramInfo_.msgType == 4 then
+			self.activityBtn:setVisible(true)
+			self.activityDesc:setString(hp.lang.getStrByID(5354))
+		elseif paramInfo_.msgType == 5 then
+			self.activityBtn:setVisible(true)
+			self.activityDataUpdate()
+		end
+	elseif msg_ == hp.MSG.UNION_NOTIFY then
+		if paramInfo_.msgType == 2 then
+			self.updateHelpIcon()
+		end
+	end	
 end
+
 
 function UI_cityInfo:heartbeat(dt)
 	self.refreshOnlineBoxCD()
+	self.onActivityHeartBeat(dt)
 end

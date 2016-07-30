@@ -24,6 +24,7 @@ function UI_changeUnionIcon:init()
 	self:initUI()	
 
 	local uiFrame = UI_fullScreenFrame.new()
+	uiFrame:setTopShadePosY(888)
 	uiFrame:setTitle(hp.lang.getStrByID(5140))
 
 	-- addCCNode
@@ -34,6 +35,7 @@ function UI_changeUnionIcon:init()
 	hp.uiHelper.uiAdaption(self.item2)
 
 	self:registMsg(hp.MSG.UNION_CHOOSE_ICON)
+	self:registMsg(hp.MSG.UNION_NOTIFY)
 end
 
 function UI_changeUnionIcon:initCallBack()
@@ -48,28 +50,20 @@ function UI_changeUnionIcon:initCallBack()
 		hp.uiHelper.btnImgTouched(sender, eventType)		
 		if eventType == TOUCH_EVENT_ENDED then
 			require "ui/union/invite/unionIcon"
-			ui_ = UI_unionIcon:new()
+			local ui_ = UI_unionIcon:new()
 			self:addUI(ui_)			
-		end
-	end
-
-	local function onKeepBrowseTouched(sender, eventType)
-		hp.uiHelper.btnImgTouched(sender, eventType)		
-		if eventType == TOUCH_EVENT_ENDED then
-			require "ui/union/invite/unionIcon"
-			ui_ = UI_unionIcon:new()
-			self:addUI(ui_)
 		end
 	end
 
 	local function onChangeTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)		
 		if eventType == TOUCH_EVENT_ENDED then
+			cclog_("self.imageself.imageself.imageself.imageself.imageself.imageself.imageself.imageself.image",self.image)
+			player.getUnionHttpHelper().changeUnionIcon(self.image)
 		end
 	end
 
 	self.onBrowseTouched = onBrowseTouched
-	self.onKeepBrowseTouched = onKeepBrowseTouched
 	self.onChangeTouched = onChangeTouched
 	self.onKeepSymbolTouched = onKeepSymbolTouched
 end
@@ -78,20 +72,22 @@ function UI_changeUnionIcon:initUI()
 	self.widgetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "changeUnionIcon.json")
 	self.listView = self.widgetRoot:getChildByName("ListView_29885")
 
-	self.item1 = self.listView:getItem(0)
+	self.item1 = self.listView:getChildByName("Panel_29886_Copy1")
 	local content_ = self.item1:getChildByName("Panel_29900")
 	content_:getChildByName("Label_29901"):setString(hp.lang.getStrByID(1183))
 	self.browerBtn = content_:getChildByName("ImageView_29964")
 	self.browerBtn:addTouchEventListener(self.onBrowseTouched)
 	self.browerBtn:getChildByName("Label_29965"):setString(hp.lang.getStrByID(1184))
-	content_:getChildByName("ImageView_29941_0"):getChildByName("ImageView_29942"):loadTexture(config.dirUI.icon..self.unionBaseInfo.icon..".png")
+	local oldIcon = content_:getChildByName("ImageView_29941_0"):getChildByName("ImageView_29942")
+	oldIcon:loadTexture(config.dirUI.icon..self.unionBaseInfo.icon..".png")
+	oldIcon:addTouchEventListener(self.onBrowseTouched)
 
-	self.item2 = self.listView:getItem(1):clone()
+	self.item2 = self.listView:getChildByName("Panel_29886_Copy0"):clone()
 	self.item2:retain()
 	local content_ = self.item2:getChildByName("Panel_29900")
 	content_:getChildByName("Label_29963"):setString(hp.lang.getStrByID(1185))
 	content_:getChildByName("Label_14"):setString(hp.lang.getStrByID(1186))
-	self.uiImage = content_:getChildByName("ImageView_29941"):getChildByName("ImageView_29942")
+	content_:getChildByName("ImageView_29941"):getChildByName("ImageView_29942"):addTouchEventListener(self.onBrowseTouched)
 
 	-- 更改
 	local change_ = content_:getChildByName("ImageView_29943")
@@ -99,15 +95,12 @@ function UI_changeUnionIcon:initUI()
 	change_:getChildByName("Label_29944"):setString(hp.lang.getStrByID(1187))
 	change_:getChildByName("ImageView_gold_0_0"):getChildByName("Label_goldCost"):setString("100")
 
-	-- 继续浏览
-	content_:getChildByName("ImageView_29943_0"):addTouchEventListener(self.onKeepBrowseTouched)
-	content_:getChildByName("ImageView_29943_0"):getChildByName("Label_29944"):setString(hp.lang.getStrByID(1184))
-	self.listView:removeLastItem()
+	self.listView:removeItem(0)
 end
 
-function UI_changeUnionIcon:close()
+function UI_changeUnionIcon:onRemove()
 	self.item2:release()
-	self.super.close(self)
+	self.super.onRemove(self)
 end
 
 function UI_changeUnionIcon:setUnionIcon(tag_)
@@ -130,5 +123,9 @@ end
 function UI_changeUnionIcon:onMsg(msg_, param_)
 	if msg_ == hp.MSG.UNION_CHOOSE_ICON then
 		self:setUnionIcon(param_)
+	elseif msg_ == hp.MSG.UNION_NOTIFY then
+		if param_.msgType == 1 then
+			self:close()
+		end
 	end
 end

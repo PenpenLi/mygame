@@ -34,7 +34,7 @@ function UI_skillTree:init(hero_)
 	-- ===============================
 	local uiFrame = UI_fullScreenFrame.new()
 	uiFrame:setTitle(hp.lang.getStrByID(2601))
-
+	uiFrame:setTopShadePosY(828)
 	local widgetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "skillTree.json")
 
 	-- header
@@ -46,7 +46,7 @@ function UI_skillTree:init(hero_)
 	local skillPanel = treePanel:getChildByName("Panel_skill")
 	local linePanel = treePanel:getChildByName("Panel_line")
 
-	local colorLock = cc.c3b(128, 128, 128)
+	local colorLock = cc.c3b(64, 64, 64)
 	local colorUnlock = cc.c3b(255, 255, 255)
 	local imgLineLockH = config.dirUI.common .. "skillLine_lockH.png"
 	local imgLineLockV = config.dirUI.common .. "skillLine_lockV.png"
@@ -105,7 +105,7 @@ function UI_skillTree:init(hero_)
 		curUpSkillNode = nil
 	end
 
-	local function allotSkillPoint(skillNode, pointNum)
+	local function allotSkillPointByUI(skillNode, pointNum, ui_, uiBtn_)
 		if curUpSkillNode~=nil then
 			return
 		end
@@ -134,8 +134,9 @@ function UI_skillTree:init(hero_)
 		cmdData.operation[1] = oper
 		local cmdSender = hp.httpCmdSender.new(onHttpResponse)
 		cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+		ui_:showLoading(cmdSender, uiBtn_)
 	end
-	self.allotSkillPoint1 = allotSkillPoint
+	self.allotSkillPointByUI = allotSkillPointByUI
 
 	-- 技能点击响应
 	local function onSkillTouched(sender, eventType)
@@ -229,6 +230,7 @@ function UI_skillTree:init(hero_)
 			local data = hp.httpParse(response)
 			if data.result~=nil and data.result==0 then
 				skillList = {}
+				hero_.setSkillList(skillList)
 				self.pointRemain = pointCount
 				refreshSkillTree()
 
@@ -239,49 +241,34 @@ function UI_skillTree:init(hero_)
 			end
 		end
 	end
-	local function onConfirmReset()
-		if player.getResource("gold")<goldNum then
+	local function onConfirmReset(gold,param)
+		if player.getResource("gold")<gold then
 			-- 金币不够
 			require("ui/msgBox/msgBox")
-			local msgBox = UI_msgBox.new(hp.lang.getStrByID(2826), 
-				hp.lang.getStrByID(2827), 
-				hp.lang.getStrByID(1209), 
-				hp.lang.getStrByID(2412)
-				)
-			self:addModalUI(msgBox)
+			UI_msgBox.showCommonMsg(self, 1)
 			return
 		end
-
+		goldNum = gold
 		local cmdData={operation={}}
 		local oper = {}
 		oper.channel = 9
 		oper.type = 2
 		oper.sid = 0
 		oper.num = 0
-		oper.gold = goldNum
+		oper.gold = gold
 		cmdData.operation[1] = oper
 		local cmdSender = hp.httpCmdSender.new(onResetResponse)
 		cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+		self:showLoading(cmdSender)
 	end
 	local btnReset = listView:getChildByName("Panel_reset"):getChildByName("Panel_cont"):getChildByName("ImageView_reset")
 	btnReset:getChildByName("Label_desc"):setString(hp.lang.getStrByID(2602))
 	local function onResetTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
-		if eventType==TOUCH_EVENT_ENDED then
-			local haveNum = player.getItemNum(itemSid)
-			local itemInfo = hp.gameDataLoader.getInfoBySid("item", itemSid)
-			local descInfo
-			if haveNum>=needNum then
-				goldNum = 0
-				descInfo = string.format(hp.lang.getStrByID(2603), needNum, itemInfo.name, haveNum)
-			else
-				goldNum = itemInfo.sale
-				descInfo = string.format(hp.lang.getStrByID(2604), needNum, itemInfo.name, haveNum)
-			end
-			require "ui/msgBox/msgBox"
-			local ui = UI_msgBox.new(hp.lang.getStrByID(2602), descInfo, 
-				hp.lang.getStrByID(1209), hp.lang.getStrByID(2412), onConfirmReset)
-			self:addModalUI(ui)
+		if eventType==TOUCH_EVENT_ENDED then		
+			require "ui/common/buyAndUseItemPop"
+			local ui_ = UI_buyAndUseItem.new(itemSid, 1, onConfirmReset)
+			self:addModalUI(ui_)
 		end
 	end
 	btnReset:addTouchEventListener(onResetTouched)
@@ -299,6 +286,8 @@ function UI_skillTree:init(hero_)
 	-- ===============================
 	self:addChildUI(uiFrame)
 	self:addCCNode(widgetRoot)
+
+	listView:visit()
 end
 
 -- allotSkillPoint

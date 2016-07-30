@@ -50,6 +50,7 @@ function UI_unionJoinDiamond:initUI()
 	self.uiItem = self.listView:getChildByName("Panel_30322_Copy1"):clone()
 	self.uiItem:retain()
 	self.listView:removeAllItems()
+	self.listView:setClippingType(1)
 end
 
 -- 添加一个公会到列表
@@ -59,11 +60,15 @@ function UI_unionJoinDiamond:addOneUnion(v, index_)
 	-- 头像
 	content_:getChildByName("ImageView_30335"):loadTexture(string.format("%s%s.png", config.dirUI.icon, v.icon))
 	-- 会长
-	content_:getChildByName("Label_30337"):setString(hp.lang.getStrByID(1812)..":"..v.chairMan)
+	content_:getChildByName("Label_30337"):setString(hp.lang.getStrByID(1812)..":"..v.chairman)
 	-- 联盟名称
 	content_:getChildByName("Label_30334"):setString(v.name)
 	-- 公告
-	content_:getChildByName("Label_30338"):setString(v.notice)
+	local notice_ = content_:getChildByName("Label_30338")
+	local mask_ = item_:getChildByName("Panel_30324"):getChildByName("ImageView_30332")
+	notice_:setString(v.notice)
+	content_:removeChild(notice_)
+	self.rollLabel = hp.uiHelper.bindRollLabel(notice_, content_, mask_)
 	-- 成员
 	content_:getChildByName("Label_30341"):setString(string.format("%d/100", v.number))
 	-- 战力
@@ -136,6 +141,7 @@ function UI_unionJoinDiamond:initCallBack()
 
 		local data = hp.httpParse(response)
 		if data.result == 0 then
+			local frist_ = player.getFristLeague()
 			if data.id ~= nil then
 				player.getAlliance():setUnionID(data.id)
 			end
@@ -145,14 +151,12 @@ function UI_unionJoinDiamond:initCallBack()
 				local uiMain_ = UI_unionMain.new()
 				self:addUI(uiMain_)
 				require "ui/union/invite/joinSuccess"
-				local ui_ = UI_joinSuccess.new()
+				local ui_ = UI_joinSuccess.new(frist_)
 				self:addModalUI(ui_)
-				player.clearFristLeague()
-				hp.msgCenter.sendMsg(hp.MSG.UNION_JOIN_SUCCESS)
 				self:close()
 			elseif tag == 1 then
 				require "ui/common/successBox"
-				ui_ = UI_successBox.new(hp.lang.getStrByID(1888), hp.lang.getStrByID(5116))
+				local ui_ = UI_successBox.new(hp.lang.getStrByID(1888), hp.lang.getStrByID(5116))
 				self:addModalUI(ui_)
 			end			
 		end
@@ -185,7 +189,7 @@ end
 function UI_unionJoinDiamond:onMsg(msg_, param_)
 end
 
-function UI_unionJoinDiamond:close()
+function UI_unionJoinDiamond:onRemove()
 	self.uiItem:release()
-	self.super.close(self)
+	self.super.onRemove(self)
 end

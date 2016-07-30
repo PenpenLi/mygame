@@ -39,6 +39,9 @@ function UI_unionJoin:init()
 	self:initUI()
 
 	local uiFrame = UI_fullScreenFrame.new()
+	uiFrame:hideTopBackground()
+	uiFrame:hideBottomShade()
+	uiFrame:setTopShadePosY(822)
 	uiFrame:setTitle(hp.lang.getStrByID(1800))
 	-- addCCNode
 	-- ===============================
@@ -94,11 +97,11 @@ function UI_unionJoin:addOneUnion(v, index_)
 	local item_ = self.uiItem:clone()
 	local content_ = item_:getChildByName("Panel_30331")
 	-- 头像
-	content_:getChildByName("ImageView_30335"):getChildByName("ImageView_30336"):loadTexture(string.format("%s%s.png", config.dirUI.icon, v.icon))
+	content_:getChildByName("ImageView_30336"):loadTexture(string.format("%s%s.png", config.dirUI.icon, v.icon))
 	-- 会长
-	content_:getChildByName("Label_30337"):setString(hp.lang.getStrByID(1812)..":"..v.chairMan)
+	content_:getChildByName("Label_30337"):setString(hp.lang.getStrByID(1812).."："..v.chairman)
 	-- 联盟名称
-	content_:getChildByName("Label_30334"):setString(v.name)
+	content_:getChildByName("Label_30334"):setString(string.format(hp.lang.getStrByID(3626), v.name))
 	-- 公告
 	local labelBg_ = item_:getChildByName("Panel_30324"):getChildByName("ImageView_30332")
 	local label_ = content_:getChildByName("Label_30338")
@@ -183,6 +186,7 @@ function UI_unionJoin:requestData(id_)
 	cmdData.operation[1] = oper
 	local cmdSender = hp.httpCmdSender.new(onDataResponse)
 	cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+	self:showLoading(cmdSender)
 end
 
 function UI_unionJoin:initCallBack()
@@ -191,7 +195,7 @@ function UI_unionJoin:initCallBack()
 		if eventType==TOUCH_EVENT_ENDED then
 			self.type = sender:getTag()
 			self:refreshShow()
-			print(sender:getTag())
+			cclog_(sender:getTag())
 		end
 	end
 
@@ -202,6 +206,7 @@ function UI_unionJoin:initCallBack()
 
 		local data = hp.httpParse(response)
 		if data.result == 0 then
+			local frist_ = player.getFristLeague()
 			if data.id ~= nil then
 				player.getAlliance():setUnionID(data.id)
 			end
@@ -211,14 +216,12 @@ function UI_unionJoin:initCallBack()
 				local uiMain_ = UI_unionMain.new()
 				self:addUI(uiMain_)
 				require "ui/union/invite/joinSuccess"
-				local ui_ = UI_joinSuccess.new()
+				local ui_ = UI_joinSuccess.new(frist_)
 				self:addModalUI(ui_)
-				player.clearFristLeague()
-				hp.msgCenter.sendMsg(hp.MSG.UNION_JOIN_SUCCESS)
 				self:close()
 			elseif tag == 1 then
 				require "ui/common/successBox"
-				ui_ = UI_successBox.new(hp.lang.getStrByID(1888), hp.lang.getStrByID(5116))
+				local ui_ = UI_successBox.new(hp.lang.getStrByID(1888), hp.lang.getStrByID(5116))
 				self:addModalUI(ui_)
 			end			
 		end
@@ -241,13 +244,17 @@ function UI_unionJoin:initCallBack()
 			end
 			local cmdSender = hp.httpCmdSender.new(onJoinResponse)
 			cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper, tag_)
+			self:showLoading(cmdSender, sender)
 		end
 	end
 	
 	local function onViewTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			
+			local union_ = self.dataManager[self.showType]:getUnionInfoByIndex(sender:getTag())
+			require "ui/union/manage/unionInfo"
+			local ui_ = UI_unionInfo.new(union_.id)
+			self:addUI(ui_)			
 		end
 	end
 
@@ -266,6 +273,7 @@ function UI_unionJoin:initCallBack()
 
 		local data = hp.httpParse(response)
 		if data.result == 0 then
+			self.dataManager[2]:clearData()
 			self.dataType = 2
 			self.type = 1
 			
@@ -289,6 +297,7 @@ function UI_unionJoin:initCallBack()
 			cmdData.operation[1] = oper
 			local cmdSender = hp.httpCmdSender.new(onSearchResponse)
 			cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+			self:showLoading(cmdSender, sender)
 		end
 	end
 
@@ -310,12 +319,12 @@ function UI_unionJoin:initCallBack()
 		elseif eventType==TOUCH_EVENT_ENDED then
 			if sender:getTag() == 1 then
 				require "ui/union/invite/unionCreate"
-				ui_ = UI_unionCreate.new()
+				local ui_ = UI_unionCreate.new()
 				self:addUI(ui_)
 				self:close()
 			elseif sender:getTag() == 3 then
 				require "ui/union/invite/unionInvites"
-				ui_ = UI_unionInvites.new()
+				local ui_ = UI_unionInvites.new()
 				self:addUI(ui_)
 				self:close()
 			end
@@ -333,13 +342,7 @@ end
 function UI_unionJoin:onMsg(msg_, param_)
 end
 
-function UI_unionJoin:close()
+function UI_unionJoin:onRemove()
 	self.uiItem:release()
-	self.super.close(self)
-end
-
-function UI_unionJoin:heartbeat(dt_)
-	for i, v in ipairs(self.rollLabel) do
-		v.labelRoll(dt_)
-	end
+	self.super.onRemove(self)
 end

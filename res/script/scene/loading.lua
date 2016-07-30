@@ -1,117 +1,224 @@
 --
 -- scene/loading.lua
---
+-- 游戏loading界面(登录或者更新用)
 --================================================
 require "scene/Scene"
 
 
-SceneLoading = class("SceneLoading", Scene)
+Scene_loading = class("Scene_loading", Scene)
+
+--
+-- init
+--
+function Scene_loading:init(loginInfo_)
+	-- 加载json
+	local widget = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "gameLoading.json")
+	-- 屏幕适配
+	hp.uiHelper.uiAdaption(widget)
+
+	local progressPanel = widget:getChildByName("Panel_progress")
+	local progressBg = progressPanel:getChildByName("Image_progressBg")
+	local progress = progressBg:getChildByName("ProgressBar_progress")
+
+	local statusInfo = progressPanel:getChildByName("Label_12")
+	local versionInfo = progressPanel:getChildByName("Label_version")
+	local nextVersion = progressPanel:getChildByName("Label_version_2")
 
 
-function SceneLoading:init()
-	local bg = cc.Sprite:create(config.dirUI.root .. "login/farm.jpg")
-	local loadingBar = ccui.LoadingBar:create()
-	
-	loadingBar:loadTexture(config.dirUI.root .. "login/loadingbar.png")
-	loadingBar:setPercent(50)
-	loadingBar:setScale(2*hp.uiHelper.RA_scale)
-	bg:setScale(hp.uiHelper.RA_scale)
-	bg:setPosition(game.origin.x + game.visibleSize.width/2, game.origin.y + game.visibleSize.height/2)
-	loadingBar:setPosition(game.origin.x + game.visibleSize.width/2, game.origin.y + game.visibleSize.height/2)
-	
-	self:addCCNode(bg)
-	self:addCCNode(loadingBar)
-	
-	self.loadingBar = loadingBar
-	
-	self.loadingEnd = false
-end
+	-- 动画
+	require "ui/common/effect"
+	local brightTail = brightTail()
+	brightTail:setAnchorPoint(cc.p(0.8, 0.25))
+	progressBg:getChildByName("Image_10"):addChild(brightTail)
 
-function SceneLoading:onEnter()
-	local function onHttpResponse(status, response, tag)
-		if status==-1 then
-			require "scene/login"
-			loginScene = SceneLogin.new()
-			loginScene.loginErr = "登录失败，网络超时"
-			loginScene:enter()
-		elseif status~=200 then
-			require "scene/login"
-			loginScene = SceneLogin.new()
-			loginScene.loginErr = "登录失败，网络错误"   
-			loginScene:enter()
-		else
-			local data = hp.httpParse(response)
-			if data.result==nil or data.result~=0 then
-				require "scene/login"
-				loginScene = SceneLogin.new()
-				loginScene.loginErr = "用户信息错误"   
-				loginScene:enter()
-				return
-			end
+	-- 
+	self:addCCNode(widget)
 
-			if data.serverAddress~=nil and data.serverAddress~="null" then
-				-- 登录地址更改
-				player.setServerAddress(data.serverAddress)
-
-				local userInfo = self:getLoginInfo()
-				local cmdSender = hp.httpCmdSender.new(onHttpResponse)
-				if data.haveRole=="false" then
-					-- 未创建角色
-					cmdSender:send(hp.httpCmdType.SEND_INTIME, userInfo, config.server.cmdCreate)
-				else
-					-- 已创建角色
-					cmdSender:send(hp.httpCmdType.SEND_INTIME, userInfo, config.server.cmdLogin)
-				end
-				return
-			end
-
-			if data.haveRole=="false" then
-				-- 未创建角色
-				local userInfo = self:getLoginInfo()
-				local cmdSender = hp.httpCmdSender.new(onHttpResponse)
-				cmdSender:send(hp.httpCmdType.SEND_INTIME, userInfo, config.server.cmdCreate)
-				return
-			end
-
-			player.initData(data)
-			self.loadingEnd = true
-		end
+	--
+	--==========================================
+	-- setLoadingPercent
+	-- 设置加载进度
+	local loadingPercent = 0
+	local progressWidth = progress:getSize().width
+	local function setLoadingPercent( percent )
+		progress:setPercent(percent)
+		brightTail:setPositionX(progressWidth * percent/100)
+		loadingPercent = percent
 	end
-	
-	local userInfo = self:getLoginInfo()
-	local cmdSender = hp.httpCmdSender.new(onHttpResponse)
-	cmdSender:send(hp.httpCmdType.SEND_INTIME, userInfo, config.server.cmdLogin)
-end
-
-function SceneLoading:heartbeat(dt)
-	local loadingPercent = self.loadingBar:getPercent()
-	if self.loadingEnd then
-		if loadingPercent == 100 then
-			self.loadingEnd = false
-			player.flushUserDefualt()
-			
-			--cc.SimpleAudioEngine:getInstance():playMusic("sound/background.mp3", true)
-			require("scene/cityMap")
-			local map = cityMap.new()
-			map:enter()
-			return
-		else
-			loadingPercent = 100
-		end
-	elseif loadingPercent ~= 100 then
-		loadingPercent = loadingPercent+10
+	local function getLoadingPercent()
+		return loadingPercent
 	end
-	
-	self.loadingBar:setPercent(loadingPercent)
+    self.getLoadingPercent = getLoadingPercent
+	self.setLoadingPercent = setLoadingPercent
+	setLoadingPercent(0)
+
+    --
+    --
+    local function enterGame()
+        statusInfo:setString(hp.lang.getStrByID(5489))
+        self.status = 4
+        self.statusChanged = true
+        setLoadingPercent(100)
+    end
+    self.enterGame = enterGame
+
+    --
+    -- 开始登录
+    local function startLogin()
+    	-- 根据登录平台，初始化服务器信息
+    	local serverMgr = player.serverMgr
+        serverMgr.initBySDKplatform()
+
+        -- 进行服务器登录
+        local function onHttpResponse(status, response, tag)
+            local data = hp.httpParse(response)
+            if data.result == 0 then
+                cclog_("login onHttpResponse success", data.haveRole, data.setName)
+
+                if data.serverID ~= nil and data.serverID~=serverMgr.getMyServerID() then
+                    -- 登录地址更改
+                    serverMgr.setMyServerID(data.serverID)
+                    local cmdSender = hp.httpCmdSender.new(onHttpResponse)
+                    if data.haveRole == "false" then
+                        -- 未创建角色
+                        cmdSender:send(hp.httpCmdType.SEND_INTIME, loginInfo_, config.server.cmdCreate)
+                    else
+                        -- 已创建角色
+                        cmdSender:send(hp.httpCmdType.SEND_INTIME, loginInfo_, config.server.cmdLogin)
+                    end
+                    return
+                end
+
+                player.set_h_p_key(data.h_p_key)
+                if data.haveRole == "false" then
+                    -- 未创建角色
+                    local cmdSender = hp.httpCmdSender.new(onHttpResponse)
+                    cmdSender:send(hp.httpCmdType.SEND_INTIME, loginInfo_, config.server.cmdCreate)
+                    return
+                end
+
+                -- 改名一次
+                if data.setName ~= nil then
+                    require "ui/login/createRole"
+                    local ui_ = UI_createRole.new(self, data.setName)
+                    game.curScene:addUI(ui_)
+                    return
+                end
+
+                player.initData(data)
+                enterGame()
+            else
+                -- 失败
+                if data.result == -17 then
+                    -- 验证失败，需要重新授权
+                    cclog_("startLogin, access fail!")
+                    game.sdkHelper.logout()
+                end
+            end
+        end
+
+        player.set_h_p_key(nil)
+        local cmdSender = hp.httpCmdSender.new(onHttpResponse)
+        cmdSender:send(hp.httpCmdType.SEND_INTIME, loginInfo_, config.server.cmdLogin)
+    end
+    self.startLogin = startLogin
+
+
+    self.status = 0 -- 0:检查更新 1:开始更新 2:更新完成 3:连接服务器 4:进入游戏
+    self.loginFlag = false
+    self.statusChanged = true
+    self.statusInfo = statusInfo
+    self.versionInfo = versionInfo
+    self.nextVersion = nextVersion
+    --
+    gameUpdater.init()
+    statusInfo:setString(hp.lang.getStrByID(5484))
+    versionInfo:setString(hp.lang.getStrByID(5490)..gameUpdater.getCurVersion())
+    if loginInfo_ then
+        self.loginFlag = true
+    else
+    end
 end
 
-function SceneLoading:getLoginInfo()
-	local userInfo = {}
-	local defInfo = player.getUserDefault()
-	userInfo.uid = defInfo.uid
-	userInfo.pwd = defInfo.pwd
-	userInfo.name = defInfo.name
-	userInfo.param = defInfo.param
-	userInfo.platform = 4
-	return userInfo
+
+function Scene_loading:heartbeat(dt_)
+    if not self.statusChanged then
+    -- 状态没有改变
+        if self.status==3 then
+            local percent = self.getLoadingPercent()
+            if percent<90 then
+                percent = percent+2
+                self.setLoadingPercent(percent)
+            end
+        end
+        return
+    end
+    self.statusChanged = false
+
+    if self.status==0 then
+    -- 检查更新
+        if gameUpdater.checkUpdate() then
+        -- 开始更新
+            self.status = 1
+            self.statusInfo:setString(hp.lang.getStrByID(5486))
+        else
+        -- 版本已最新，进入服务器
+            self.statusInfo:setString(hp.lang.getStrByID(5488))
+            self.status = 3
+        end
+        self.statusChanged = true
+
+        self.setLoadingPercent(10)
+        self.versionInfo:setString(hp.lang.getStrByID(5490)..gameUpdater.getCurVersion())
+        self.nextVersion:setString(hp.lang.getStrByID(5491)..gameUpdater.getLatestVersion())
+        self.nextVersion:setVisible(true)
+    elseif self.status==1 then
+    -- 开始更新
+        local function onUpdate(errCode, status, parm)
+            if errCode~=0 or status==2 then
+            -- 更新失败 or 版本已最新
+                self.statusInfo:setString(hp.lang.getStrByID(5488))
+                self.status = 3
+                self.statusChanged = true
+                return
+            end
+
+            if status==4 then
+            -- 更新完成
+                self.versionInfo:setString(hp.lang.getStrByID(5490)..gameUpdater.getCurVersion())
+                self.statusInfo:setString(hp.lang.getStrByID(5487))
+                self.status = 2
+                self.statusChanged = true
+                self.setLoadingPercent(100)
+            end
+
+            if status==3 and parm>10 then
+                self.setLoadingPercent(parm)
+            end
+        end
+        gameUpdater.run(onUpdate)
+
+    elseif self.status==2 then
+    -- 更新完成，重启游戏
+        gameUpdater.uninit()
+        game.restart()
+    elseif self.status==3 then
+    -- 开始连接服务器
+        gameUpdater.uninit()
+        self.startLogin()
+    elseif self.status==4 then
+    -- 进入游戏
+        player.flushUserDefualt()
+
+        require("scene/cityMap")
+        local map = cityMap.new()
+        map:enter()
+
+        cc.SimpleAudioEngine:getInstance():playMusic("sound/background.mp3", true)
+
+        -- 请求登录公告
+        require("ui/common/sysNotice")
+        UI_sysNotice.show()
+    end
 end
+

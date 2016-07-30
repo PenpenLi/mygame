@@ -51,16 +51,24 @@ function UI_induceHero:init(building_, prisonMgr_)
 		end
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			if player.getItemNum(itemSid)>0 then
-				require "ui/msgBox/msgBox"
-				local msgBox = UI_msgBox.new(hp.lang.getStrByID(4005), hp.lang.getStrByID(4015), hp.lang.getStrByID(1209),
-					hp.lang.getStrByID(2412), induce)
-				self:addModalUI(msgBox)
-			else
+
+			if player.getItemNum(itemSid)<=0 then
+			-- 道具不足
 				require "ui/msgBox/msgBox"
 				local text = string.format(hp.lang.getStrByID(4013), itemInfo.name)
 				local msgBox = UI_msgBox.new(hp.lang.getStrByID(4012), text, hp.lang.getStrByID(1209),
 					hp.lang.getStrByID(2412), buyItem)
+				self:addModalUI(msgBox)
+			elseif prisonMgr.getInduceCD()>0 then
+			-- 劝降cd中
+				require "ui/msgBox/msgBox"
+				local msgBox = UI_msgBox.new(hp.lang.getStrByID(4005), hp.lang.getStrByID(4016), hp.lang.getStrByID(1209))
+				self:addModalUI(msgBox)
+			else
+			-- 可以劝降
+				require "ui/msgBox/msgBox"
+				local msgBox = UI_msgBox.new(hp.lang.getStrByID(4005), hp.lang.getStrByID(4015), hp.lang.getStrByID(1209),
+					hp.lang.getStrByID(2412), induce)
 				self:addModalUI(msgBox)
 			end
 		end
@@ -111,6 +119,8 @@ function UI_induceHero:init(building_, prisonMgr_)
 				end
 				cdNode:setString(hp.datetime.strTime(cd))
 				prcessNode:setPercent((3600-cd)*100/3600)
+
+
 			else
 				if cdState==true then
 					infoListView:removeItem(0)
@@ -130,16 +140,16 @@ function UI_induceHero:init(building_, prisonMgr_)
 
 	local function setCurSelectItem(item_)
 		if curSelectItem~=nil then
-			curSelectItem:setBackGroundColorOpacity(0)
+			curSelectItem:getChildByName("Image_selected"):setVisible(false)
 		else
 			if item_~=nil then
-				induceBtn:loadTexture(config.dirUI.common .. "button_green.png")
+				induceBtn:loadTexture(config.dirUI.common .. "button_blue.png")
 				induceBtn:setTouchEnabled(true)
 			end
 		end
 		curSelectItem = item_
 		if curSelectItem~=nil then
-			curSelectItem:setBackGroundColorOpacity(160)
+			curSelectItem:getChildByName("Image_selected"):setVisible(true)
 		else
 			induceBtn:loadTexture(config.dirUI.common .. "button_gray.png")
 			induceBtn:setTouchEnabled(false)
@@ -148,6 +158,7 @@ function UI_induceHero:init(building_, prisonMgr_)
 	setCurSelectItem(nil)
 	local function onItemTouched(sender, eventType)
 		if sender==curSelectItem then
+			return
 		end
 		setCurSelectItem(sender)
 	end
@@ -166,33 +177,42 @@ function UI_induceHero:init(building_, prisonMgr_)
 		end
 		-- 重新加载
 		local heroList = prisonMgr.getHeros()
-		setCurSelectItem(nil)
+		local killCD = prisonMgr.getKillCD()
+		curSelectItem = nil
 		for i, heroInfo in ipairs(heroList) do
-			local item = heroItem:clone()
-			infoListView:pushBackCustomItem(item)
-			item:setTag(heroInfo.localID)
-			local panelFrame = item:getChildByName("Panel_frame")
-			local panelCont = item:getChildByName("Panel_cont")
-			local iconNode = panelCont:getChildByName("ImageView_icon")
-			local nameNode = panelCont:getChildByName("Label_name")
-			local lvNode = panelCont:getChildByName("Label_level")
-			local descNode = panelCont:getChildByName("Label_desc")
-			local loyNameNode = panelCont:getChildByName("Label_loy")
-			local loyNumNode = panelCont:getChildByName("Label_loyNum")
-			local sucNode = panelCont:getChildByName("Label_success")
-			local progLoy = panelFrame:getChildByName("Image_proBg"):getChildByName("ProgressBar_loy")
+			local heroConstInfo = hp.gameDataLoader.getInfoBySid("hero", heroInfo.sid)
+			-- 只有没有被处决的名将才能招降
+			if heroConstInfo and heroConstInfo.soleFlag==1 then
+				if killCD.cd<0 or heroInfo.ownerID~=killCD.ownerID or heroInfo.id~=killCD.id then
+					local item = heroItem:clone()
+					infoListView:pushBackCustomItem(item)
+					item:setTag(heroInfo.localID)
+					local panelFrame = item:getChildByName("Panel_frame")
+					local panelCont = item:getChildByName("Panel_cont")
+					local iconNode = panelCont:getChildByName("ImageView_icon")
+					local nameNode = panelCont:getChildByName("Label_name")
+					local lvNode = panelCont:getChildByName("Label_level")
+					local descNode = panelCont:getChildByName("Label_desc")
+					local loyNameNode = panelCont:getChildByName("Label_loy")
+					local loyNumNode = panelCont:getChildByName("Label_loyNum")
+					local sucNode = panelCont:getChildByName("Label_success")
+					local progLoy = panelFrame:getChildByName("Image_proBg"):getChildByName("ProgressBar_loy")
 
-			panelFrame:setTag(heroInfo.localID)
-			panelFrame:addTouchEventListener(onItemTouched)
+					panelFrame:setTag(heroInfo.localID)
+					panelFrame:addTouchEventListener(onItemTouched)
 
-			nameNode:setString(string.format(hp.lang.getStrByID(4006), heroInfo.name))
-			lvNode:setString(string.format(hp.lang.getStrByID(4008), heroInfo.lv))
-			loyNameNode:setString(hp.lang.getStrByID(4010))
-			loyNumNode:setString(string.format("%d/%d", heroInfo.loyalty, heroInfo.tatoalLoyalty))
-			local succ = (heroInfo.tatoalLoyalty-heroInfo.loyalty)*100/heroInfo.tatoalLoyalty*0.5
-			progLoy:setPercent(succ)
-			sucNode:setString(string.format(hp.lang.getStrByID(4011), succ))
-			heroItemNum = heroItemNum+1
+					iconNode:loadTexture(config.dirUI.heroHeadpic .. heroInfo.sid .. ".png")
+					nameNode:setString(string.format(hp.lang.getStrByID(4006), heroInfo.name))
+					lvNode:setString(string.format(hp.lang.getStrByID(4008), heroInfo.lv))
+					descNode:setString(heroConstInfo.desc)
+					loyNameNode:setString(hp.lang.getStrByID(4010))
+					loyNumNode:setString(string.format("%d/%d", heroInfo.loyalty, heroInfo.tatoalLoyalty))
+					local succ = (heroInfo.tatoalLoyalty-heroInfo.loyalty)*100/heroInfo.tatoalLoyalty*0.5
+					progLoy:setPercent(succ)
+					sucNode:setString(string.format(hp.lang.getStrByID(4011), succ))
+					heroItemNum = heroItemNum+1
+				end
+			end
 		end
 	end 
 	refreshInfoList()
@@ -233,7 +253,7 @@ function UI_induceHero:onMsg(msg_, param_)
 		elseif param_.type==3 then
 			--self.refreshHeroListOper()
 		elseif param_.type==4 then
-			self.removeHeroItem(param_.hero)
+			self.refreshInfoList()
 		elseif param_.type==5 then
 			self.setCDStateInfo(true)
 		end

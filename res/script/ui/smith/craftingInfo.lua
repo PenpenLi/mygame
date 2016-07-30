@@ -1,6 +1,6 @@
 --
 -- ui/smith/craftingInfo
--- 合成更多信息
+-- 鍚堟垚鏇村淇℃伅
 --===================================
 require "ui/frame/popFrame"
 

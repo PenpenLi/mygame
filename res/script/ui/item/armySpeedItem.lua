@@ -15,13 +15,13 @@ function UI_armySpeedItem:init(armyID_)
 	-- ===============================
 	self.armyInfo = player.getMarchMgr().getFieldArmy()[armyID_]
 	self.armyID = armyID_
-	print("self.armyID", self.armyID)
+	cclog_("self.armyID", self.armyID)
 
 	-- ui
 	-- ===============================
 	local uiFrame = UI_fullScreenFrame.new()
 	uiFrame:setTitle(hp.lang.getStrByID(5103))
-
+	uiFrame:setTopShadePosY(844)
 	local rootWidget = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "speedItem.json")
 
 	-- addCCNode
@@ -98,10 +98,11 @@ function UI_armySpeedItem:onMsg(msg_, itemInfo_)
 			itemCont:getChildByName("Label_num"):setString(strNum)
 			if itemInfo_.num<=0 then
 				if itemCanSold(itemInfo_.sid) then
-					local buyNode = operBtn:getChildByName("Panel_buy")
-					buyNode:getChildByName("Label_num"):setString(itemInfo.sale)
-					buyNode:setVisible(true)
-					operBtn:getChildByName("Panel_use"):setVisible(false)
+					-- local buyNode = operBtn:getChildByName("Panel_buy")
+					-- buyNode:getChildByName("Label_num"):setString(itemInfo.sale)
+					-- buyNode:setVisible(true)
+					-- operBtn:getChildByName("Panel_use"):setVisible(false)
+					self:updateItemList()
 				else
 					self.itemList:removeItem(self.itemList:getIndex(itemNode))
 				end
@@ -125,13 +126,8 @@ end
 
 
 function UI_armySpeedItem:updateItemList()
-	local itemList = self.itemList
-	local descItem = self.descItem
-	local itemTemp = nil
-
 	-- 更新列表
-	itemList:removeAllItems()
-	itemList:jumpToTop()
+	self.itemList:removeAllItems()
 
 	self.loadingFinished = false
 	self.loadingIndex = 0 --已经加载的索引
@@ -183,9 +179,15 @@ function UI_armySpeedItem:pushLoadingItem(loadingNumOnce)
 				if tag==1 then
 				-- 购买使用
 					player.expendResource("gold", operItemInfo.sale)
+					-- edit by huangwei
+					Scene.showMsg({3001, getItemInfoBySid(operItemInfo.sid).name, 1})
+					-- edit by huangwei end
 				elseif tag==2 then
 				-- 使用
 					player.expendItem(operItemInfo.sid, 1) --消耗道具
+					-- edit by huangwei
+					Scene.showMsg({3000, getItemInfoBySid(operItemInfo.sid).name, 1})
+					-- edit by huangwei end
 				end
 				self.armyInfo.tEnd = data.time
 				self.armyInfo.totalTime = self.armyInfo.tEnd - self.armyInfo.tStart
@@ -211,12 +213,7 @@ function UI_armySpeedItem:pushLoadingItem(loadingNumOnce)
 				if player.getResource("gold")<itemInfo.sale then
 					-- 金币不够
 					require("ui/msgBox/msgBox")
-					local msgBox = UI_msgBox.new(hp.lang.getStrByID(2826), 
-						hp.lang.getStrByID(2827), 
-						hp.lang.getStrByID(1209), 
-						hp.lang.getStrByID(2412)
-						)
-					self:addModalUI(msgBox)
+					UI_msgBox.showCommonMsg(self, 1)
 					return
 				end
 
@@ -317,6 +314,9 @@ function UI_armySpeedItem:pushLoadingItem(loadingNumOnce)
 		end
 	end
 
+	-- 列表项
+	local item1Parm = {} --拥有道具的项
+	local item2Parm = {} --未拥有道具的项
 	local totalNum = #game.data.item
 	for i=self.loadingIndex+1, totalNum do
 		local itemInfo = game.data.item[i]
@@ -328,7 +328,31 @@ function UI_armySpeedItem:pushLoadingItem(loadingNumOnce)
 					itemTemp = item2:clone()
 				end
 				setItemInfo(itemTemp, itemInfo)
-				itemList:pushBackCustomItem(itemTemp)
+
+				-- 排序插入 -------
+				if player.getItemNum(itemInfo.sid) >0 then
+					local index = #item1Parm+1
+					for i, v in ipairs(item1Parm) do
+						if itemInfo.parmeter4<v then
+							index = i
+							break
+						end
+					end
+					table.insert(item1Parm, index, itemInfo.parmeter4)
+					itemList:insertCustomItem(itemTemp, index-1)
+				else
+					local index = #item2Parm+1
+					for i, v in ipairs(item2Parm) do
+						if itemInfo.parmeter4<v then
+							index = i
+							break
+						end
+					end
+					table.insert(item2Parm, index, itemInfo.parmeter4)
+					itemList:insertCustomItem(itemTemp, #item1Parm+index-1)
+				end
+				-- 排序插入 -------
+
 				loadingNum = loadingNum+1
 				self.loadingIndex = i
 				if loadingNum>=loadingNumOnce then

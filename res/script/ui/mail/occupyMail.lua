@@ -1,6 +1,6 @@
-﻿--
+--
 -- ui/mail/occupyMail.lua
--- 主建筑更多信息
+-- 占领邮件
 --===================================
 require "ui/frame/popFrame"
 require "ui/UI"
@@ -94,7 +94,7 @@ function UI_occupyMail:init(Info,mailType_,mailIndex)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			self:close()
-			hp.mailCenter.deleteMail(mailType_, {mailIndex})
+			player.mailCenter.deleteMail(mailType_, {mailIndex})
 		end
 	end
 	

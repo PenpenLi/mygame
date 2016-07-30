@@ -4,7 +4,7 @@
 	<dict>
 		<key>frames</key>
 		<dict>
-			<key>anim/common/loading/1.png</key>
+			<key>animation/common/loading/1.png</key>
 			<dict>
 				<key>width</key>
 				<integer>42</integer>
@@ -23,7 +23,7 @@
 				<key>offsetY</key>
 				<real>1.5</real>
 			</dict>
-			<key>anim/common/loading/2.png</key>
+			<key>animation/common/loading/2.png</key>
 			<dict>
 				<key>width</key>
 				<integer>45</integer>
@@ -42,7 +42,7 @@
 				<key>offsetY</key>
 				<real>1.5</real>
 			</dict>
-			<key>anim/common/loading/3.png</key>
+			<key>animation/common/loading/3.png</key>
 			<dict>
 				<key>width</key>
 				<integer>47</integer>
@@ -61,7 +61,7 @@
 				<key>offsetY</key>
 				<real>0</real>
 			</dict>
-			<key>anim/common/loading/4.png</key>
+			<key>animation/common/loading/4.png</key>
 			<dict>
 				<key>width</key>
 				<integer>46</integer>
@@ -80,7 +80,7 @@
 				<key>offsetY</key>
 				<real>1</real>
 			</dict>
-			<key>anim/common/loading/5.png</key>
+			<key>animation/common/loading/5.png</key>
 			<dict>
 				<key>width</key>
 				<integer>46</integer>
@@ -99,7 +99,7 @@
 				<key>offsetY</key>
 				<real>2</real>
 			</dict>
-			<key>anim/common/loading/6.png</key>
+			<key>animation/common/loading/6.png</key>
 			<dict>
 				<key>width</key>
 				<integer>47</integer>
@@ -118,7 +118,7 @@
 				<key>offsetY</key>
 				<real>2</real>
 			</dict>
-			<key>anim/common/loading/7.png</key>
+			<key>animation/common/loading/7.png</key>
 			<dict>
 				<key>width</key>
 				<integer>48</integer>
@@ -137,7 +137,7 @@
 				<key>offsetY</key>
 				<real>3.5</real>
 			</dict>
-			<key>anim/common/loading/8.png</key>
+			<key>animation/common/loading/8.png</key>
 			<dict>
 				<key>width</key>
 				<integer>46</integer>
@@ -156,7 +156,7 @@
 				<key>offsetY</key>
 				<real>4</real>
 			</dict>
-			<key>anim/common/loading/9.png</key>
+			<key>animation/common/loading/9.png</key>
 			<dict>
 				<key>width</key>
 				<integer>45</integer>

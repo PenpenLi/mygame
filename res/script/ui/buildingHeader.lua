@@ -10,6 +10,7 @@ UI_buildingHeader = class("UI_buildingHeader", UI)
 
 --init
 function UI_buildingHeader:init(building_)
+	self.layer:setLocalZOrder(999)
 	-- data
 	-- ===============================
 	local b = building_.build
@@ -21,6 +22,7 @@ function UI_buildingHeader:init(building_)
 	elseif bInfo.showtype==15 then
 		imgPath = config.dirUI.building .. "wall_icon.png"
 	end
+	
 	-- ui
 	-- ===============================
 	local wigetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "buildingHeader.json")
@@ -49,6 +51,8 @@ function UI_buildingHeader:init(building_)
 				require "ui/build_upgrade"
 				local ui  = UI_buildUpgrade.new({type=0, building=building_})
 				self:addUI(ui)
+				self.parent:moveOut(2, 0.2, 2)
+				ui:moveIn(2, 0.2)
 				player.guide.stepEx({3003})
 			elseif sender==btnRemove then
 				require "ui/destory"
@@ -64,31 +68,16 @@ function UI_buildingHeader:init(building_)
 	else
 		btnRemove:addTouchEventListener(onBtnTouched)
 	end
-	btnUpgrade:addTouchEventListener(onBtnTouched)
+
+	-- 能否升级
+	if bInfo.maxLv<=b.lv then
+		btnUpgrade:loadTexture(config.dirUI.common .. "button_gray.png")
+	else
+		btnUpgrade:addTouchEventListener(onBtnTouched)
+	end
 
 	-- addCCNode
 	-- ===============================
 	self:addCCNode(wigetRoot)
-
-
-	-- registMsg
-	-- ===============================
-	self:registMsg(hp.MSG.GUIDE_STEP)
-
-
-	-- 进行新手引导绑定
-	-- ================================
-	local function bindGuideUI( step )
-		if step==3003 then
-			player.guide.bind2Node(step, btnUpgrade, onBtnTouched)
-		end
-	end
-	self.bindGuideUI = bindGuideUI
 end
 
--- onMsg
-function UI_buildingHeader:onMsg(msg_, param_)
-	if msg_==hp.MSG.GUIDE_STEP then
-		self.bindGuideUI(param_)
-	end
-end

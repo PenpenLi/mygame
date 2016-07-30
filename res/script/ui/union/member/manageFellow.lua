@@ -36,8 +36,12 @@ function UI_manageFellow:initUI()
 	self.wigetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "manageMember.json")
 
 	local content_ = self.wigetRoot:getChildByName("Panel_2")
-	-- 名字	
-	content_:getChildByName("Label_3"):setString(string.format("(%d)%s", self.member:getRank(), self.member:getName()))
+	-- 职位
+	local rank_ = self.member:getRank()
+	local info_ = hp.gameDataLoader.getInfoBySid("unionRank", rank_)
+	content_:getChildByName("Image_11"):loadTexture(config.dirUI.common..info_.image)
+	-- 名字
+	content_:getChildByName("Label_3"):setString(self.member:getName())
 
 	local gift_ = content_:getChildByName("Image_4")
 	gift_:addTouchEventListener(self.onGiftTouched)
@@ -60,13 +64,13 @@ end
 
 function UI_manageFellow:initAutority()
 	local myRank_ = player.getAlliance():getMyUnionInfo():getRank()
-	print(self.member:getRank())
-	print(myRank_)
+	cclog_(self.member:getRank())
+	cclog_(myRank_)
 	local authority_ = hp.gameDataLoader.getInfoBySid("allienceRank", myRank_)
 	if authority_.promote == 1 then
 		if myRank_ > self.member:getRank() then
 			self.promote:setTouchEnabled(true)
-			self.promote:loadTexture(config.dirUI.common.."button_green.png")
+			self.promote:loadTexture(config.dirUI.common.."button_blue.png")
 		end
 	end
 
@@ -83,7 +87,10 @@ function UI_manageFellow:initCallBack()
 	local function onGiftTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			
+			require "ui/common/playerInfo"
+			ui_ = UI_playerInfo.new(self.member:getID())
+			self:addUI(ui_)
+			self:close()
 		end
 	end
 
@@ -92,7 +99,7 @@ function UI_manageFellow:initCallBack()
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			require "ui/mail/writeMail"
-			ui_ = UI_writeMail.new()
+			ui_ = UI_writeMail.new(self.member:getName())
 			self:addUI(ui_)
 			self:close()
 		end
@@ -103,7 +110,7 @@ function UI_manageFellow:initCallBack()
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			require "ui/union/member/memberPromote"
-			print("++++++++++++++_--")
+			cclog_("++++++++++++++_--")
 			local ui_ = UI_memberPromote.new(self.member:getID())
 			self:addModalUI(ui_)
 		end
@@ -130,6 +137,7 @@ function UI_manageFellow:initCallBack()
 		cmdData.operation[1] = oper
 		local cmdSender = hp.httpCmdSender.new(onKickResponse)
 		cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+		self:showLoading(cmdSender, sender)
 	end
 
 	-- 踢出
@@ -137,7 +145,7 @@ function UI_manageFellow:initCallBack()
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			require "ui/msgBox/msgBox"
-			ui_ = UI_msgBox.new(hp.lang.getStrByID(1885), string.format(hp.lang.getStrByID(1179), self.member:getName()), hp.lang.getStrByID(1209),
+			ui_ = UI_msgBox.new(hp.lang.getStrByID(5210), string.format(hp.lang.getStrByID(1179), self.member:getName()), hp.lang.getStrByID(1209),
 				hp.lang.getStrByID(2412), onKickConfirmTouched)
 			self:addModalUI(ui_)
 		end

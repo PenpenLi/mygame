@@ -1,6 +1,6 @@
 --
 -- ui/productionBuildingInfo.lua
--- 建筑更多信息界面
+-- 生成建筑更多信息界面
 --===================================
 require "ui/frame/popFrame"
 require "ui/UI"
@@ -31,8 +31,7 @@ function UI_productionBuildingInfo:init(building_)
 
 	local ListView_info = wigetRoot:getChildByName("ListView_info")
 	
-	local contNode = ListView_info:getChildByName("Panel_cont")
-	local moreInfo = contNode:getChildByName("Label_moreInfo")
+	local moreInfo = ListView_info:getChildByName("Panel_desc"):getChildByName("Panel_cont"):getChildByName("Label_moreInfo")
 	moreInfo:setString(bInfo.moreDesc)
 	
 	
@@ -57,7 +56,7 @@ function UI_productionBuildingInfo:init(building_)
 	itemTittleCont:getChildByName("Label_col_0"):setString( hp.lang.getStrByID(6602) )
 	
 	local img = hp.gameDataLoader.getInfoBySid("resInfo", resInfo.type+1).image
-	--print(img)
+	--cclog_(img)
 	itemTittleCont:getChildByName("Image_1"):loadTexture(config.dirUI.common .. img)
 	itemTittleCont:getChildByName("Image_2"):loadTexture(config.dirUI.common .. img)
 	
@@ -124,10 +123,10 @@ function UI_productionBuildingInfo:init(building_)
 			
 			if item ~= item1 and item ~= item2 then
 				ListView_info:insertCustomItem(item,ContItemSize)
-				--print(info.level .. " " .. ContItemSize .. "---------xxxxxxxx---------")
+				--cclog_(info.level .. " " .. ContItemSize .. "---------xxxxxxxx---------")
 			end
 			
-			--print(info.level .. " " .. ContItemSize .. "------------------")
+			--cclog_(info.level .. " " .. ContItemSize .. "------------------")
 			
 			ContItemSize = ContItemSize + 1
 			

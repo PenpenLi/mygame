@@ -65,16 +65,16 @@ function UI_viewArmy:initUI()
 	panelTemp:getChildByName("Label_5957"):setString(hp.lang.getStrByID(5105))
 	panelTemp:getChildByName("Label_5958"):setString(hp.lang.getStrByID(5106))
 
-	local army = player.getTotalArmy()
+	local army = player.soldierManager.getTotalArmy()
 	local oneArmyInfo = armyListView:getChildByName("Panel_5883")
 	armyListView:removeLastItem()
 
 	for i, v in ipairs(self.armyInfo.soldier) do
-		local info_ = player.getArmyInfoByType(i)
+		local info_ = player.soldierManager.getArmyInfoByType(i)
 		local cloneInfo = oneArmyInfo:clone()
 		cloneInfo:getChildByName("Panel_5960"):getChildByName("Label_5957"):setString(info_.name)
 		cloneInfo:getChildByName("Panel_5960"):getChildByName("Label_5958"):setString(v)
 		armyListView:pushBackCustomItem(cloneInfo)
 	end
-	adjustHeight(Panel_5194, {armyPanel, PanelContent}, armyListView, player.getSoldierType())
+	adjustHeight(Panel_5194, {armyPanel, PanelContent}, armyListView, globalData.TOTAL_LEVEL)
 end

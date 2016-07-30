@@ -3,6 +3,7 @@
 -- 解散工会
 --===================================
 require "ui/frame/popFrame"
+require "ui/frame/popFrameRed"
 
 UI_disbandUnion = class("UI_disbandUnion", UI)
 
@@ -20,7 +21,7 @@ function UI_disbandUnion:init(tab_)
 	-- ===============================
 	self:initUI()
 
-	local popFrame = UI_popFrame.new(self.wigetRoot, hp.lang.getStrByID(1884))
+	local popFrame = UI_popFrameRed.new(self.wigetRoot, hp.lang.getStrByID(1884))
 	-- addCCNode
 	-- ===============================
 	self:addChildUI(popFrame)
@@ -49,10 +50,9 @@ function UI_disbandUnion:initCallBack()
 		local data = hp.httpParse(response)
 		if data.result == 0 then
 			player.getAlliance():setUnionID(0)
-			player.getAlliance():leaveUnion()
 			self:closeAll()
 			require "ui/common/successBox"
-			local ui_ = UI_successBox.new(hp.lang.getStrByID(1888), hp.lang.getStrByID(1895))
+			local ui_ = UI_successBox.new(hp.lang.getStrByID(5019), hp.lang.getStrByID(1895))
 			game.curScene:addModalUI(ui_)
 		end
 	end
@@ -65,13 +65,13 @@ function UI_disbandUnion:initCallBack()
 		cmdData.operation[1] = oper
 		local cmdSender = hp.httpCmdSender.new(onDisbandResponse)
 		cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+		self:showLoading(cmdSender, sender)
 	end
 
 	local function onConfirm1Touched(sender, eventType)
 		require "ui/msgBox/msgBox"
-		-- UI_msgBox:init(title_, msg_, okText_, cancelText_, onOK_, onCancel_)
-		local ui_ = UI_msgBox.new(hp.lang.getStrByID(1885), hp.lang.getStrByID(1894), hp.lang.getStrByID(1209),
-			hp.lang.getStrByID(2412), onConfirm2Touched)
+		local ui_ = UI_msgBox.new(hp.lang.getStrByID(5019), hp.lang.getStrByID(1894), hp.lang.getStrByID(1209),
+			hp.lang.getStrByID(2412), onConfirm2Touched, nil, "red")
 		self:addModalUI(ui_)
 	end
 
@@ -80,9 +80,8 @@ function UI_disbandUnion:initCallBack()
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			require "ui/msgBox/msgBox"
-			-- UI_msgBox:init(title_, msg_, okText_, cancelText_, onOK_, onCancel_)
-			local ui_ = UI_msgBox.new(hp.lang.getStrByID(1885), hp.lang.getStrByID(1893), hp.lang.getStrByID(1209),
-				hp.lang.getStrByID(2412), onConfirm1Touched)
+			local ui_ = UI_msgBox.new(hp.lang.getStrByID(5019), hp.lang.getStrByID(1893), hp.lang.getStrByID(1209),
+				hp.lang.getStrByID(2412), onConfirm1Touched, nil, "red")
 			self:addModalUI(ui_)
 		end
 	end	
@@ -90,6 +89,6 @@ function UI_disbandUnion:initCallBack()
 	self.onDisbandTouched = onDisbandTouched
 end
 
-function UI_disbandUnion:close()
-	self.super.close(self)
+function UI_disbandUnion:onRemove()
+	self.super.onRemove(self)
 end

@@ -22,20 +22,32 @@ local function onHttpResponse(status, response)
 	local data = hp.httpParse(response)
 	if data.result ==0 then
 		if data.num > 0 then
-			require "ui/market/sourceHelp"
-			ui_ = UI_sourceHelp.new(id_)
-			game.curScene:addUI(ui_)
-			if callBack_ ~= nil then
-				callBack_()
+			local function resourceDonate()
+				require "ui/market/sourceHelp"
+				local ui_ = UI_sourceHelp.new(id_)
+				game.curScene:addUI(ui_)
+				if callBack_ ~= nil then
+					callBack_()
+				end
 			end
+
+			require("ui/msgBox/msgBox")
+			local msgBox = UI_msgBox.new(hp.lang.getStrByID(5201), 
+				hp.lang.getStrByID(5202), 
+				hp.lang.getStrByID(1209), 
+				hp.lang.getStrByID(2412),  
+				resourceDonate
+				)
+			game.curScene:addModalUI(msgBox)
 		else
 			require "ui/common/noBuildingNotice"
-			ui_ = UI_noBuildingNotice.new(hp.lang.getStrByID(1253), 1015, 1)
+			local ui_ = UI_noBuildingNotice.new(hp.lang.getStrByID(1253), 1015, 1, hp.lang.getStrByID(5209))
 			game.curScene:addModalUI(ui_)
 		end
 	end
 end
 
+-- =======================
 -- 全局方法
 -- =======================
 function resourceHelpMgr.sendCmd(type_, param_)
@@ -51,10 +63,11 @@ function resourceHelpMgr.sendCmd(type_, param_)
 		callBack_ = param_[2]
 		cmdData.operation[1] = oper
 		local cmdSender = hp.httpCmdSender.new(onHttpResponse)
-		cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)			
+		cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)	
+		return cmdSender
 	else
 		require "ui/common/noBuildingNotice"
-		ui_ = UI_noBuildingNotice.new(hp.lang.getStrByID(1256), 1015, 1)
+		local ui_ = UI_noBuildingNotice.new(hp.lang.getStrByID(1256), 1015, 1, hp.lang.getStrByID(5209))
 		game.curScene:addModalUI(ui_)
 	end
 end

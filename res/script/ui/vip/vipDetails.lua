@@ -29,6 +29,8 @@ function UI_vipDetails:init(gotoLv_)
 	-- ===============================
 	local uiFrame = UI_fullScreenFrame.new()
 	uiFrame:setTitle("VIP")
+	uiFrame:setBgImg(config.dirUI.common .. "frame_bg1.png")
+	uiFrame:setTopShadePosY(888)
 	local wigetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "vipDetails.json")
 
 	-- addCCNode
@@ -108,27 +110,33 @@ function UI_vipDetails:init(gotoLv_)
 					itemTmp:getChildByName("Panel_cont"):getChildByName("Label_text"):setString(itemText)
 					itemNum = itemNum+1
 				end
+				
+				if vipInfo["award19"]>0 then
+					addItem(hp.lang.getStrByID(3739))
+				end
 				for i=1, 18 do
 					local tmp = vipInfo["award"..i]
-					if i==1 then
-						if tmp>0 then
-							addItem(string.format(hp.lang.getStrByID(3720+i), tmp/60))
-						end
-					elseif i==7 then
-						if tmp~="-1" then
-							addItem(tmp)
-						end
-					elseif i>=8 and i<=10 then
-						if tmp>0 then
-							addItem(string.format(hp.lang.getStrByID(3720+i), tmp))
-						end
-					elseif i>=13 and i<=15 then
-						if tmp>0 then
-							addItem(hp.lang.getStrByID(3720+i))
+					if type(tmp)=="table" then
+						if tmp[2]>0 then
+							addItem(string.format(hp.lang.getStrByID(3720+i), tmp[2]/100))
 						end
 					else
-						if tmp>0 then
-							addItem(string.format(hp.lang.getStrByID(3720+i), tmp/100))
+						if i==1 then
+							if tmp>0 then
+								addItem(string.format(hp.lang.getStrByID(3720+i), tmp/60))
+							end
+						elseif i==7 then
+							if tmp~="-1" then
+								addItem(tmp)
+							end
+						elseif i>=8 and i<=10 then
+							if tmp>0 then
+								addItem(string.format(hp.lang.getStrByID(3720+i), tmp))
+							end
+						elseif i>=13 and i<=15 then
+							if tmp>0 then
+								addItem(hp.lang.getStrByID(3720+i))
+							end
 						end
 					end
 				end

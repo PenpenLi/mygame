@@ -22,7 +22,7 @@ function UI_economicsTree:init()
 	-- ===============================
 	local uiFrame = UI_fullScreenFrame.new()
 	uiFrame:setTitle(hp.lang.getStrByID(9103))
-
+	uiFrame:setTopShadePosY(888)
 	local widgetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "economicsTree.json")
 
 	--技能树
@@ -31,7 +31,7 @@ function UI_economicsTree:init()
 	local skillPanel = treePanel:getChildByName("Panel_skill")
 	local linePanel = treePanel:getChildByName("Panel_line")
 
-	local colorLock = cc.c3b(128, 128, 128)
+	local colorLock = cc.c3b(64, 64, 64)
 	local colorUnlock = cc.c3b(255, 255, 255)
 	local imgLineLockH = config.dirUI.common .. "skillLine_lockH.png"
 	local imgLineLockV = config.dirUI.common .. "skillLine_lockV.png"
@@ -108,7 +108,6 @@ function UI_economicsTree:init()
 									lockFlag = true
 								end
 							end
-							--getSkillLv
 						end
 					end
 				end

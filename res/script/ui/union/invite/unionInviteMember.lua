@@ -3,7 +3,6 @@
 -- 邀请成员
 --===================================
 require "ui/fullScreenFrame"
-require "obj/alliance/unionManager"
 
 UI_unionInviteMember = class("UI_unionInviteMember", UI)
 
@@ -35,6 +34,8 @@ function UI_unionInviteMember:init(page_)
 	self:initUIBase()
 
 	local uiFrame = UI_fullScreenFrame.new()
+	self.uiFrame = uiFrame
+	uiFrame:hideTopBackground()
 	uiFrame:setTitle(hp.lang.getStrByID(5133))
 	-- addCCNode
 	-- ===============================
@@ -109,14 +110,17 @@ function UI_unionInviteMember:tabPage(id_)
 		self.uiTab[i]:setColor(color_[i])
 		self.uiTab[i]:setScale(scale_[i])
 		self.uiTabText[i]:setColor(color_[i])
-		self.uiTabText[i]:setScale(scale_[i])
 	end
 
 	self.tab = id_
-	if id_ == 2 then
+	if id_ == 1 then
+		self.uiFrame:setTopShadePosY(740)
+	elseif id_ == 2 then
 		self:requestApplicant()
+		self.uiFrame:setTopShadePosY(830)
 	elseif id_ == 3 then
 		self:requestSentInvites()
+		self.uiFrame:setTopShadePosY(830)
 	end
 end
 
@@ -139,6 +143,7 @@ function UI_unionInviteMember:requestApplicant()
 	cmdData.operation[1] = oper
 	local cmdSender = hp.httpCmdSender.new(onApplicantResponse)
 	cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+	self:showLoading(cmdSender)
 end
 
 function UI_unionInviteMember:requestSentInvites()
@@ -160,6 +165,7 @@ function UI_unionInviteMember:requestSentInvites()
 	cmdData.operation[1] = oper
 	local cmdSender = hp.httpCmdSender.new(onInviteResponse)
 	cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+	self:showLoading(cmdSender)
 end
 
 function UI_unionInviteMember:initPage1()
@@ -171,6 +177,7 @@ function UI_unionInviteMember:initPage1()
 	self.search:addTouchEventListener(self.onSearchTouched)
 	local inputLabel_ = content_:getChildByName("TextField_32843_Copy0")
 	self.searchText = hp.uiHelper.labelBind2EditBox(inputLabel_)
+	content_:getChildByName("Label_79"):setString(hp.lang.getStrByID(5403))
 
 	self.listView1 = self.wigetRoot:getChildByName("ListView_30172")
 	self.item1 = self.listView1:getChildByName("Panel_30177"):clone()
@@ -252,6 +259,7 @@ function UI_unionInviteMember:initCallBack()
 			cmdData.operation[1] = oper
 			local cmdSender = hp.httpCmdSender.new(onSearchResponse)
 			cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+			self:showLoading(cmdSender, sender)
 		end
 	end
 
@@ -282,6 +290,7 @@ function UI_unionInviteMember:initCallBack()
 			cmdData.operation[1] = oper
 			local cmdSender = hp.httpCmdSender.new(onInviteResponse)
 			cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+			self:showLoading(cmdSender, sender)
 		end
 	end
 
@@ -293,7 +302,7 @@ function UI_unionInviteMember:initCallBack()
 
 		local data = hp.httpParse(response)
 		if data.result == 0 then
-			print("player joined")
+			cclog_("player joined")
 			self:removeItem(2)
 		end
 	end
@@ -310,6 +319,7 @@ function UI_unionInviteMember:initCallBack()
 			cmdData.operation[1] = oper
 			local cmdSender = hp.httpCmdSender.new(onAgreeResponse)
 			cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+			self:showLoading(cmdSender, sender)
 		end
 	end
 
@@ -321,7 +331,7 @@ function UI_unionInviteMember:initCallBack()
 
 		local data = hp.httpParse(response)
 		if data.result == 0 then
-			print("player refuse")
+			cclog_("player refuse")
 			self:removeItem(2)
 		end
 	end
@@ -338,6 +348,7 @@ function UI_unionInviteMember:initCallBack()
 			cmdData.operation[1] = oper
 			local cmdSender = hp.httpCmdSender.new(onRefuseResponse)
 			cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+			self:showLoading(cmdSender, sender)
 		end
 	end
 
@@ -349,7 +360,7 @@ function UI_unionInviteMember:initCallBack()
 
 		local data = hp.httpParse(response)
 		if data.result == 0 then
-			print("inviete delete")
+			cclog_("inviete delete")
 			self:removeItem(3)
 		end
 	end
@@ -366,6 +377,16 @@ function UI_unionInviteMember:initCallBack()
 			cmdData.operation[1] = oper
 			local cmdSender = hp.httpCmdSender.new(onDeleteResponse)
 			cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+			self:showLoading(cmdSender, sender)
+		end
+	end
+
+	local function onPlayerHeadTouched(sender, eventType)
+		hp.uiHelper.btnImgTouched(sender, eventType)
+		if eventType==TOUCH_EVENT_ENDED then
+			require "ui/common/playerInfo"
+			ui_ = UI_playerInfo.new(self.idMap[sender:getTag()])
+			self:addUI(ui_)
 		end
 	end
 
@@ -376,6 +397,7 @@ function UI_unionInviteMember:initCallBack()
 	self.onAgreeTouched = onAgreeTouched
 	self.onRefuseTouched = onRefuseTouched
 	self.onDeleteTouched = onDeleteTouched
+	self.onPlayerHeadTouched = onPlayerHeadTouched
 end
 
 function UI_unionInviteMember:removeItem(type_)
@@ -394,7 +416,7 @@ end
 function UI_unionInviteMember:onMsg(msg_, param_)
 end
 
-function UI_unionInviteMember:close()
+function UI_unionInviteMember:onRemove()
 	if self.pageInit[1] == true then
 		self.item1:release()
 	elseif self.pageInit[2] == true then
@@ -402,7 +424,7 @@ function UI_unionInviteMember:close()
 	elseif self.pageInit[3] == true then
 		self.item3:release()
 	end
-	self.super.close(self)
+	self.super.onRemove(self)
 end
 
 function UI_unionInviteMember:refreshPage1(info_)
@@ -433,12 +455,17 @@ function UI_unionInviteMember:refreshPage1(info_)
 
 	-- 名称
 	content_:getChildByName("Label_30190"):setString(info_.name)
+	-- 头像
+	local head_ = content_:getChildByName("ImageView_9383")
+	head_:setTag(self.index)
+	head_:addTouchEventListener(self.onPlayerHeadTouched)
+	head_:loadTexture(config.dirUI.heroHeadpic..info_.img..".png")
 	-- 签名
 	content_:getChildByName("ImageView_30191"):getChildByName("Label_30192"):setString(info_.msg)
 	-- 战力
 	content_:getChildByName("Label_30194"):setString(info_.power)
 	-- 杀敌
-	content_:getChildByName("Label_30195"):setString(info_.num)
+	content_:getChildByName("Label_30195"):setString(string.format(hp.lang.getStrByID(1842),info_.num))
 end
 
 function UI_unionInviteMember:refreshPage2(info_)
@@ -457,12 +484,17 @@ function UI_unionInviteMember:refreshPage2(info_)
 		local member_ = Alliance.parsePlayerInfo(v)
 		-- 名称
 		content_:getChildByName("Label_30190"):setString(member_.name)
+		-- 头像
+		local head_ = content_:getChildByName("ImageView_9383")
+		head_:setTag(self.index)
+		head_:addTouchEventListener(self.onPlayerHeadTouched)
+		head_:loadTexture(config.dirUI.heroHeadpic..member_.icon..".png")
 		-- 签名
 		content_:getChildByName("ImageView_30191"):getChildByName("Label_30192"):setString(member_.sign)
-		-- 坐标
-		content_:getChildByName("Label_30194"):setString(member_.position.x..","..member_.position.y)
+		-- 战力
+		content_:getChildByName("Label_30194"):setString(member_.power)
 		-- 杀敌
-		content_:getChildByName("Label_30195"):setString(member_.kill)
+		content_:getChildByName("Label_30195"):setString(string.format(hp.lang.getStrByID(1842),member_.kill))
 		-- 拒绝
 		local view_ = content_:getChildByName("ImageView_30186")
 		view_:getChildByName("Label_33412"):setString(hp.lang.getStrByID(1851))
@@ -476,7 +508,7 @@ function UI_unionInviteMember:refreshPage2(info_)
 		self.idMap[self.index] = member_.id
 		self.itemMap[self.index] = item_
 		self.index = self.index + 1
-	end
+	end	
 end
 
 function UI_unionInviteMember:refreshPage3(info_)
@@ -495,12 +527,17 @@ function UI_unionInviteMember:refreshPage3(info_)
 		local member_ = Alliance.parsePlayerInfo(v)
 		-- 名称
 		content_:getChildByName("Label_30190"):setString(member_.name)
+		-- 头像
+		local head_ = content_:getChildByName("ImageView_9383")
+		head_:setTag(self.index)
+		head_:addTouchEventListener(self.onPlayerHeadTouched)
+		head_:loadTexture(config.dirUI.heroHeadpic..member_.icon..".png")
 		-- 签名
 		content_:getChildByName("ImageView_30191"):getChildByName("Label_30192"):setString(member_.sign)
-		-- 坐标
-		content_:getChildByName("Label_30194"):setString(member_.position.x..","..member_.position.y)
+		-- 战力
+		content_:getChildByName("Label_30194"):setString(member_.power)
 		-- 杀敌
-		content_:getChildByName("Label_30195"):setString(member_.kill)
+		content_:getChildByName("Label_30195"):setString(string.format(hp.lang.getStrByID(1842),member_.kill))
 		-- 删除
 		local delete_ = content_:getChildByName("ImageView_30186")
 		delete_:getChildByName("Label_33412"):setString(hp.lang.getStrByID(1848))

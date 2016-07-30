@@ -1,6 +1,6 @@
 --
 -- ui/hero/heroBoosts.lua
--- 英雄更多信息
+-- 武将增益
 --===================================
 require "ui/UI"
 require "ui/frame/popFrame"
@@ -42,7 +42,7 @@ function UI_heroBoosts:initUI()
 
 
 	local function adjustHeight(parent_, panelList_, listView_, num_)
-		local deltaHeight = 31 * num_
+		local deltaHeight = 31 * (num_ - 1)
 		local size_ = parent_:getSize()
 		size_.height = size_.height + deltaHeight
 		parent_:setSize(size_)
@@ -87,9 +87,16 @@ function UI_heroBoosts:initUI()
 		local cloneInfo = infoDemo:clone()
 		local attr = hp.gameDataLoader.getInfoBySid("attr", v)
 		if attr ~= nil then
-			local value = 0
+			local value = player.hero.getAttrAddn(attr.sid)
+			if value > 0 then
+				value = "+"..(value/100).."%"
+				--value = string.format("+%0.2f%%", (value/100))
+			end
 			cloneInfo:getChildByName("Panel_text"):getChildByName("Label_name"):setString(attr.desc)
 			cloneInfo:getChildByName("Panel_text"):getChildByName("Label_value"):setString(value)
+			if i%2 ~= 0 then
+				cloneInfo:getChildByName("Panel_bg"):setVisible(false)
+			end
 			listView_items1:pushBackCustomItem(cloneInfo)
 		end
 	end
@@ -97,9 +104,15 @@ function UI_heroBoosts:initUI()
 		local cloneInfo = infoDemo:clone()
 		local attr = hp.gameDataLoader.getInfoBySid("attr", v)
 		if attr ~= nil then
-			local value = 0
+			local value = player.hero.getAttrAddn(attr.sid)
+			if value > 0 then
+				value = "+"..(value/100).."%"
+			end
 			cloneInfo:getChildByName("Panel_text"):getChildByName("Label_name"):setString(attr.desc)
 			cloneInfo:getChildByName("Panel_text"):getChildByName("Label_value"):setString(value)
+			if i%2 ~= 0 then
+				cloneInfo:getChildByName("Panel_bg"):setVisible(false)
+			end
 			listView_items2:pushBackCustomItem(cloneInfo)
 		end
 	end
@@ -107,9 +120,15 @@ function UI_heroBoosts:initUI()
 		local cloneInfo = infoDemo:clone()
 		local attr = hp.gameDataLoader.getInfoBySid("attr", v)
 		if attr ~= nil then
-			local value = 0
+			local value = player.hero.getAttrAddn(attr.sid)
+			if value > 0 then
+				value = "+"..(value/100).."%"
+			end
 			cloneInfo:getChildByName("Panel_text"):getChildByName("Label_name"):setString(attr.desc)
 			cloneInfo:getChildByName("Panel_text"):getChildByName("Label_value"):setString(value)
+			if i%2 ~= 0 then
+				cloneInfo:getChildByName("Panel_bg"):setVisible(false)
+			end
 			listView_items3:pushBackCustomItem(cloneInfo)
 		end
 	end

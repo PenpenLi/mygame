@@ -39,6 +39,8 @@ function UI_dressEquip:init(sender_,index,type_)
 	-- ===============================
 	local uiFrame = UI_fullScreenFrame.new()
 	uiFrame:setTitle(hp.lang.getStrByID(4100+equipType))
+	uiFrame:hideTopBackground()
+	uiFrame:setTopShadePosY(890)
 	local widgetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "dress_equip.json")
 
 
@@ -113,7 +115,8 @@ function UI_dressEquip:init(sender_,index,type_)
 			if v>0 then
 				local gemImg = equipNode:getChildByName("Image_gem" .. i)
 				gemImg:setVisible(true)
-				gemImg:loadTexture(string.format("%s%d.png", config.dirUI.gem, v))
+				local gemInfo = hp.gameDataLoader.getInfoBySid("gem", v)
+				gemImg:loadTexture(string.format("%s%d.png", config.dirUI.gem, gemInfo.type))
 			else
 				equipNode:getChildByName("Image_gem" .. i):setVisible(false)
 			end
@@ -192,25 +195,33 @@ function UI_dressEquip:init(sender_,index,type_)
 		equip=player.equipBag.getEquipById(equip.id)
 		setSelectedEquip()
 		setEquipInfo(selectBagNode,equip)
-		sender.refreshEquipInfo(equipIndex)
+		if sender ~=nil then
+			sender.refreshEquipInfo(equipIndex)
+		end
 	end
 
 	-- 设置选中装备的信息
 	function setSelectedEquip()
-		local bgImg = selectBagNode:getChildByName("Image_bg")
-		equipNode = bgImg:getChildByName("Panel_equip")
-		equipInfo = hp.gameDataLoader.getInfoBySid("equip", equip.sid)
-		if selectImg ~= nil then
-				selectImg:setVisible(false)
+		if selectBagNode==nil then
+			infoPanel:setVisible(false)
+			attrListNode:setVisible(false)
+			local framePanel = widgetRoot:getChildByName("Panel_frame")
+			framePanel:setVisible(false)
+		else
+			local bgImg = selectBagNode:getChildByName("Image_bg")
+			equipNode = bgImg:getChildByName("Panel_equip")
+			equipInfo = hp.gameDataLoader.getInfoBySid("equip", equip.sid)
+			if selectImg ~= nil then
+					selectImg:setVisible(false)
+			end
+			selectImg = bgImg:getChildByName("Image_selected")
+			selectImg : setVisible(true)
+			infoPanel:getChildByName("Label_name"):setString(equipInfo.name)
+			infoPanel:getChildByName("Label_need_level"):setString(string.format(hp.lang.getStrByID(3503), equipInfo.mustLv))
+			setAttrInfo()	
+			flushEquipBtn()
 		end
-		selectImg = bgImg:getChildByName("Image_selected")
-		selectImg : setVisible(true)
-		infoPanel:getChildByName("Label_name"):setString(equipInfo.name)
-		infoPanel:getChildByName("Label_need_level"):setString(string.format(hp.lang.getStrByID(3503), equipInfo.mustLv))
-		setAttrInfo()	
-		flushEquipBtn()
 	end
-
 
 
 	self.refreshSelectedEquip=refreshSelectedEquip
@@ -229,7 +240,9 @@ function UI_dressEquip:init(sender_,index,type_)
 				onflag:setVisible(true)
 				--player.equipBag.getEquips_equiped()[equipIndex]=equip.id
 				player.equipBag.equipEquip(equipIndex, equip.id)
-				sender.upEquip(equipIndex,equip)
+				if sender ~=nil then
+					sender.upEquip(equipIndex,equip)
+				end
 				flushEquipBtn()
 			end
 		end
@@ -244,7 +257,9 @@ function UI_dressEquip:init(sender_,index,type_)
 				end	
 				--player.equipBag.getEquips_equiped()[equipIndex]=nil
 				player.equipBag.unequipEquip(equipIndex)
-				sender.downEquip(equipIndex)
+				if sender ~=nil then
+					sender.downEquip(equipIndex)
+				end
 				flushEquipBtn()
 			end
 		end

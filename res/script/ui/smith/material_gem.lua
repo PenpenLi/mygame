@@ -28,6 +28,7 @@ function UI_material_gem:init(type_)
 	-- ===============================
 	local uiFrame = UI_fullScreenFrame.new()
 	uiFrame:setTitle(hp.lang.getStrByID(3304))
+	uiFrame:setTopShadePosY(808)
 	local widgetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "material_gem.json")
 
 	-- addCCNode
@@ -40,10 +41,10 @@ function UI_material_gem:init(type_)
 	local tabPanel = widgetRoot:getChildByName("Panel_headTab")
 	local tabGem = tabPanel:getChildByName("ImageView_gem")
 	local gemIcon = tabGem:getChildByName("Image_icon")
-	local gemText = tabGem:getChildByName("Label_name")
+	tabGem:getChildByName("Label_name"):setString(hp.lang.getStrByID(3308))
 	local tabMaterial = tabPanel:getChildByName("ImageView_material")
 	local materialIcon = tabMaterial:getChildByName("Image_icon")
-	local materialText = tabMaterial:getChildByName("Label_name")
+	tabMaterial:getChildByName("Label_name"):setString(hp.lang.getStrByID(3309))
 	local typeSelected = tabGem
 	local scaleSelected = tabGem:getScale()
 	local colorSelected = tabGem:getColor()
@@ -142,7 +143,7 @@ function UI_material_gem:init(type_)
 
 		mframe:loadTexture(string.format("%scolorframe_%d.png", config.dirUI.common, materialInfo.level+lvE))
 		if headerType==1 then
-			itemImg:loadTexture(string.format("%s%d.png", config.dirUI.gem, materialInfo.sid))
+			itemImg:loadTexture(string.format("%s%d.png", config.dirUI.gem, materialInfo.type))
 		else
 			itemImg:loadTexture(string.format("%s%d.png", config.dirUI.material, materialInfo.type))
 		end

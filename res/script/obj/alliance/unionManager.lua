@@ -31,8 +31,8 @@ function UnionManager:setAllData(all_)
 end
 
 function UnionManager:getData(type_)
-	print("getData", type_)
-	print(table.getn(self.unionList))
+	cclog_("getData", type_)
+	cclog_(table.getn(self.unionList))
 	if type_ == 1 then
 		return self:getFirstUnions()
 	elseif type_ == 2 then
@@ -68,8 +68,8 @@ function UnionManager:getFirstUnions()
 	for i = self.indexBegin, self.indexEnd do
 		table.insert(temp_, self.unionList[i])
 	end
-	print("indexBegin",self.indexBegin)
-	print("indexEnd",self.indexEnd)
+	cclog_("indexBegin",self.indexBegin)
+	cclog_("indexEnd",self.indexEnd)
 	return temp_
 end
 
@@ -104,8 +104,8 @@ function UnionManager:getNextUnions()
 	for i = self.indexBegin, self.indexEnd do
 		table.insert(temp_, self.unionList[i])
 	end
-	print("indexBegin",self.indexBegin)
-	print("indexEnd",self.indexEnd)
+	cclog_("indexBegin",self.indexBegin)
+	cclog_("indexEnd",self.indexEnd)
 	return temp_
 end
 
@@ -133,8 +133,8 @@ function UnionManager:getPreUnions()
 	for i = self.indexBegin, self.indexEnd do
 		table.insert(temp_, self.unionList[i])
 	end
-	print("indexBegin",self.indexBegin)
-	print("indexEnd",self.indexEnd)
+	cclog_("indexBegin",self.indexBegin)
+	cclog_("indexEnd",self.indexEnd)
 	return temp_
 end
 
@@ -149,4 +149,13 @@ end
 
 function UnionManager:getCurPage()
 	return math.ceil(self.indexEnd / self.interval)
+end
+
+-- 清空数据
+function UnionManager:clearData()
+	self.unionList = {}
+	self.allData = false
+
+	self.indexBegin = 0
+	self.indexEnd = 0
 end

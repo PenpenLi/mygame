@@ -37,7 +37,7 @@ function UI_equipInfo:init(equipInfo_,level_)
 	infoPanel:getChildByName("Image_name"):getChildByName("Label_name"):setString(equipInfo.name)
 	infoPanel:getChildByName("Label_desc"):setString(equipInfo.desc)
 	infoPanel:getChildByName("Label_mustlv"):setString(string.format(hp.lang.getStrByID(3503), equipInfo.mustLv))
-	infoPanel:getChildByName("Label_0"):setString(hp.lang.getStrByID(2907))
+	infoPanel:getChildByName("Label_0"):setString(hp.lang.getStrByID(2914))
 
 
 	-- 显示品质信息

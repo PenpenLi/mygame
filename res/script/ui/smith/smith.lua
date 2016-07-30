@@ -53,20 +53,14 @@ function UI_smith:init(building_)
 	contBag:addTouchEventListener(onItemTouched)
 	contMaterial:addTouchEventListener(onItemTouched)
 
-	contMake:getChildByName("Label_name"):setString(hp.lang.getStrByID(3301))
-	contCom:getChildByName("Label_name"):setString(hp.lang.getStrByID(3302))
-	contBag:getChildByName("Label_name"):setString(hp.lang.getStrByID(3303))
-	contMaterial:getChildByName("Label_name"):setString(hp.lang.getStrByID(3304))
+	contMake:getChildByName("BitmapLabel_name"):setString(hp.lang.getStrByID(3301))
+	contCom:getChildByName("BitmapLabel_name"):setString(hp.lang.getStrByID(3302))
+	contBag:getChildByName("BitmapLabel_name"):setString(hp.lang.getStrByID(3303))
+	contMaterial:getChildByName("BitmapLabel_name"):setString(hp.lang.getStrByID(3304))
 	contMore:getChildByName("ImageView_more"):getChildByName("Label_more"):setString(hp.lang.getStrByID(1030))
 	
-	
-
-	
+	-- 更多信息
 	local MoreBtn = contMore:getChildByName("ImageView_more")
-	
-	
-	
-	
 	local function MoreBtnTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
@@ -75,15 +69,8 @@ function UI_smith:init(building_)
 			self:addModalUI(moreInfoBox)
 		end
 	end
-	
-	
 	MoreBtn:addTouchEventListener(MoreBtnTouched)
-	
-	
-	
-	
-	
-	
+
 	-- addCCNode
 	-- ===============================
 	self:addChildUI(uiFrame)

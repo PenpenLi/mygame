@@ -12,7 +12,7 @@ local noticeRollOffset = 20
 local loadItemList = {1,3,4,5,6,7,8,9,10}
 local imageList = {"alliance_25.png", "alliance_26.png", "alliance_27.png", "alliance_28.png", 
 		"alliance_29.png", "alliance_30.png", "alliance_31.png", "alliance_32.png", "alliance_33.png",
-		"quest_24.png"}
+		"alliance_65.png"}
 local nameIDList = {1817, 1818, 1819, 1820, 1821, 1822, 1823, 1824, 1825, 5078}
 local numList = {"", "comment", "", "", "help", "", "unionWar", "", "", "gift"}
 
@@ -34,10 +34,15 @@ function UI_unionMain:init()
 	self:initUI()
 
 	local uiFrame = UI_fullScreenFrame.new()
+	uiFrame:hideTopShade()
 	uiFrame:setTitle(hp.lang.getStrByID(1800))
+
+	require "ui/common/promotionInfo"
+	local promotion_ = UI_promotionInfo.new()
 	-- addCCNode
 	-- ===============================
 	self:addChildUI(uiFrame)
+	self:addChildUI(promotion_)
 	self:addCCNode(self.wigetRoot)	
 
 	hp.uiHelper.uiAdaption(self.uiItem)
@@ -104,11 +109,11 @@ function UI_unionMain:initUI()
 	self.listView = self.wigetRoot:getChildByName("ListView_30128")
 	self.uiItem = self.listView:getChildByName("Panel_30134"):clone()
 	self.uiItem:retain()
-	self.uiRallyDefense = self.listView:getChildByName("Panel_30129_Copy0")
+	self.uiRallyDefense = self.listView:getChildByName("Panel_30129_Copy0"):clone()
 	self.uiRallyDefense:retain()
-	self.uiRallyWar = self.listView:getChildByName("Panel_30129")
+	self.uiRallyWar = self.listView:getChildByName("Panel_30129"):clone()
 	self.uiRallyWar:retain()
-	self.uiFight = self.listView:getChildByName("Panel_30129_0")
+	self.uiFight = self.listView:getChildByName("Panel_30129_0"):clone()
 	self.uiFight:retain()
 	self.listView:removeAllItems()
 end
@@ -145,20 +150,30 @@ function UI_unionMain:updateInfo()
 		end
 	end
 
-	if homePageInfo_.gift > 0 then
+	-- edit by huangwei
+	-- if homePageInfo_.gift > 0 then
+	local unionGitf = player.getAlliance():getUnionGift()
+	local unionGitfNum = 0
+	for i,v in ipairs (unionGitf) do
+		if v.state == 1 and v.endTime > player.getServerTime() then
+			unionGitfNum = unionGitfNum + 1
+		end
+	end
+
+	if unionGitfNum > 0 then
 		self.giftImage:getChildByName("ImageView_30146_0"):setVisible(true)
-		self.giftImage:getChildByName("ImageView_30146_0"):getChildByName("Label_30147"):setString(homePageInfo_.gift)
+		self.giftImage:getChildByName("ImageView_30146_0"):getChildByName("Label_30147"):setString(unionGitfNum)
 	else
 		self.giftImage:getChildByName("ImageView_30146_0"):setVisible(false)
 	end
 
 	if self.uiWar ~= nil then
-		self.listView:removeItem(self.uiWar)
+		self.listView:removeItem(self.listView:getIndex(self.uiWar))
 		self.uiWar = nil
 	end
 
 	if self.uiDefense ~= nil then
-		self.listView:removeItem(self.uiDefense)
+		self.listView:removeItem(self.listView:getIndex(self.uiDefense))
 		self.uiDefense = nil
 	end
 
@@ -188,10 +203,14 @@ end
 
 function UI_unionMain:updateMemberAboutUI()
 	local member_ = player.getAlliance():getMyUnionInfo()
+	if member_ == nil then
+		return
+	end
+	
 	if hp.gameDataLoader.getInfoBySid("allienceRank", member_:getRank()).apply == 1 then
 		local apply_ = self.wigetRoot:getChildByName("Panel_30035"):getChildByName("ImageView_30039_Copy0")
 		apply_:addTouchEventListener(self.onApplyManageTouched)
-		apply_:loadTexture(config.dirUI.common.."button_green.png")
+		apply_:loadTexture(config.dirUI.common.."button_blue.png")
 		apply_:setTouchEnabled(true)
 	else
 		self.uiNumber["applicant"]:setVisible(false)
@@ -204,38 +223,42 @@ function UI_unionMain:initCallBack()
 			local tag_ = sender:getTag()			
 			if tag_ == 1 then
 				require "ui/union/shop/unionShopMain"
-				ui_ = UI_unionShopMain.new()
+				local ui_ = UI_unionShopMain.new()
 				self:addUI(ui_)
 			elseif tag_ == 6 then
 				require "ui/union/member/memberList"
-				ui_ = UI_memberList.new()
+				local ui_ = UI_memberList.new()
 				self:addUI(ui_)
 			elseif tag_ == 7 then
 				require "ui/union/war/allianceWar"
-				ui_ = UI_allianceWar.new(1)
+				local ui_ = UI_allianceWar.new(1)
 				self:addUI(ui_)
 			elseif tag_ == 3 then
 				require "ui/union/mainFunc/unionSourceHelp"
-				ui_ = UI_unionSourceHelp.new(1)
+				local ui_ = UI_unionSourceHelp.new(1)
 				self:addUI(ui_)
 			elseif tag_ == 4 then
 				require "ui/union/mainFunc/unionSourceHelp"
-				ui_ = UI_unionSourceHelp.new(2)
+				local ui_ = UI_unionSourceHelp.new(2)
 				self:addUI(ui_)
 			elseif tag_ == 5 then
 				require "ui/union/mainFunc/unionHelp"
-				ui_ = UI_unionHelp.new()
+				local ui_ = UI_unionHelp.new()
 				self:addUI(ui_)
+			elseif tag_ == 8 then
+				require "ui/union/manage/unionInfoProp"
+				local ui_ = UI_unionInfoProp.new(player.getAlliance():getUnionID(), player.getAlliance():getMembers())
+	  			self:addUI(ui_)
 			elseif tag_ == 9 then
 				require "ui/union/manage/manageAlliance"
-				ui_ = UI_manageAlliance.new()
+				local ui_ = UI_manageAlliance.new()
 				self:addUI(ui_)
 			elseif tag_ == 10 then
 				require "ui/union/mainFunc/getUnionGift"
-				ui_ = UI_getUnionGift.new()
+				local ui_ = UI_getUnionGift.new()
 				self:addUI(ui_)
 			end
-			print("tag:",sender:getTag())
+			cclog_("tag:",sender:getTag())
 		end
 	end
 
@@ -243,7 +266,7 @@ function UI_unionMain:initCallBack()
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			require "ui/union/invite/unionInviteMember"
-			ui_ = UI_unionInviteMember.new(2)
+			local ui_ = UI_unionInviteMember.new(2)
 			self:addUI(ui_)
 		end
 	end	
@@ -251,9 +274,12 @@ function UI_unionMain:initCallBack()
 	local function onUnionFightTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			require "ui/union/fight/unionFightMain"
-			ui_ = UI_unionFightMain.new()
-			self:addUI(ui_)
+			require "ui/common/successBox"
+			local box_ = UI_successBox.new(hp.lang.getStrByID(5300), hp.lang.getStrByID(5301), nil)
+  			self:addModalUI(box_)
+			-- require "ui/union/fight/unionFightMain"
+			-- local ui_ = UI_unionFightMain.new()
+			-- self:addUI(ui_)
 		end
 	end	
 
@@ -261,7 +287,7 @@ function UI_unionMain:initCallBack()
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			require "ui/union/war/allianceWar"
-			ui_ = UI_allianceWar.new(sender:getTag())
+			local ui_ = UI_allianceWar.new(sender:getTag())
 			self:addUI(ui_)
 		end
 	end	
@@ -270,7 +296,7 @@ function UI_unionMain:initCallBack()
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			require "ui/mail/writeMail"
-			ui_ = UI_writeMail.new()
+			local ui_ = UI_writeMail.new(nil,nil,nil,1)
 			self:addUI(ui_)
 		end
 	end
@@ -279,7 +305,7 @@ function UI_unionMain:initCallBack()
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
 			require "ui/union/mainFunc/getUnionGift"
-			ui_ = UI_getUnionGift.new()
+			local ui_ = UI_getUnionGift.new()
 			self:addUI(ui_)
 		end
 	end
@@ -304,16 +330,12 @@ function UI_unionMain:onMsg(msg_, param_)
 	end
 end
 
-function UI_unionMain:close()
+function UI_unionMain:onRemove()
 	player.getAlliance():unPrepareData(dirtyType.BASEINFO, "UI_unionMain")
 	player.getAlliance():unPrepareData(dirtyType.VARIABLENUM, "UI_unionMain")
 	player.getAlliance():unPrepareData(dirtyType.MEMBER, "UI_unionMain")
 	self.uiItem:release()
 	self.uiRallyWar:release()
 	self.uiRallyDefense:release()
-	self.super.close(self)
-end
-
-function UI_unionMain:heartbeat(dt_)
-	self.rollLabel.labelRoll(dt_)
+	self.super.onRemove(self)
 end

@@ -185,7 +185,7 @@ function UI_unionSmallFightDetail:initCallBack()
 			if self.creatorID == player.getID() then
 				textID_ = 5052
 			end
-			ui_ = UI_msgBox.new(hp.lang.getStrByID(1885), hp.lang.getStrByID(textID_), hp.lang.getStrByID(1209),
+			local ui_ = UI_msgBox.new(hp.lang.getStrByID(1885), hp.lang.getStrByID(textID_), hp.lang.getStrByID(1209),
 				hp.lang.getStrByID(2412), leaveConfirm)
 			self:addModalUI(ui_)
 		end
@@ -204,11 +204,11 @@ function UI_unionSmallFightDetail:onMsg(msg_, param_)
 	end
 end
 
-function UI_unionSmallFightDetail:close()
+function UI_unionSmallFightDetail:onRemove()
 	player.getAlliance():unPrepareData(dirtyType.SMALFIGHT, "UI_unionSmallFightDetail")
 	self.item1:release()
 	self.item2:release()
-	self.super.close(self)
+	self.super.onRemove(self)
 end
 
 function UI_unionSmallFightDetail:refreshShow()
@@ -273,7 +273,7 @@ end
 
 function UI_unionSmallFightDetail:updateFight()
 	self.uiJoinNum:setString(string.format(hp.lang.getStrByID(5037), table.getn(self.fightInfo.members), self.fightInfo.info.num))
-	local percent_ = hp.common.round(self.fightInfo.power / self.fightInfo.info.grade[3] * 100)
+	local percent_ = self.fightInfo.power / self.fightInfo.info.grade[3] * 100
 	self.uiFightLoadingBar:setPercent(percent_)
 	local content_ = self.wigetRoot:getChildByName("Panel_33")
 	if self.fightInfo.state == 1 then
@@ -298,7 +298,7 @@ function UI_unionSmallFightDetail:tickUpdateInfo()
 	end
 
 	self.uiCountTime:setString(hp.datetime.strTime(restTime_))
-	local percent_ = hp.common.round(100 - restTime_ / self.fightInfo.info.time * 100)
+	local percent_ = 100 - restTime_ / self.fightInfo.info.time * 100
 	self.uiLoadingBar:setPercent(percent_)
 end
 

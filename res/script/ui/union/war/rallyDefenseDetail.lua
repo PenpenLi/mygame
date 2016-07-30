@@ -12,26 +12,21 @@ local interval = 0
 
 local function setJoinArmyInfo(self, content_, info_, i)
 	-- 名字
-	content_:getChildByName("Label_58"):setString(string.format("(%s)%s", player.getAlliance():getBaseInfo().name, info_[1]))
+	content_:getChildByName("Label_58"):setString(string.format("【%s】%s", player.getAlliance():getBaseInfo().name, info_[2]))
 	content_:getChildByName("Label_58"):setVisible(true)
 
 	-- 兵力
-	content_:getChildByName("Label_58_0"):setString(hp.lang.getStrByID(1873)..":"..info_[2])
+	content_:getChildByName("Label_58_0"):setString(hp.lang.getStrByID(1873)..":"..info_[3])
 	content_:getChildByName("Label_58_0"):setVisible(true)
 
 	self.stateLabel[i] = content_:getChildByName("Label_58_1")
 	self.stateLabel[i]:setVisible(true)
-	if info_[3] > player.getServerTime() then
+	if info_[4] > player.getServerTime() then
 		self.stateLabel[i]:setString(hp.lang.getStrByID(5180))
 		self.stateLabel[i]:setTag(0)
 	else
 		self.stateLabel[i]:setString(hp.lang.getStrByID(1874))
 		self.stateLabel[i]:setTag(1)
-	end
-
-	if info_[1] == player.getName() then
-		print("info_[1]", info_[1], player.getName())
-		self.iAmInWar = true
 	end
 end
 
@@ -39,7 +34,7 @@ end
 function UI_rallyDefenseDetail:init(index_)
 	-- data
 	-- ===============================
-	print("index==============",index_)
+	cclog_("index==============",index_)
 	self.rallyInfo = player.getAlliance():getRallyDefenseByFellowID(index_)
 	self.index = index_
 	self.iAmInWar = false
@@ -55,6 +50,8 @@ function UI_rallyDefenseDetail:init(index_)
 	self:initUI()
 
 	local uiFrame = UI_fullScreenFrame.new()
+	uiFrame:hideTopBackground()
+	uiFrame:setTopShadePosY(888)
 	uiFrame:setTitle(hp.lang.getStrByID(1800))
 	-- addCCNode
 	-- ===============================
@@ -76,13 +73,14 @@ function UI_rallyDefenseDetail:initUI()
 
 	local content_ = self.wigetRoot:getChildByName("Panel_5")
 	-- 攻击者
-	content_:getChildByName("Label_6"):setString(string.format(hp.lang.getStrByID(1855), self.rallyInfo.ownerInfo.union, self.rallyInfo.ownerInfo.name))
+	content_:getChildByName("Label_6_3"):setString(hp.lang.getStrByID(5404))
+	content_:getChildByName("Label_6"):setString(self.rallyInfo.ownerInfo.totalName)
 	local viewBtn_ = content_:getChildByName("Image_7")
 	viewBtn_:addTouchEventListener(self.onGoToCityTouched)
-	viewBtn_:getChildByName("Label_8"):setString(hp.lang.getStrByID(1316))
+	viewBtn_:getChildByName("Label_8"):setString(hp.lang.getStrByID(5459))
 	-- 被攻击者
 	content_:getChildByName("Label_17"):setString(hp.lang.getStrByID(1863))
-	content_:getChildByName("Label_17_0"):setString(string.format("(%s)%s", self.rallyInfo.targetInfo.union, self.rallyInfo.targetInfo.name))
+	content_:getChildByName("Label_17_0"):setString(self.rallyInfo.targetInfo.totalName)
 	content_:getChildByName("Label_17_1"):setString(hp.lang.getStrByID(1862))
 	content_:getChildByName("Label_17_2"):setString(self.rallyInfo.targetInfo.city)
 
@@ -98,7 +96,7 @@ function UI_rallyDefenseDetail:initUI()
 
 	-- 援助
 	self.help = content_:getChildByName("Image_2")
-	self.help:getChildByName("Label_12"):setString(hp.lang.getStrByID(1820))
+	content_:getChildByName("Label_12"):setString(hp.lang.getStrByID(1820))
 	if self.rallyInfo.fellowID ~= player.getID() then		
 		self.help:addTouchEventListener(self.onJoinTouched)
 	else
@@ -140,41 +138,69 @@ function UI_rallyDefenseDetail:initCallBack()
 	local function onGoToCityTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			
+			local pos_ = self.rallyInfo.ownerInfo.position
+			if game.curScene.mapLevel == 2 then
+				game.curScene:gotoPosition(cc.p(pos_.x,pos_.y), nil, pos_.k)
+				self:closeAll()
+			else
+				require "scene/kingdomMap"
+				local map = kingdomMap.new()
+   				map:enter()
+   				map:gotoPosition(cc.p(pos_.x,pos_.y), nil, pos_.k)
+			end
 		end
+	end
+
+	local function reinforce()
+		local function marchCallBack(army_, time_, hero_)
+			local total_ = army_:getSoldierTotalNumber()
+			table.insert(self.supportInfo.support, {army_.id, player.getName(), total_, time_ + player.getServerTime()})
+
+			local item_ = self.listView:getItem(self.lastIndex)
+			self.lastIndex = self.lastIndex + 1
+			if item_ ~= nil then
+				local content_ = item_:getChildByName("Panel_55")
+				setJoinArmyInfo(self, content_, self.supportInfo.support[self.lastIndex], self.lastIndex)
+			end
+
+			self.help:loadTexture(config.dirUI.common.."button_gray.png")
+			self.help:setTouchEnabled(false)
+			self.iAmInWar = true
+			
+			player.getAlliance():joinDefense(self.index, army_)
+		end
+
+		local soldierNum_ = self.rallyInfo.totalSoldier - self.rallyInfo.curSoldier
+
+		local function onConfirm1Touched()
+			require "ui/march/march"
+			UI_march.openMarchUI(self, self.rallyInfo.friendPos, globalData.MARCH_TYPE.REINFORCE, {maxNumber=soldierNum_, armyID=0}, marchCallBack)
+		end
+
+		if soldierNum_ == 0 then
+			require "ui/common/successBox"
+   			local box_ = UI_successBox.new(hp.lang.getStrByID(5460), hp.lang.getStrByID(5461), nil)
+   			self:addModalUI(box_)
+		elseif player.getNewGuyGuard() ~= 0 then
+			require "ui/common/msgBoxRedBack"
+   			local ui_ = UI_msgBoxRedBack.new(hp.lang.getStrByID(5143), hp.lang.getStrByID(5144), hp.lang.getStrByID(1209),
+   				hp.lang.getStrByID(2412), onConfirm1Touched)
+   			self:addModalUI(ui_)
+   		else
+   			onConfirm1Touched()
+   		end
 	end
 
 	-- 查看玩家信息
 	local function onJoinTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			local function marchCallBack(army_, time_, hero_)
-				local total_ = army_:getSoldierTotalNumber()
-				local content_ = self.listView:getItem(self.lastIndex - 1):getChildByName("Panel_55")
-				print("self.lastIndexself.lastIndexself.lastIndexself.lastIndexself.lastIndex",self.lastIndex,table.getn(self.supportInfo.support))
-
-				table.insert(self.supportInfo.support, {player.getName(), total_, time_ + player.getServerTime()})
-				print(table.getn(self.supportInfo.support))
-				setJoinArmyInfo(self, content_, self.supportInfo.support[self.lastIndex], self.lastIndex)
-
-				self.help:loadTexture(config.dirUI.common.."button_gray.png")
-				self.help:setTouchEnabled(false)
-				self.iAmInWar = true
-
-				local item_ = self.item:clone()
-				self.listView:pushBackCustomItem(item_)
-				self.lastIndex = self.lastIndex + 1
-				local content_ = item_:getChildByName("Panel_55")
-				-- 序号
-				content_:getChildByName("Label_57"):setString(tostring(self.lastIndex))
-
-				player.getAlliance():joinDefense(self.index, army_)				
-			end
-
-			require "ui/march/march"
-			local member_ = player.getAlliance():getMemberByID(self.rallyInfo.fellowID)
-			if member_ ~=nil then
-				UI_march.openMarchUI(self, member_:getPosition(), 6, 0, marchCallBack)
+			if self.rallyInfo.totalSoldier == 0 then
+				require "ui/common/noBuildingNotice"
+				local ui_ = UI_noBuildingNotice.new(hp.lang.getStrByID(1254), 1010, 1, hp.lang.getStrByID(5076))
+				self:addModalUI(ui_)
+			else
+				reinforce()
 			end
 		end
 	end
@@ -183,32 +209,46 @@ function UI_rallyDefenseDetail:initCallBack()
 	self.onGoToCityTouched = onGoToCityTouched
 end
 
-function UI_rallyDefenseDetail:close()
+function UI_rallyDefenseDetail:onRemove()
 	self.item:release()
-	self.super.close(self)
+	self.super.onRemove(self)
 end
 
 function UI_rallyDefenseDetail:refreshView(info_)
 	self.listView:removeAllItems()
 	self.stateLabel = {}
-	for i = 1, totalItem do
-		local item_ = self.item:clone()
-		self.listView:pushBackCustomItem(item_)
-		self.lastIndex = i
-		local content_ = item_:getChildByName("Panel_55")
-		-- 序号
-		content_:getChildByName("Label_57"):setString(tostring(i))
-		if info_.support[i] ~= nil then
-			setJoinArmyInfo(self, content_, info_.support[i], i)
-		else
-			break
+
+	for i, v in ipairs(info_.support) do
+		if v[2] == player.getName() then
+			self.iAmInWar = true
 		end
 	end
 
-	if self.iAmInWar == true or self.lastIndex == totalItem then
+	if self.iAmInWar == true then
 		self.help:loadTexture(config.dirUI.common.."button_gray.png")
 		self.help:setTouchEnabled(false)
 	end
+
+	local function createItemByindex(index_)
+		if index_ > totalItem then
+			return nil
+		end
+
+		local item_ = self.item:clone()
+		local content_ = item_:getChildByName("Panel_55")
+		-- 序号
+		content_:getChildByName("Label_57"):setString(tostring(index_))
+		if info_.support[index_] ~= nil then
+			self.lastIndex = index_
+			setJoinArmyInfo(self, content_, info_.support[index_], index_)
+		end
+		return item_
+	end
+
+	if self.listViewHelper == nil then
+		self.listViewHelper = hp.uiHelper.listViewLoadHelper(self.listView, createItemByindex, self.item:getSize().height, 5)
+	end
+	self.listViewHelper.initShow()
 end
 
 function UI_rallyDefenseDetail:heartbeat(dt_)
@@ -227,7 +267,7 @@ function UI_rallyDefenseDetail:updateInfo()
 	if lastTime_ < 0 then
 		lastTime_ = 0
 	end
-	local percent = hp.common.round(100 - lastTime_ / self.rallyInfo.totalTime * 100)
+	local percent = 100 - lastTime_ / self.rallyInfo.totalTime * 100
 	self.loadingBar:setPercent(percent)
 	local countTime_ = hp.datetime.strTime(lastTime_)
 	self.countTime:setString(countTime_)
@@ -241,7 +281,7 @@ function UI_rallyDefenseDetail:updateInfo()
 	end
 
 	for i, v in ipairs(self.supportInfo.support) do
-		if v[3] < player.getServerTime() then
+		if v[4] < player.getServerTime() then
 			if self.stateLabel[i] ~= nil then
 				if self.stateLabel[i]:getTag() == 0 then
 					self.stateLabel[i]:setTag(1)
@@ -254,6 +294,10 @@ end
 
 function UI_rallyDefenseDetail:updateRallyInfo()
 	self.rallyInfo = player.getAlliance():getRallyDefenseByFellowID(self.index)
+	if self.rallyInfo == nil then
+		self:close()
+		return
+	end
 	self.soldierNum:setString(string.format("%d/%d", self.rallyInfo.curSoldier, self.rallyInfo.totalSoldier))
 end
 

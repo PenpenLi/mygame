@@ -9,7 +9,6 @@ UI_dailyQuest = class("UI_dailyQuest", UI)
 local qualityImage = {"quest_12.png", "quest_11.png", "quest_13.png", "quest_14.png", "quest_15.png", "quest_16.png"}
 local startImage = {"button_blue1.png", "button_gray1.png"}
 local startTouchEnabled_ = {true, false}
-local interval = 0
 local speedupcode = {11,12,13}
 local itemID = {20251,20252,20253}
 local qualityName = {1425,1424,1423,1422,1421,1420}
@@ -26,6 +25,7 @@ function UI_dailyQuest:init(type_)
 	self:initUI()
 
 	local uiFrame = UI_fullScreenFrame.new()
+	uiFrame:setTopShadePosY(888)
 	uiFrame:setTitle(hp.lang.getStrByID(1400 + self.type))
 	-- addCCNode
 	-- ===============================
@@ -49,17 +49,18 @@ function UI_dailyQuest:init(type_)
 	self:changeShowPanel()
 
 	-- 注册消息
-	self:registMsg(hp.MSG.MISSION_DAILY_CHANGE)
+	self:registMsg(hp.MSG.MISSION_DAILY_START)
 	self:registMsg(hp.MSG.MISSION_DAILY_COMPLETE)
 	self:registMsg(hp.MSG.MISSION_DAILY_COLLECTED)
 	self:registMsg(hp.MSG.MISSION_DAILY_REFRESH)
+	self:registMsg(hp.MSG.MISSION_DAILY_QUICKFINISH)	
 
 	self:refreshUIShow()
 	self:updateTickInfo()
 end
 
 function UI_dailyQuest:refreshUIShow()
-	local countTime_ = hp.datetime.strTime(player.getResetTime(self.type) - player.getServerTime())
+	local countTime_ = hp.datetime.strTime(player.questManager.getResetTime(self.type) - player.getServerTime())
 	self.refreshTime:setString(countTime_)
 end
 
@@ -70,15 +71,6 @@ function UI_dailyQuest:initCallBack()
 			require("ui/item/speedItem")
 			local ui  = UI_speedItem.new(speedupcode[self.type])
 			self:addUI(ui)
-			-- self.speedUp:setTouchEnabled(false)
-			-- local cmdData={operation={}}
-			-- local oper = {}
-			-- oper.channel = 3
-			-- oper.type = 1
-			-- oper.cd = speedupcode[self.type]
-			-- cmdData.operation[1] = oper
-			-- local cmdSender = hp.httpCmdSender.new(onSpeedUpResponse)
-			-- cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
 		end
 	end
 
@@ -94,107 +86,30 @@ function UI_dailyQuest:initCallBack()
 	local function onChangeTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			local itemInfo_ = hp.gameDataLoader.getInfoBySid("item", itemID[self.type])
-
-			local function onChangeResponse(status, response, tag)
-				if status ~= 200 then
-					return
-				end
-
-				local data = hp.httpParse(response)
-				if data.result == 0 then
-					-- 更新资源
-					if tag == 1 then -- 消耗道具
-						player.expendItem(itemID[self.type], 1)
-					elseif tag == 2 then -- 消耗元宝
-						player.expendResource("gold", itemInfo_.sale)
-					end
-					player.initTasks(data)
-				end
-			end
-
-			local function sendChangeCmd(gold_)
-				local cmdData={operation={}}
-				local oper = {}
-				oper.channel = 2
-				oper.type = 4
-				oper.task = self.type
-				oper.gold = gold_
-				local tag_ = 1
-				if gold_ > 0 then
-					tag_ = 2
-				end
-				cmdData.operation[1] = oper
-				local cmdSender = hp.httpCmdSender.new(onChangeResponse)
-				cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper, tag_)
-			end			
-
 			require "ui/common/buyAndUseItemPop"
-			ui_ = UI_buyAndUseItem.new(itemID[self.type], 1, sendChangeCmd)
+			ui_ = UI_buyAndUseItem.new(itemID[self.type], 1, player.questManager.refreshQuest, {type=self.type, id=itemID[self.type]})
 			self:addModalUI(ui_)
-		end
-	end
-
-	local function onCollectResponse(status, response, tag)
-		if status ~= 200 then
-			return
-		end
-
-		local data = hp.httpParse(response)
-		if data.result == 0 then
-			-- 更新资源
-			local taskInfo_ = player.getDailyTaskInfo(self.type, data.id)
-			for j, w in ipairs(taskInfo_.resource) do
-				if w ~= 0 then
-					local resourceInfo_ = hp.gameDataLoader.getInfoBySid("resInfo", j)
-					player.addResource(resourceInfo_.code, w)
-				end
-			end
-
-			player.dailyTaskCollected(self.type)
-			-- 更新物品
 		end
 	end
 
 	local function onCollectTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
-		if eventType==TOUCH_EVENT_ENDED then
-			local cmdData={operation={}}
-			local oper = {}
-			oper.channel = 2
-			oper.type = 6
-			oper.task = self.type
-			cmdData.operation[1] = oper
-			local cmdSender = hp.httpCmdSender.new(onCollectResponse)
-			cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
-		end
-	end
-
-	local function onStartResponse(status, response, tag)
-		if status ~= 200 then
-			return
-		end
-
-		local data = hp.httpParse(response)
-		if data.result == 0 then			
-			player.startDailyTask(self.type, data.id)
-			self:setShowState(true)
-			self:updateCDTime()
+		if eventType==TOUCH_EVENT_ENDED then			
+			self:showLoading(player.questManager.httpReqCollectDailyReward(self.type), sender)
 		end
 	end
 
 	local function onStartTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			local cmdData={operation={}}
-			local oper = {}
-			oper.channel = 2
-			oper.type = 3
-			oper.task = self.type
-			oper.id = self.taskInfo[sender:getTag()].info_.id
-			cmdData.operation[1] = oper
-			local cmdSender = hp.httpCmdSender.new(onStartResponse)
-			cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+			self:showLoading(player.questManager.httpReqStartDailyQuest(self.type, self.taskInfo[sender:getTag()].info_.id), sender)
+		end
+	end
+
+	local function onQuickFinishTouched(sender, eventType)
+		hp.uiHelper.btnImgTouched(sender, eventType)
+		if eventType==TOUCH_EVENT_ENDED then
+			self:showLoading(player.questManager.httpReqFinishTaskQuickly(self.type, self.taskInfo[sender:getTag()].info_.id), sender)
 		end
 	end
 
@@ -203,7 +118,7 @@ function UI_dailyQuest:initCallBack()
 			local tag_ = sender:getTag()
 			local taskInfo_ = self.taskInfo[tag_]
 			local index_ = self.listView:getIndex(sender)
-			self.listView:removeChild(sender)
+			self.listView:removeItem(index_)
 			if taskInfo_.fold == 0 then
 				local rewardItem = self:createPanelDetail(taskInfo_.info_, tag_)
 				self.listView:insertCustomItem(rewardItem, index_)
@@ -226,6 +141,7 @@ function UI_dailyQuest:initCallBack()
 	self.onCollectTouched = onCollectTouched
 	self.onStartTouched = onStartTouched
 	self.onRewardTouched = onRewardTouched
+	self.onQuickFinishTouched = onQuickFinishTouched
 end
 
 -- 初始化UI
@@ -241,7 +157,7 @@ function UI_dailyQuest:initUI()
 	self.loadingContainer_ = content_:getChildByName("Panel_23009")
 	self.speedUp = self.loadingContainer_:getChildByName("ImageView_1645")
 	self.loadingBar = self.loadingContainer_:getChildByName("ImageView_1644"):getChildByName("LoadingBar_1640")
-	self.loadingText = self.loadingBar:getChildByName("ImageView_1641"):getChildByName("Label_1642")
+	self.loadingText = self.loadingBar:getChildByName("Label_1642")
 
 	-- 底部按钮
 	local bottomContainer = content_:getChildByName("Panel_20473")
@@ -254,12 +170,11 @@ function UI_dailyQuest:initUI()
 	-- 未展开信息
 	self.foldContainer = self.listView:getChildByName("Panel_20440"):clone()
 	self.foldContainer:retain()
-	self.listView:removeLastItem()
 
 	-- 展开信息
 	self.unfoldContainer = self.listView:getChildByName("Panel_20425"):clone()
 	self.unfoldContainer:retain()
-	self.listView:removeLastItem()
+	self.listView:removeAllItems()
 
 	-- 
 	self.countTimeContainer = self.wigetRoot:getChildByName("Panel_23194")
@@ -272,7 +187,7 @@ function UI_dailyQuest:updateUIShow()
 	self.listView:removeAllItems()
 	self.taskInfo = {}
 
-	local dailyTask_ = player.getDailyTasks(self.type)
+	local dailyTask_ = player.questManager.getDailyTasks(self.type)
 	for i, v in ipairs(dailyTask_) do
 		local rewardItem = self:createPanel(v, i)
 		self.listView:pushBackCustomItem(rewardItem)
@@ -282,7 +197,7 @@ end
 
 -- 切换显示面板
 function UI_dailyQuest:changeShowPanel()
-	if table.getn(player.getDailyTasks(self.type)) == 0 then
+	if table.getn(player.questManager.getDailyTasks(self.type)) == 0 then
 		self.countTimeContainer:setVisible(true)
 		self.listView:setVisible(false)
 	else
@@ -309,13 +224,22 @@ function UI_dailyQuest:createPanel(info_, tag_)
 		warning_:setVisible(true)
 	elseif info_.flag == 3 then
 		local start_ = rewardContent_:getChildByName("ImageView_20457")
-		start_:getChildByName("Label_20458"):setString(hp.lang.getStrByID(1415))
-		start_:getChildByName("ImageView_20459"):getChildByName("Label_20460"):setString(hp.datetime.strTime(info_.time))
+		local level_ = player.questManager.getQuickFinishLevel(self.type)
+		if (level_ ~= -1) and (player.vipStatus.isActive()) and (level_ <= player.vipStatus.getLv()) then
+			start_:getChildByName("Label_20458"):setString(hp.lang.getStrByID(5500))
+			start_:getChildByName("Label_20460"):setString(hp.datetime.strTime(0))
+			start_:loadTexture(config.dirUI.common..startImage[1])
+			start_:setTouchEnabled(true)
+			start_:addTouchEventListener(self.onQuickFinishTouched)
+		else
+			start_:getChildByName("Label_20458"):setString(hp.lang.getStrByID(1415))
+			start_:getChildByName("Label_20460"):setString(hp.datetime.strTime(info_.time))
+			start_:loadTexture(config.dirUI.common..startImage[info_.enabled])
+			start_:setTouchEnabled(startTouchEnabled_[info_.enabled])
+			start_:addTouchEventListener(self.onStartTouched)
+		end
 		start_:setVisible(true)
-		start_:setTag(tag_)
-		start_:loadTexture(config.dirUI.common..startImage[info_.enabled])
-		start_:setTouchEnabled(startTouchEnabled_[info_.enabled])
-		start_:addTouchEventListener(self.onStartTouched)
+		start_:setTag(tag_)				
 	end
 	rewardItem:addTouchEventListener(self.onRewardTouched)
 	rewardItem:setTag(tag_)
@@ -329,6 +253,8 @@ function UI_dailyQuest:createPanelDetail(info_, tag_)
 	rewardContent_:getChildByName("ImageView_20455"):loadTexture(config.dirUI.common..qualityImage[info_.quality])
 	rewardContent_:getChildByName("Label_20462"):setString(hp.lang.getStrByID(qualityName[info_.quality]))
 	rewardContent_:getChildByName("Label_20463"):setString(hp.lang.getStrByID(5169))
+	local listView_ = rewardItem:getChildByName("ListView_20465")
+	local oldSize_ = listView_:getSize()
 
 	-- 奖励内容
 	local num_ = 0
@@ -344,7 +270,7 @@ function UI_dailyQuest:createPanelDetail(info_, tag_)
 		local rewardItem_ = self.rewardItem:clone()
 		local content_ = rewardItem_:getChildByName("Panel_20470")
 		if itemType == 1 then
-			content_:getChildByName("ImageView_20471"):loadTexture(config.dirUI.gem..itemInfo_.sid..".png")
+			content_:getChildByName("ImageView_20471"):loadTexture(config.dirUI.gem..itemInfo_.type..".png")
 		elseif itemType == 2 then
 			content_:getChildByName("ImageView_20471"):loadTexture(config.dirUI.material..itemInfo_.type..".png")
 		end
@@ -357,14 +283,14 @@ function UI_dailyQuest:createPanelDetail(info_, tag_)
 	if self.type == 2 then
 		local rewardItem_ = self.rewardItem:clone()
 		local content_ = rewardItem_:getChildByName("Panel_20470")
-		content_:getChildByName("ImageView_20471"):loadTexture(config.dirUI.common.."rock.png")
+		content_:getChildByName("ImageView_20471"):loadTexture(config.dirUI.common.."alliance_48.png")
 		content_:getChildByName("Label_20472"):setString(hp.lang.getStrByID(5110)..":"..info_.contribute)
 		rewardItem:getChildByName("ListView_20465"):pushBackCustomItem(rewardItem_)
 		num_ = num_ + 1
 
 		local rewardItem_ = self.rewardItem:clone()
 		local content_ = rewardItem_:getChildByName("Panel_20470")
-		content_:getChildByName("ImageView_20471"):loadTexture(config.dirUI.common.."rock.png")
+		content_:getChildByName("ImageView_20471"):loadTexture(config.dirUI.common.."alliance_49.png")
 		content_:getChildByName("Label_20472"):setString(hp.lang.getStrByID(5120)..":"..info_.contribute)
 		rewardItem:getChildByName("ListView_20465"):pushBackCustomItem(rewardItem_)
 		num_ = num_ + 1
@@ -382,41 +308,44 @@ function UI_dailyQuest:createPanelDetail(info_, tag_)
 			num_ = num_ + 1
 		end
 	end
-	local listView_ = rewardItem:getChildByName("ListView_20465")
 	local height_ = num_ * listView_:getChildByName("Panel_20467"):getSize().height
-	height_ = height_ + listView_:getItem(0):getSize().height
-	x_, y_ = listView_:getPosition()
-
-	-- content的高度调高
-	rewardItem:getChildByName("Panel_20426"):setPosition(0, y_ + height_)
 
 	-- 列表高度调整
 	local size_ = listView_:getSize()
-	size_.height = height_
+	local deltaHeight_ = height_ - oldSize_.height
+	cclog_("-----deltaHeight_",deltaHeight_)
+	size_.height = height_ + 2
 	listView_:setSize(size_)
+
+	-- content的高度调高
+	rewardItem:getChildByName("Panel_20426"):setPosition(0, deltaHeight_)
 
 	-- 容器高度调整
 	size_ = rewardItem:getSize()
-	size_.height = y_ + height_ + rewardItem:getChildByName("Panel_20426"):getSize().height
+	size_.height = size_.height + deltaHeight_
 	rewardItem:setSize(size_)
 
 	-- 背景高度调整
 	local back_ = rewardItem:getChildByName("Panel_15291")
 	for i = 1, 3 do
 		local x_, y_ = back_:getChildByName(tostring(i)):getPosition()		
-		back_:getChildByName(tostring(i)):setPosition(x_, size_.height)
+		back_:getChildByName(tostring(i)):setPosition(x_, y_ + deltaHeight_)
 	end
 
+	local x1_, y1_ = back_:getChildByName(tostring(1)):getPosition()
+	local x2_, y2_ = back_:getChildByName(tostring(7)):getPosition()
+	local mid_ = (y1_ + y2_) / 2
+	local len_ = y1_ - y2_
 	for i = 4, 6 do
 		local temp = back_:getChildByName(tostring(i))
 		local x_, y_ = temp:getPosition()		
-		temp:setPosition(x_, size_.height / 2)
+		temp:setPosition(x_, mid_)
 		local size1_ = temp:getSize()
-		size1_.height = (size_.height - back_:getChildByName(tostring(1)):getSize().height) / hp.uiHelper.RA_scaleY
+		size1_.height = len_ / hp.uiHelper.RA_scaleY
 		temp:setSize(size1_)
 	end
 	local x_, y_ = back_:getChildByName(tostring(10)):getPosition()
-	back_:getChildByName(tostring(10)):setPosition(x_, size_.height)
+	back_:getChildByName(tostring(10)):setPosition(x_, y_ + deltaHeight_)
 
 	if info_.flag == 1 then
 		local getReward_ = rewardContent_:getChildByName("ImageView_22897")
@@ -429,13 +358,22 @@ function UI_dailyQuest:createPanelDetail(info_, tag_)
 		warning_:setVisible(true)
 	elseif info_.flag == 3 then
 		local start_ = rewardContent_:getChildByName("ImageView_20457")
-		start_:getChildByName("Label_20458"):setString(hp.lang.getStrByID(1415))
-		start_:getChildByName("ImageView_20459"):getChildByName("Label_20460"):setString(hp.datetime.strTime(info_.time))
+		local level_ = player.questManager.getQuickFinishLevel(self.type)
+		if (level_ ~= -1) and (player.vipStatus.isActive()) and (level_ <= player.vipStatus.getLv()) then
+			start_:getChildByName("Label_20458"):setString(hp.lang.getStrByID(5500))
+			start_:getChildByName("Label_20460"):setString(hp.datetime.strTime(0))
+			start_:loadTexture(config.dirUI.common..startImage[1])
+			start_:setTouchEnabled(true)
+			start_:addTouchEventListener(self.onQuickFinishTouched)
+		else
+			start_:getChildByName("Label_20458"):setString(hp.lang.getStrByID(1415))
+			start_:getChildByName("Label_20460"):setString(hp.datetime.strTime(info_.time))
+			start_:loadTexture(config.dirUI.common..startImage[info_.enabled])
+			start_:setTouchEnabled(startTouchEnabled_[info_.enabled])
+			start_:addTouchEventListener(self.onStartTouched)
+		end
 		start_:setVisible(true)
 		start_:setTag(tag_)
-		start_:loadTexture(config.dirUI.common..startImage[info_.enabled])
-		start_:setTouchEnabled(startTouchEnabled_[info_.enabled])
-		start_:addTouchEventListener(self.onStartTouched)
 	end
 
 	rewardItem:addTouchEventListener(self.onRewardTouched)
@@ -445,8 +383,12 @@ function UI_dailyQuest:createPanelDetail(info_, tag_)
 end
 
 function UI_dailyQuest:onMsg(msg_, param_)
-	if msg_ == hp.MSG.MISSION_DAILY_CHANGE then
-		self:updateUIShow()
+	if msg_ == hp.MSG.MISSION_DAILY_START then
+		if param_ == self.type then
+			self:updateUIShow()
+			self:setShowState(true)
+			self:updateCDTime()
+		end
 	elseif msg_ == hp.MSG.MISSION_DAILY_COMPLETE then
 		if param_ == self.type then
 			self:onMissionComplete()
@@ -458,6 +400,11 @@ function UI_dailyQuest:onMsg(msg_, param_)
 		end
 	elseif msg_ == hp.MSG.MISSION_DAILY_REFRESH then
 		self:changeShowPanel()
+	elseif msg_ == hp.MSG.MISSION_DAILY_QUICKFINISH then
+		if param_ == self.type then
+			self:updateUIShow()
+			self:changeShowPanel()
+		end
 	end
 end
 
@@ -485,18 +432,11 @@ function UI_dailyQuest:onRewardCollected()
 end
 
 function UI_dailyQuest:heartbeat(dt_)
-	interval = interval + dt_
-	if interval < 1 then
-		return
-	end
-
-	interval = 0
-
 	self:updateTickInfo()
 end
 
 function UI_dailyQuest:updateTickInfo()
-	local countTime_ = player.getResetTime(self.type) - player.getServerTime()
+	local countTime_ = player.questManager.getResetTime(self.type) - player.getServerTime()
 	if countTime_ < 0 then
 		countTime_ = 0
 	end
@@ -540,13 +480,13 @@ end
 function UI_dailyQuest:updateCDTime()
 	local cdInfo_ = cdBox.getCDInfo(speedupcode[self.type])
 	self.loadingText:setString(hp.datetime.strTime(cdInfo_.cd))
-	local percent_ = hp.common.round(100 - cdInfo_.cd / cdInfo_.total_cd * 100)
+	local percent_ = 100 - cdInfo_.cd / cdInfo_.total_cd * 100
 	self.loadingBar:setPercent(percent_)
 end
 
-function UI_dailyQuest:close()
+function UI_dailyQuest:onRemove()
 	self.foldContainer:release()
 	self.unfoldContainer:release()
 	self.rewardItem:release()
-	self.super.close(self)
+	self.super.onRemove(self)
 end

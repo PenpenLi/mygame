@@ -21,23 +21,22 @@ hp.MSG =
 	--调整伤兵
 	CHANGE_HURT_SOLDIER = 7,
 	ITEM_CHANGED = 8,				--道具变化param={sid=道具sid, num=道具个数}
-	MISSION_COMPLETE = 9,			-- 任务完成
-	MISSION_MAIN_STATUS_CHANGE = 10,	-- 任务状态改变
-	MISSION_MAIN_REFRESH = 11,		-- 任务刷新
-	MISSION_DAILY_CHANGE = 12,		-- 日常任务变化
-	MISSION_DAILY_REFRESH = 13,		-- 日常任务更新
-	MISSION_DAILY_COMPLETE = 14,	-- 日常任务结束
+	MISSION_COLLECT = 9,			-- 任务奖励领取
+	MISSION_COMPLETE = 10,	  		-- 任务完成
+	MISSION_REFRESH = 11,			-- 任务刷新
+	MISSION_DAILY_START = 12,		-- 日常任务开始
+	MISSION_DAILY_REFRESH = 13,		-- 日常任务刷新
+	MISSION_DAILY_COMPLETE = 14,	-- 日常任务完成
 	MISSION_DAILY_COLLECTED = 15,	-- 日常任务奖励领取
-	MISSION_DAILY_STATUS_CHANGE = 16,	-- 日常任务
-	MISSION_DAILY_RECIEVE_CHANGE = 17,	-- 日常任务可领取的任务改变
+	MISSION_DAILY_QUICKFINISH = 16,	-- 日常任务快速完成
 	CD_STARTED = 18,				 --cd开始 param={cdType=cd类型, cdInfo=cd信息}
 	CD_FINISHED = 19,				 --cd结束 param={cdType=cd类型, cdInfo=cd信息}
 	--医馆
 	HOSPITAL_CHOOSE_SOLDIER = 20,		-- 选择伤兵
 	HOSPITAL_HEAL_FINISH = 21,		-- 治疗完成
 	HOSPITAL_HURT_REFRESH = 22,		-- 伤兵刷新
-	SOLDIER_NUM_CHANGE = 23,		-- 士兵变化
-	TRAP_NUM_CHANGE = 24,			-- 陷阱数量变化
+	SOLDIER_NUM_CHANGE = 23,		-- 士兵变化	1-城内 2-总士兵 3-野外 4-伤兵
+	TRAP_MESSAGE = 24,				-- 陷阱消息 {mstType:1-解散 2-刷新}
 	--工会
 	UNION_CHOOSE_ICON = 25,			-- 工会选择图标
 	UNION_DATA_PREPARED = 26,		-- 公会数据准备好
@@ -75,11 +74,35 @@ hp.MSG =
 	-- 进入公会
 	UNION_JOIN_SUCCESS = 49,
 	--武将相关
-	HERO_LV_UP = 50,                 --武将升级提示
+	HERO_LV_UP = 50,                -- 武将升级提示
+	COPY_DATA_REQUEST = 52,			-- 副本数据请求
+	COPY_NOTIFY = 53,				-- 副本通知消息
+	UNION_NOTIFY = 54,				-- 联盟通知 {详见 unionHttpHelper}
+	CHANGE_CITYNAME = 55,			-- 主城改名
+	BUF_NOTITY = 56,				-- buf刷新 {msgType: 1-道具buf}
+	MAIN_MENU_MANSION_LIGHT = 57,	--通知主菜单按钮闪亮消息
+	PM_CHECK_CHANGE = 58,			--丞相
+	FAMOUS_HERO_NUM_CHANGE = 59,	--名将列表变化
+	CD_CHANGED = 60,				--cd改变
+	UPGRADEGIFT_GET = 61,			--府邸升级礼包领取
+	ARMY_CONFLICT = 62,				--军队冲突 {msgType:1-刷新}
+	SOURCEUI_CLOSE = 63,			--关闭资源UI {param:belong}
+	SOLO_ACTIVITY = 64,				--单人活动
+	KING_BATTLE = 65,				--国王争夺战
+	TITLE_INFO = 66,				--头衔信息
+	CITY_POS_CHANGED = 67,          --城市位置发生变化
+	UNION_ACTIVITY = 68,			-- 联盟活动
+	GOLD_SHOP = 69,					-- 钻石商城
+	SIGN_IN = 70,					-- 签到
+	PUSH_CONFIG = 71,				-- 推送配置
+	KINGDOM_ACTIVITY = 72,			-- 王国活动
+	WORLD_INFO = 73,				-- 世界地图
+	NOVICE_GIFT = 74,				-- 新手礼包
 }
 
+
 -- 消息处理者
-hp.msgCenter.msgMgr = {}
+local msgMgr = {}
 
 -- init
 -- 初始化
@@ -91,8 +114,6 @@ end
 -- 添加消息处理
 -----------------------------------------
 function hp.msgCenter.addMsgMgr(msg_, mgr_)
-	local msgMgr = hp.msgCenter.msgMgr
-
 	if msgMgr[msg_]==nil then
 		msgMgr[msg_] = {}
 	else
@@ -112,9 +133,6 @@ end
 -- 移除消息处理
 -----------------------------------------
 function hp.msgCenter.removeMsgMgr(msg_, mgr_)
-	local msgMgr = hp.msgCenter.msgMgr
-
-
 	if msgMgr[msg_]~=nil then
 		for i,v in ipairs(msgMgr[msg_]) do
 			if v==mgr_ then
@@ -131,13 +149,11 @@ end
 -- 发送消息
 -----------------------------------------
 function hp.msgCenter.sendMsg(msg_, param_)
-	local msgMgr = hp.msgCenter.msgMgr
-
 	if msgMgr[msg_]~=nil then
 		for i,v in ipairs(msgMgr[msg_]) do
 			v:onMsg(msg_, param_)
 		end
 	end
 
-	cclog_("sendMsg:", msg_)
+	cclog_("sendMsg:", msg_, table.getn(msgMgr[msg_]or{}))
 end

@@ -35,6 +35,10 @@ function UI_equipDesignDetail:init(equipType_,callback_)
 	-- ===============================
 	local uiFrame = UI_fullScreenFrame.new()
 	uiFrame:setTitle(hp.lang.getStrByID(2902))
+	uiFrame:hideTopBackground()
+	uiFrame:setTopShadePosY(890)
+	uiFrame:setBottomShadePosY(200)
+
 	local widgetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "equipDesignDetail.json")
 
 	-- addCCNode
@@ -75,6 +79,7 @@ function UI_equipDesignDetail:init(equipType_,callback_)
 		if eventType==TOUCH_EVENT_ENDED then
 			local index = sender:getTag()
 			local equipMakeInfo = canMakeEquips[index]
+			self:closeAll()
 			require("ui/smith/equipForge")
 			local ui = UI_equipForge.new(equipMakeInfo)
 			self:addUI(ui)
@@ -109,7 +114,8 @@ function UI_equipDesignDetail:init(equipType_,callback_)
 	-- 显示品质信息
 	local function showQuaInfo(equipInfo,level,listView)
 		listView:removeAllItems()
-		if equipInfo.type1 > 0 then
+		local k=0
+		if equipInfo.type1 and equipInfo.type1 > 0 then
 			local att=hp.gameDataLoader.getInfoBySid("attr", equipInfo.type1)
 			if att ~= nil then
 				local contAttr = self.attrDemo:clone()
@@ -117,26 +123,49 @@ function UI_equipDesignDetail:init(equipType_,callback_)
 				contAttr:getChildByName("Panel_text"):getChildByName("Label_name"):setString(att.desc)
 				contAttr:getChildByName("Panel_text"):getChildByName("Label_value"):setString(value)
 				listView:pushBackCustomItem(contAttr)
+				k=k+1
 			end
 		end
-		if equipInfo.type2 > 0 then
+		if equipInfo.type2 and equipInfo.type2 > 0 then
 			local att=hp.gameDataLoader.getInfoBySid("attr", equipInfo.type2)
 			if att ~= nil then
 				local contAttr = self.attrDemo:clone()
 				local value="+"..(equipInfo.value2[level]/100).."%"
 				contAttr:getChildByName("Panel_text"):getChildByName("Label_name"):setString(att.desc)
 				contAttr:getChildByName("Panel_text"):getChildByName("Label_value"):setString(value)
+				if k % 2 ~= 0 then
+					contAttr:getChildByName("ImageView_bg"):setVisible(false)
+				end
 				listView:pushBackCustomItem(contAttr)
+				k=k+1
 			end
 		end
-		if equipInfo.type3 > 0 then
+		if equipInfo.type3 and equipInfo.type3 > 0 then
 			local att=hp.gameDataLoader.getInfoBySid("attr", equipInfo.type3)
 			if att ~= nil then
 				local contAttr = self.attrDemo:clone()
 				local value="+"..(equipInfo.value3[level]/100).."%"
 				contAttr:getChildByName("Panel_text"):getChildByName("Label_name"):setString(att.desc)
 				contAttr:getChildByName("Panel_text"):getChildByName("Label_value"):setString(value)
+				if k % 2 ~= 0 then
+					contAttr:getChildByName("ImageView_bg"):setVisible(false)
+				end
 				listView:pushBackCustomItem(contAttr)
+				k=k+1
+			end
+		end
+		if equipInfo.type4 and equipInfo.type4 > 0 then
+			local att=hp.gameDataLoader.getInfoBySid("attr", equipInfo.type4)
+			if att ~= nil then
+				local contAttr = self.attrDemo:clone()
+				local value="+"..(equipInfo.value4[level]/100).."%"
+				contAttr:getChildByName("Panel_text"):getChildByName("Label_name"):setString(att.desc)
+				contAttr:getChildByName("Panel_text"):getChildByName("Label_value"):setString(value)
+				if k % 2 ~= 0 then
+					contAttr:getChildByName("ImageView_bg"):setVisible(false)
+				end
+				listView:pushBackCustomItem(contAttr)
+				k=k+1
 			end
 		end
 	end
@@ -187,20 +216,8 @@ function UI_equipDesignDetail:init(equipType_,callback_)
 
 	-- 装备制造信息
 	local function newEquipMakeInfo(equip_,matrialSid)
-		local equipMakeInfo = {}
-		equipMakeInfo.sid = equip_.sid
-		equipMakeInfo.name = equip_.name
-		equipMakeInfo.desc = equip_.desc
-		equipMakeInfo.mustLv = equip_.mustLv
-		equipMakeInfo.cost = equip_.cost
-		equipMakeInfo.matrial = equip_.matrial
+		local equipMakeInfo = clone(equip_)
 		equipMakeInfo.matrialSid = matrialSid
-		equipMakeInfo.type1 = equip_.type1
-		equipMakeInfo.value1 = equip_.value1
-		equipMakeInfo.type2 = equip_.type2
-		equipMakeInfo.value2 = equip_.value2
-		equipMakeInfo.type3 = equip_.type3
-		equipMakeInfo.value3 = equip_.value3
 		return equipMakeInfo
 	end
 
@@ -257,9 +274,11 @@ function UI_equipDesignDetail:init(equipType_,callback_)
 
 		local contItem = itemDemo:clone()
 		listNode:pushBackCustomItem(contItem)
-	 	local contTop = contItem:getChildByName("Panel_top")
+	 	local contTop = contItem:getChildByName("Panel_top_cont")
+	 	local contTopFrame = contItem:getChildByName("Panel_top_frame")
 	 	local contListConds = contItem:getChildByName("ListView_conds")
-	 	local contQua=contItem:getChildByName("Panel_qua")
+	 	local contQua=contItem:getChildByName("Panel_qua_cont")
+	 	local contQuaFrame = contItem:getChildByName("Panel_qua_frame")
 		local contListAttrs = contItem:getChildByName("ListView_attrs")
 		local contBottom = contItem:getChildByName("Panel_bottom")
 		contListConds:removeAllItems()
@@ -294,9 +313,11 @@ function UI_equipDesignDetail:init(equipType_,callback_)
 		else
 			condNode:getChildByName("Image_ok"):loadTexture(config.dirUI.common.."right.png")
 		end
+		contCond:getChildByName("ImageView_bg"):setVisible(false)
 		contListConds:pushBackCustomItem(contCond)
 		--材料
 		local items=clone(player.getItemList())
+		local k=0
 		for j,v in pairs(matrial) do
 			if v>0 then
 				contCond = condDemo:clone()
@@ -317,7 +338,11 @@ function UI_equipDesignDetail:init(equipType_,callback_)
 				else
 					condNode:getChildByName("Image_ok"):loadTexture(config.dirUI.common.."right.png")
 				end
+				if k % 2 ~= 0 then
+					contCond:getChildByName("ImageView_bg"):setVisible(false)
+				end
 				contListConds:pushBackCustomItem(contCond)
+				k=k+1
 			end
 		end		
 
@@ -409,8 +434,8 @@ function UI_equipDesignDetail:init(equipType_,callback_)
 		showQuaInfo(equipInfo,level,contListAttrs)
 		--装备品质属性
 
-		adjustHeight(contItem,contListConds,{contTop})
-		adjustHeight(contItem,contListAttrs,{contTop,contListConds,contQua})
+		adjustHeight(contItem,contListConds,{contTop,contTopFrame})
+		adjustHeight(contItem,contListAttrs,{contTop,contTopFrame,contListConds,contQua,contQuaFrame})
 
 	end
 

@@ -9,7 +9,9 @@ require "ui/buildingHeader"
 --包含三个页面的lua
 require "ui/takeInHeroRoom/noremalHero"
 require "ui/takeInHeroRoom/famousHeroList"
+require "ui/takeInHeroRoom/famousHeroListDetail"
 require "ui/takeInHeroRoom/famousHero"
+require "ui/common/promotionInfo"
 
 
 UI_takeInHeroRoom = class("UI_takeInHeroRoom", UI)
@@ -28,8 +30,12 @@ function UI_takeInHeroRoom:init(building_)
 	-- ===============================
 	local uiFrame = UI_fullScreenFrame.new()
 	uiFrame:setTitle(bInfo.name)
-	local uiHeader = UI_buildingHeader.new(building_)
+	uiFrame:setTopShadePosY(700)
 
+
+
+	--local uiHeader = UI_buildingHeader.new(building_)
+	local promotionUI = UI_promotionInfo.new()
 
 	local wigetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "takeInHeroRoom.json")
 
@@ -37,10 +43,9 @@ function UI_takeInHeroRoom:init(building_)
 
 	-- addCCNode
 	-- ===============================
-	self:addChildUI(uiFrame)
-	self:addChildUI(uiHeader)
+	self:addChildUI(uiFrame)	
 	self:addCCNode(wigetRoot)
-
+	self:addChildUI(promotionUI)
 
 	local cont = wigetRoot:getChildByName("Panel_cont")
 	local btn_noremalHero = cont:getChildByName("btn_noremalHero")
@@ -125,12 +130,12 @@ function UI_takeInHeroRoom:init(building_)
 	local function tabMemuItemOnTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			if headerTabSelected == sender then 
-				return
-			else 
+			-- if headerTabSelected == sender then 
+			-- 	return
+			-- else 
 				changeStyle(sender)
 				
-			end
+			-- end
 			selectTabPage()
 		end
 	end

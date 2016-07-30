@@ -49,7 +49,7 @@ function UI_talkFrame:initCallBack()
 			local cmdData={operation={}}
 			local oper = {}
 			oper.channel = 99
-			oper.type = self.text:getStringValue()
+			oper.type = self.text:getString()
 			cmdData.operation[1] = oper
 			local cmdSender = hp.httpCmdSender.new(onResponse)
 			cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
@@ -59,12 +59,22 @@ function UI_talkFrame:initCallBack()
 	local function onClearTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			self.text:setText("")
+			self.text.setString("")
+		end
+	end
+
+	local function onSecretTouched(sender, eventType)
+		hp.uiHelper.btnImgTouched(sender, eventType)
+		if eventType==TOUCH_EVENT_ENDED then
+			require "ui/goldShop/goldShop"
+			local ui_ = UI_goldShop.new()
+			self:addUI(ui_)
 		end
 	end
 
 	self.onClearTouched = onClearTouched
 	self.onConfirmTouched = onConfirmTouched
+	self.onSecretTouched = onSecretTouched
 end
 
 function UI_talkFrame:initUI()
@@ -73,6 +83,17 @@ function UI_talkFrame:initUI()
 
 	content:getChildByName("ImageView_23433"):addTouchEventListener(self.onClearTouched)
 	content:getChildByName("ImageView_23434"):addTouchEventListener(self.onConfirmTouched)
+	content:getChildByName("Image_32"):addTouchEventListener(self.onSecretTouched)
 
-	self.text = content:getChildByName("TextField_23435")
+	self.loadingBar = content:getChildByName("ProgressBar_4")
+
+	local label_ = content:getChildByName("Label_15")
+	self.text = hp.uiHelper.labelBind2EditBox(label_)
+
+	-- 体力
+	local energe_ = player.getEnerge()
+	if energe_ == nil then
+		energe_ = 0
+	end
+	content:getChildByName("Label_16"):setString("体力:"..energe_)
 end

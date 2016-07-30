@@ -15,6 +15,9 @@ function UI_equipDesign:init(callback_)
 	-- ===============================
 	local uiFrame = UI_fullScreenFrame.new()
 	uiFrame:setTitle(hp.lang.getStrByID(2902))
+	uiFrame:hideTopBackground()
+	uiFrame:setTopShadePosY(890)
+	--uiFrame:setBottomShadePosY(200)
 
 	local widgetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "equipDesign.json")
 	local listNode = widgetRoot:getChildByName("ListView_main")
@@ -28,9 +31,9 @@ function UI_equipDesign:init(callback_)
 	end
 	for i=1,5 do
 
-		local contItem = listNode:getChildByName("Panel_equip"..i)
-		local label = contItem:getChildByName("Panel_cont"):getChildByName("Label_name")
-		label:setString(hp.lang.getStrByID(4100+i))
+		local contItem = listNode:getChildByName("Panel_equip"..i):getChildByName("Panel_cont")
+		--local label = contItem:getChildByName("Panel_cont"):getChildByName("Label_name")
+		--label:setString(hp.lang.getStrByID(4100+i))
 		contItem:addTouchEventListener(onItemTouched)
 	end
 	

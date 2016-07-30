@@ -4,9 +4,7 @@
 --===================================
 require "ui/fullScreenFrame"
 
-
 UI_equipForge = class("UI_equipForge", UI)
-
 
 --init
 function UI_equipForge:init(equipMakeInfo_)
@@ -16,7 +14,6 @@ function UI_equipForge:init(equipMakeInfo_)
 	local materialList = clone(player.getItemList())
 	local forge_cd = nil
 	self.isForging = false	--正在锻造
-	local isConnecting = false --正在进行网络连接
 
 	local selectedMaterialTag = {-1, -1, -1, -1}
 	local selectEquip = nil
@@ -34,15 +31,20 @@ function UI_equipForge:init(equipMakeInfo_)
 	local unselectAllMaterial
 	local checkEquip
 	local forgeEquip
+	local forgeEquipNow
 	local setforgingInfo
 	local getMakeOdds
 	local callback
+	local buySilverPane
+	local refreshAll
 
 
 	-- ui
 	-- ===============================
 	local uiFrame = UI_fullScreenFrame.new()
 	uiFrame:setTitle(hp.lang.getStrByID(2900))
+	uiFrame:setTopShadePosY(550)
+	uiFrame:setBottomShadePosY(200)
 	local widgetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "equipForge.json")
 
 	-- addCCNode
@@ -62,9 +64,7 @@ function UI_equipForge:init(equipMakeInfo_)
 	local function onSilverTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			require("ui/item/resourceItem")
-			local ui = UI_resourceItem.new(1)
-			self:addUI(ui)
+			buySilverPane()
 		end
 	end
 	silverImg:addTouchEventListener(onSilverTouched)	
@@ -96,7 +96,7 @@ function UI_equipForge:init(equipMakeInfo_)
 	local function onSelectItemTouched(sender, eventType)
 		local selectIndex = sender:getTag()
 		local materialTag = selectedMaterialTag[selectIndex]
-		if materialTag==-1 or self.isForging or isConnecting then
+		if materialTag==-1 or self.isForging then
 		-- 没有放东西
 			return
 		end
@@ -115,7 +115,7 @@ function UI_equipForge:init(equipMakeInfo_)
 	-- 取消按钮
 	local cancelBtn = contNode:getChildByName("Image_cancle")
 	local function onCancelBtnTouched(sender, eventType)
-		if self.isForging or isConnecting then
+		if self.isForging then
 			-- 无法操作的条件
 			return
 		end
@@ -140,6 +140,53 @@ function UI_equipForge:init(equipMakeInfo_)
 	-- 锻造秘诀
 	local forgeBookBtn = contNode:getChildByName("Image_forgeBookBtn")
 	forgeBookBtn:getChildByName("Label_name"):setString(hp.lang.getStrByID(2902))
+	
+	--计算是否有可以制造的装备
+	local function getCanMakeEquips()
+		local equips = clone(game.data.equip)
+		local count = table.getn(equips)
+		for i=count,1,-1 do
+		
+			local canMake = true
+			-- 武将等级、白银
+			if player.getLv() < equips[i].mustLv or player.getResource("silver") < equips[i].cost then
+				canMake=false
+			end
+			
+			if canMake then
+				--材料
+				local matrialSid={}
+				local items=clone(player.getItemList())
+				for j,v in pairs(equips[i].matrial) do
+					local noItem=true
+					for m=1,6 do
+						local psid=v*1000+(7-m)
+						if items[psid] ~= nil and items[psid]>0 then
+							matrialSid[j]=psid
+							noItem=false
+							items[psid] = items[psid]-1
+							break
+						end
+					end
+					if noItem then
+						canMake=false
+						break
+					end
+				end	
+
+				if canMake then
+					return true
+				end
+			end
+		
+		end
+		return false
+	end
+	if getCanMakeEquips() then
+	-- 如果可以锻造，升级特效
+		hp.uiEffect.innerGlow(forgeBookBtn, 1)
+	end
+
 	local function onBookBtnTouched(sender, eventType)
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
@@ -164,16 +211,17 @@ function UI_equipForge:init(equipMakeInfo_)
 
 	--立即锻造
 	local nowBtn = contNode:getChildByName("Image_now")
+	local needGold = nowBtn:getChildByName("Label_num")
 	nowBtn:getChildByName("Label_text"):setString(hp.lang.getStrByID(2903))
 	local function onNowBtnTouched(sender, eventType)
-		if self.isForging or isConnecting then
+		if self.isForging then
 			-- 无法操作的条件
 			return
 		end
 
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			--forgeEquip()
+			forgeEquipNow()
 		end
 	end
 	nowBtn:addTouchEventListener(onNowBtnTouched)
@@ -182,15 +230,19 @@ function UI_equipForge:init(equipMakeInfo_)
 	local forgeBtn = contNode:getChildByName("Image_forge")
 	local needSilver = forgeBtn:getChildByName("Label_num")
 	forgeBtn:getChildByName("Label_text"):setString(hp.lang.getStrByID(2900))
+	--锻造按钮发光
+	local forgeLight = hp.uiEffect.innerGlow(forgeBtn, 1)
+	forgeLight:setVisible(false)
+	
 	local function onForgeBtnTouched(sender, eventType)
-		if self.isForging or isConnecting then
+		if self.isForging then
 			-- 无法操作的条件
 			return
 		end
 
 		hp.uiHelper.btnImgTouched(sender, eventType)
 		if eventType==TOUCH_EVENT_ENDED then
-			forgeEquip()
+			forgeEquip(sender)
 		end
 	end
 	forgeBtn:addTouchEventListener(onForgeBtnTouched)
@@ -202,7 +254,7 @@ function UI_equipForge:init(equipMakeInfo_)
 	materialDemo:retain()
 	self.materialDemo=materialDemo
 	local function onItemTouched(sender, eventType)
-		if self.isForging or isConnecting then
+		if self.isForging then
 			-- 无法操作的条件
 			return
 		end
@@ -392,6 +444,25 @@ function UI_equipForge:init(equipMakeInfo_)
 		return odds
 	end
 
+	-- 设置立即制造所需钻石
+	local function updateNeedGold()
+		if selectEquip==nil or self.isForging then
+			return
+		end
+		local realCD = 0
+		local lv = player.buildingMgr.getBuildingMaxLvBySid(1011)
+		for i,info in ipairs(game.data.forge) do
+			if lv==info.level then
+				realCD = math.floor(selectEquip.cd/(1+info.speedRate/100))
+				break
+			end
+		end
+
+		local needGoldNum = player.quicklyMgr.getDiamondCost({0, selectEquip.cost, 0, 0, 0, 0}, realCD)
+		needGold:setString(needGoldNum)
+		return needGoldNum
+	end
+	self.updateNeedGold = updateNeedGold
 
 	-- 检测可以锻造出的装备
 	function checkEquip()
@@ -446,9 +517,11 @@ function UI_equipForge:init(equipMakeInfo_)
 
 			forgeBtn:loadTexture(config.dirUI.common .. "button_gray.png")
 			forgeBtn:setTouchEnabled(false)
+			forgeLight:setVisible(false)
 			needSilver:setString(0)
 			nowBtn:loadTexture(config.dirUI.common .. "button_gray.png")
 			nowBtn:setTouchEnabled(false)
+			needGold:setString(0)
 		else
 			equipNode:setVisible(true)
 			equipNode:setTouchEnabled(true)
@@ -475,10 +548,13 @@ function UI_equipForge:init(equipMakeInfo_)
 			needSilver:setString(selectEquip.cost)
 			nowBtn:loadTexture(config.dirUI.common .. "button_green.png")
 			nowBtn:setTouchEnabled(true)
+			forgeLight:setVisible(true)
+			updateNeedGold()
 		end
-
 	end
 
+	-- 锻造装备
+	--===============================================================
 	local function onHttpResponse(status, response, tag)
 		if status==200 then
 			local data = hp.httpParse(response)
@@ -500,22 +576,41 @@ function UI_equipForge:init(equipMakeInfo_)
 
 					--unselectAllMaterial()
 					setforgingInfo()
+					refreshAll()
 				elseif tag==2 then
 				-- 取消锻造
+				elseif tag==3 then
+				-- 立即锻造
+					for i,v in ipairs(selectedMaterialTag) do
+						if v~=-1 then
+							local sid = math.floor(v/1000)
+							player.expendItem(sid, 1)
+						end
+					end
+					player.equipBag.addEquip({selectEquip.sid, data.id, data.lv+1, {0, 0, 0}})
+					setforgingInfo()
+					refreshAll()
+					self.forgeFinished()
 				end
 			end
 		end
-
-		isConnecting = false
+	end
+	-- 打开购买银币界面
+	function buySilverPane()
+		require("ui/item/resourceItem")
+		local ui = UI_resourceItem.new(1)
+		self:addUI(ui)
 	end
 	-- 锻造装备
-	function forgeEquip()
+	function forgeEquip(btn)
 		if player.getResource("silver")<selectEquip.cost then
 		-- 金币不够
 			require("ui/msgBox/msgBox")
 			local msgBox = UI_msgBox.new(hp.lang.getStrByID(2904), 
 				hp.lang.getStrByID(2905), 
-				hp.lang.getStrByID(1209)
+				hp.lang.getStrByID(1209),
+				hp.lang.getStrByID(2412),
+				buySilverPane
 				)
 			self:addModalUI(msgBox)
 			return
@@ -538,8 +633,38 @@ function UI_equipForge:init(equipMakeInfo_)
 		cmdData.operation[1] = oper
 		local cmdSender = hp.httpCmdSender.new(onHttpResponse)
 		cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper, 1)
-		isConnecting = true
+		self:showLoading(cmdSender, btn)
 	end
+
+	-- 立即锻造装备
+	function forgeEquipNow(btn)
+		if player.getResource("gold")<updateNeedGold() then
+			-- 金币不够
+			require("ui/msgBox/msgBox")
+			UI_msgBox.showCommonMsg(self, 1)
+			return
+		end
+
+		local cmdData={operation={}}
+		local oper = {}
+		oper.channel = 7
+		oper.type = 8
+		oper.sid = selectEquip.sid
+		oper.materialsid = {}
+		for i,v in ipairs(selectedMaterialTag) do
+			if v~=-1 then
+				local sid = math.floor(v/1000)
+				table.insert(oper.materialsid, sid)
+			else
+				table.insert(oper.materialsid, 0)
+			end
+		end
+		cmdData.operation[1] = oper
+		local cmdSender = hp.httpCmdSender.new(onHttpResponse)
+		cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper, 3)
+		self:showLoading(cmdSender, btn)
+	end
+
 
 	-- 进度条
 	local progressBg = contNode:getChildByName("Image_progressBg")
@@ -589,8 +714,11 @@ function UI_equipForge:init(equipMakeInfo_)
 			forgeBtn:loadTexture(config.dirUI.common .. "button_gray.png")
 			forgeBtn:setTouchEnabled(false)
 			needSilver:setString(0)
+			forgeLight:setVisible(false)
 			nowBtn:loadTexture(config.dirUI.common .. "button_gray.png")
 			nowBtn:setTouchEnabled(false)
+			needGold:setString(0)
+			cancelBtn:setVisible(false)
 		end
 	end
 	setforgingInfo()
@@ -602,6 +730,7 @@ function UI_equipForge:init(equipMakeInfo_)
 		equipNode:setTouchEnabled(false)
 		progressBg:setVisible(false)
 		ProbTextCont:setVisible(false)
+		cancelBtn:setVisible(true)
 		for i=1, 4 do
 			selectedMaterialTag[i] = -1
 			contNode:getChildByName("Image_itemframe" .. i):setVisible(false)
@@ -623,7 +752,7 @@ function UI_equipForge:init(equipMakeInfo_)
 	cdSpeedBtn:addTouchEventListener(onSpeedBtnTouched)
 
 	-- 刷新所有
-	local function refreshAll()
+	function refreshAll()
 		forge_cd = cdBox.getCDInfo(cdBox.CDTYPE.EQUIP)
 		if forge_cd.cd<=0 then
 			unselectAllMaterial()
@@ -664,6 +793,7 @@ function UI_equipForge:onMsg(msg_, resInfo_)
 	if msg_==hp.MSG.RESOURCE_CHANGED then
 		if resInfo_.name=="silver" then
 			self.silverNum:setString(resInfo_.num)
+			self.updateNeedGold()
 		end
 	end
 end

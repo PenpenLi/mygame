@@ -64,21 +64,27 @@ function UI_killHero:init(building_, prisonMgr_)
 			local btnFree = itemCont:getChildByName("ImageView_free")
 			local btnKill = itemCont:getChildByName("ImageView_kill")
 			local btnKillCD = itemCont:getChildByName("ImageView_killCD")
-			itemCDNodes[i] = timeNode
+			itemCDNodes[i] = {}
+			itemCDNodes[i].node = timeNode
+			itemCDNodes[i].localID = heroInfo.localID
 			timeNode:setString(string.format(hp.lang.getStrByID(4009), hp.datetime.strTime(heroInfo.leaveTime)))
 
 			if killCD.cd>0 then
 			-- 正在斩杀一个英雄
-				btnFree:setTouchEnabled(false)
-				btnFree:loadTexture(config.dirUI.common .. "button_gray.png")
 				btnKill:setTouchEnabled(false)
 				if killCD.ownerID==heroInfo.ownerID and killCD.id==heroInfo.id then
 				-- 斩杀的是这个英雄
+					btnFree:setTouchEnabled(false)
+					btnFree:loadTexture(config.dirUI.common .. "button_gray.png")
 					btnKill:setVisible(false)
 					btnKillCD:setVisible(true)
 					killCDNode = btnKillCD:getChildByName("Label_cd")
 					killCDNode:setString(hp.datetime.strTime(killCD.cd))
 				else
+					btnFree:setTag(heroInfo.localID)
+					btnFree:setTouchEnabled(true)
+					btnFree:addTouchEventListener(onFreeBtnTouched)
+					btnFree:loadTexture(config.dirUI.common .. "button_blue.png")
 					btnKill:setVisible(true)
 					btnKill:loadTexture(config.dirUI.common .. "button_gray.png")
 					btnKillCD:setVisible(false)
@@ -87,7 +93,7 @@ function UI_killHero:init(building_, prisonMgr_)
 				btnFree:setTag(heroInfo.localID)
 				btnFree:setTouchEnabled(true)
 				btnFree:addTouchEventListener(onFreeBtnTouched)
-				btnFree:loadTexture(config.dirUI.common .. "button_green.png")
+				btnFree:loadTexture(config.dirUI.common .. "button_blue.png")
 				btnKill:setTag(heroInfo.localID)
 				btnKill:setTouchEnabled(true)
 				btnKill:addTouchEventListener(onKillBtnTouched)
@@ -110,9 +116,10 @@ function UI_killHero:init(building_, prisonMgr_)
 			local ownerNode = itemCont:getChildByName("Label_owner")
 			local lvNode = itemCont:getChildByName("Label_level")
 
+			picNode:loadTexture(config.dirUI.heroHeadpic .. heroInfo.sid .. ".png")
 			nameNode:setString(string.format(hp.lang.getStrByID(4006), heroInfo.name))
 			if string.len(heroInfo.unionName)>0 then
-				ownerNode:setString(string.format(hp.lang.getStrByID(4007), "("..heroInfo.unionName..")"..heroInfo.ownerName))
+				ownerNode:setString(string.format(hp.lang.getStrByID(4007), hp.lang.getStrByID(21)..heroInfo.unionName..hp.lang.getStrByID(22)..heroInfo.ownerName))
 			else
 				ownerNode:setString(string.format(hp.lang.getStrByID(4007), heroInfo.ownerName))
 			end
@@ -127,12 +134,18 @@ function UI_killHero:init(building_, prisonMgr_)
 	local function removeHeroItem( heroInfo )
 		local listItem = heroListView:getChildByTag(heroInfo.localID)
 		heroListView:removeItem(heroListView:getIndex(listItem))
+		for i, v in ipairs(itemCDNodes) do
+			if v.localID==heroInfo.localID then
+				table.remove(itemCDNodes, i)
+				break
+			end
+		end
 	end
 
 	local function refreshHeroCDTime()
 		local heroList = prisonMgr.getHeros()
 		for i, heroInfo in ipairs(heroList) do
-			itemCDNodes[i]:setString(string.format(hp.lang.getStrByID(4009), hp.datetime.strTime(heroInfo.leaveTime)))
+			itemCDNodes[i].node:setString(string.format(hp.lang.getStrByID(4009), hp.datetime.strTime(heroInfo.leaveTime)))
 		end
 
 		if killCDNode then
@@ -172,7 +185,7 @@ function UI_killHero:onMsg(msg_, param_)
 		elseif param_.type==3 then
 			self.refreshHeroListOper()
 		elseif param_.type==4 then
-			self.removeHeroItem(param_.hero)
+			self.refreshHeroListOper(param_.hero)
 		end
 	end
 end

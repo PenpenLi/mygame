@@ -10,7 +10,7 @@ local nameID_ = {
 	[cdBox.CDTYPE.REMEDY] = {5168, nil},
 }
 
-setmetatable(nameID_, {__index=function() print("this is not supported"); return {5167, nil} end})
+setmetatable(nameID_, {__index=function() cclog_("this is not supported"); return {5167, nil} end})
 
 UI_unionHelp = class("UI_unionHelp", UI)
 
@@ -32,6 +32,8 @@ function UI_unionHelp:init()
 	self:initUI()	
 
 	local uiFrame = UI_fullScreenFrame.new()
+	uiFrame:hideTopBackground()
+	uiFrame:setTopShadePosY(762)
 	uiFrame:setTitle(hp.lang.getStrByID(5126))
 
 	-- addCCNode
@@ -42,9 +44,12 @@ function UI_unionHelp:init()
 	hp.uiHelper.uiAdaption(self.uiItem)
 
 	self:registMsg(hp.MSG.UNION_DATA_PREPARED)
-	self:registMsg(hp.MSG.UNION_HELP_INFO_CHANGE)
+	self:registMsg(hp.MSG.UNION_NOTIFY)
 
-	player.getAlliance():prepareData(dirtyType.HELP, "UI_unionHelp")
+	local cmdData_ = player.getAlliance():prepareData(dirtyType.HELP, "UI_unionHelp")
+	if cmdData_ ~= nil then
+		self:showLoading(cmdData_)
+	end
 	self:updateInfo()
 end
 
@@ -82,6 +87,7 @@ function UI_unionHelp:initCallBack()
 			cmdData.operation[1] = oper
 			local cmdSender = hp.httpCmdSender.new(onHelpResponse)
 			cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+			self:showLoading(cmdSender, sender)
 		end
 	end
 
@@ -108,6 +114,7 @@ function UI_unionHelp:initCallBack()
 			cmdData.operation[1] = oper
 			local cmdSender = hp.httpCmdSender.new(onHelpAllResponse)
 			cmdSender:send(hp.httpCmdType.SEND_INTIME, cmdData, config.server.cmdOper)
+			self:showLoading(cmdSender, sender)
 		end
 	end
 
@@ -118,16 +125,18 @@ end
 
 function UI_unionHelp:initUI()
 	self.widgetRoot = ccs.GUIReader:getInstance():widgetFromJsonFile(config.dirUI.root .. "unionHelp.json")
-	self.widgetRoot:getChildByName("Panel_2"):getChildByName("Image_11"):addTouchEventListener(self.onMoreInfoTouched)
-	self.helpAll = self.widgetRoot:getChildByName("Panel_2"):getChildByName("Image_11_0")
+	local back_ = self.widgetRoot:getChildByName("Panel_2")
+	back_:getChildByName("Image_11"):addTouchEventListener(self.onMoreInfoTouched)
+	self.helpAll = back_:getChildByName("Image_11_0")
 	self.helpAll:addTouchEventListener(self.onHelpAllTouched)
+	self.helpAll:setTouchEnabled(false)
 
 	local content_ = self.widgetRoot:getChildByName("Panel_14")
 	content_:getChildByName("Label_15"):setString(hp.lang.getStrByID(1156))
 	content_:getChildByName("Label_15_0"):setString(hp.lang.getStrByID(1157))
 
-	self.loadingBar = content_:getChildByName("ImageView_1644_0"):getChildByName("LoadingBar_1640")
-	self.loadingText = self.loadingBar:getChildByName("ImageView_1641"):getChildByName("Label_1643")
+	self.loadingBar = back_:getChildByName("ImageView_1644_0"):getChildByName("LoadingBar_1640")
+	self.loadingText = content_:getChildByName("Label_1643")
 
 	content_:getChildByName("Label_29"):setString(hp.lang.getStrByID(1030))
 	content_:getChildByName("Label_29_0"):setString(hp.lang.getStrByID(1158))
@@ -138,61 +147,65 @@ function UI_unionHelp:initUI()
 	self.listView:removeAllItems()
 end
 
-function UI_unionHelp:close()
+function UI_unionHelp:onRemove()
 	self.uiItem:release()
 	player.getAlliance():unPrepareData(dirtyType.HELP, "UI_unionHelp")
-	self.super.close(self)
+	self.super.onRemove(self)
 end
 
 function UI_unionHelp:refreshShow()
 	self.listView:removeAllItems()
 	local helpInfo_ = player:getAlliance():getHelpInfo()
 
+	local helpNum_ = 0
 	for i, v in ipairs(helpInfo_) do
-		local item_ = self.uiItem:clone()
-		self.listView:pushBackCustomItem(item_)
-		local content_ = item_:getChildByName("Panel_35")
 		local member_ = player.getAlliance():getMemberByID(v.id)
-		content_:getChildByName("Image_42"):loadTexture(config.dirUI.common..hp.gameDataLoader.getInfoBySid("unionRank", member_:getRank()).image)
-		content_:getChildByName("Label_43"):setString(member_:getName())
+		if member_ ~= nil then
+			local item_ = self.uiItem:clone()
+			self.listView:pushBackCustomItem(item_)
+			local content_ = item_:getChildByName("Panel_35")
+			content_:getChildByName("Image_42"):loadTexture(config.dirUI.common..hp.gameDataLoader.getInfoBySid("unionRank", member_:getRank()).image)
+			content_:getChildByName("Label_43"):setString(member_:getName())
 
-		-- 帮助项目名称
-		local helpLocalInfo_ = nameID_[v.type]
-		local tempInfo_ = {}
-		if helpLocalInfo_[2] ~= nil then
-			tempInfo_ = hp.gameDataLoader.getInfoBySid(helpLocalInfo_[2], v.param[1])
-		end
-		content_:getChildByName("Label_43_0"):setString(string.format(hp.lang.getStrByID(helpLocalInfo_[1]), tempInfo_.name, v.param[2]))
+			-- 帮助项目名称
+			local helpLocalInfo_ = nameID_[v.type]
+			local tempInfo_ = {}
+			if helpLocalInfo_[2] ~= nil then
+				tempInfo_ = hp.gameDataLoader.getInfoBySid(helpLocalInfo_[2], v.param[1])
+			end
+			content_:getChildByName("Label_43_0"):setString(string.format(hp.lang.getStrByID(helpLocalInfo_[1]), tempInfo_.name, v.param[2]))
 
-		self.uiHelpTime = content_:getChildByName("ImageView_1644_0"):getChildByName("LoadingBar_1640")
-		self.uiHelpTime:getChildByName("ImageView_1641"):getChildByName("Label_1642"):setString(hp.lang.getStrByID(5150))
-		self.uiHelpTime:getChildByName("ImageView_1641"):getChildByName("Label_1643"):setString(string.format("%d/%d", v.number, v.total))
-		local percent_ = hp.common.round(v.number / v.total * 100)
-		self.uiHelpTime:setPercent(percent_)
-		local help_ = content_:getChildByName("Image_56")
-		if v.id == player.getID() then
-			help_:setVisible(false)
-		else
-			help_:addTouchEventListener(self.onHelpTouched)
+			self.uiHelpTime = item_:getChildByName("Panel_43"):getChildByName("ImageView_1644_0"):getChildByName("LoadingBar_1640")
+			content_:getChildByName("Label_1642"):setString(hp.lang.getStrByID(5150))
+			content_:getChildByName("Label_1643"):setString(string.format("%d/%d", v.number, v.total))
+			local percent_ = v.number / v.total * 100
+			self.uiHelpTime:setPercent(percent_)
+			local help_ = content_:getChildByName("Image_56")
+			if v.id == player.getID() then
+				help_:setVisible(false)
+			else
+				helpNum_ = helpNum_ + 1
+				help_:addTouchEventListener(self.onHelpTouched)
+			end
+			help_:setTag(i)
+			self.helpInfoMap[i] = v
+			help_:getChildByName("Label_57"):setString(hp.lang.getStrByID(5150))
 		end
-		help_:setTag(i)
-		self.helpInfoMap[i] = v
-		help_:getChildByName("Label_57"):setString(hp.lang.getStrByID(5150))
 	end
 
-	if table.getn(helpInfo_) == 0 then
+	if helpNum_ == 0 then
 		self.helpAll:setTouchEnabled(false)
 		self.helpAll:loadTexture(config.dirUI.common.."button_gray.png")
 	else
 		self.helpAll:setTouchEnabled(true)
-		self.helpAll:loadTexture(config.dirUI.common.."ui_hero_skillpoint.png")
+		self.helpAll:loadTexture(config.dirUI.common.."button_yellow.png")
 	end
 end
 
 function UI_unionHelp:updateInfo()
 	local myUnionBaseInfo_ = player.getAlliance():getMyUnionInfoBase()
 	self.loadingText:setString(string.format("%d/%d", myUnionBaseInfo_.todayContri, myUnionBaseInfo_.todayUp))
-	local percent_ = hp.common.round(myUnionBaseInfo_.todayContri / myUnionBaseInfo_.todayUp * 100)
+	local percent_ = myUnionBaseInfo_.todayContri / myUnionBaseInfo_.todayUp * 100
 	self.loadingBar:setPercent(percent_)
 end
 
@@ -201,7 +214,9 @@ function UI_unionHelp:onMsg(msg_, param_)
 		if param_ == dirtyType.HELP then
 			self:refreshShow()
 		end
-	elseif msg_ == hp.MSG.UNION_HELP_INFO_CHANGE then
-		self:updateInfo()
+	elseif msg_ == hp.MSG.UNION_NOTIFY then
+		if param_.msgType == 4 then
+			self:updateInfo()
+		end
 	end
 end
