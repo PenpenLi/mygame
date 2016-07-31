@@ -47,6 +47,7 @@ bin/
 #obj/
 gen/
 assets/
+publish/
 local.properties
 
 # Ignore python compiled files
