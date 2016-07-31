@@ -80,6 +80,7 @@ function UI_myArmy:initFirstShow()
 		self.arriving:setVisible(false)
 		self.back:setVisible(true)
 		self.back:setString(hp.lang.getStrByID(1305))
-	elseif 
+	else
+		print("");
 	end
 end
