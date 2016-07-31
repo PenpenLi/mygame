@@ -151,4 +151,5 @@ tests/cpp-tests/Resources/audio
 *.xcscmblueprint
 
 #/frameworks/runtime-src/
-/frameworks/runtime-src/proj.android/libs/armeabi
+/frameworks/runtime-src/proj.android/libs
+/frameworks/runtime-src/proj.android/obj

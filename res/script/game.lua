@@ -45,7 +45,7 @@ function game.init()
 	game.visibleSize = game.director:getVisibleSize()
 	game.origin = game.director:getVisibleOrigin()
 	game.scheduler = game.director:getScheduler()
-	--game.director:setDisplayStats(true)
+	game.director:setDisplayStats(false)
 
 	game.director:setAnimationInterval( 1.0/30 )
 
