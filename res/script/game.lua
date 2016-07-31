@@ -58,7 +58,7 @@ function game.init()
 	player.init()
 	--gameUpdater.init()
 
-	local targetPlatform = CCApplication:getInstance():getTargetPlatform()
+	--local targetPlatform = CCApplication:getInstance():getTargetPlatform()
 --[[	if targetPlatform == cc.PLATFORM_OS_ANDROID then
 		-- helper
 		game.sdkHelper = require("thirdSdk/tencentSdk")
