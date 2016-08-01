@@ -69,7 +69,7 @@ function Scene:init()
 						end
 					end
 				end
-				self.layer:setKeypadEnabled(true)
+				self.layer:setKeyboardEnabled(true)
 				self.layer:registerScriptKeypadHandler(onKeypadEvent)
 			end
 
@@ -114,7 +114,7 @@ function Scene:init()
 			self.scene:unregisterScriptHandler()
 			if game.application:getTargetPlatform()==cc.PLATFORM_OS_ANDROID then
 				self.layer:unregisterScriptKeypadHandler()
-				self.layer:setKeypadEnabled(false)
+				self.layer:setKeyboardEnabled(false)
 			end
 			self.scene:unscheduleUpdate()
 			self:onExit()

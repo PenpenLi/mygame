@@ -30,6 +30,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Message;
@@ -37,6 +38,10 @@ import android.view.ViewGroup;
 import android.util.Log;
 import android.widget.FrameLayout;
 import android.preference.PreferenceManager.OnActivityResultListener;
+
+import javax.microedition.khronos.egl.EGL10;
+import javax.microedition.khronos.egl.EGLConfig;
+import javax.microedition.khronos.egl.EGLDisplay;
 
 public abstract class Cocos2dxActivity extends Activity implements Cocos2dxHelperListener {
 	// ===========================================================
@@ -57,7 +62,6 @@ public abstract class Cocos2dxActivity extends Activity implements Cocos2dxHelpe
 	public static Context getContext() {
 		return sContext;
 	}
-	
 	
 	protected void onLoadNativeLibraries() {
 		try {
@@ -91,7 +95,7 @@ public abstract class Cocos2dxActivity extends Activity implements Cocos2dxHelpe
     	
     	Cocos2dxHelper.init(this);
     	
-    	this.init();
+		this.init();
     	if (mVideoHelper == null) {
     		mVideoHelper = new Cocos2dxVideoHelper(this, mFrameLayout);
 		}
@@ -194,7 +198,10 @@ public abstract class Cocos2dxActivity extends Activity implements Cocos2dxHelpe
 	}
 	
     public Cocos2dxGLSurfaceView onCreateView() {
-    	return new Cocos2dxGLSurfaceView(this);
+        Cocos2dxGLSurfaceView glSurfaceView = new Cocos2dxGLSurfaceView(this);
+        glSurfaceView.setEGLConfigChooser(5,6,5,0,16,8);
+
+        return glSurfaceView;
     }
 
    private final static boolean isAndroidEmulator() {
