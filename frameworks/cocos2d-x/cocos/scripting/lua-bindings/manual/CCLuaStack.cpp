@@ -252,29 +252,61 @@ int LuaStack::executeString(const char *codes)
     return executeFunction(0);
 }
 
+static const std::string BYTECODE_FILE_EXT = ".luac";
+static const std::string NOT_BYTECODE_FILE_EXT = ".lua";
+
 int LuaStack::executeScriptFile(const char* filename)
 {
-#if (CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID)
-    std::string code("require \"");
-    code.append(filename);
-    code.append("\"");
-    return executeString(code.c_str());
-#else
-    std::string fullPath = FileUtils::getInstance()->fullPathForFilename(filename);
-    ++_callFromLua;
-    int nRet = luaL_dofile(_state, fullPath.c_str());
-    --_callFromLua;
-    CC_ASSERT(_callFromLua >= 0);
-    // lua_gc(_state, LUA_GCCOLLECT, 0);
-    
-    if (nRet != 0)
-    {
-        CCLOG("[LUA ERROR] %s", lua_tostring(_state, -1));
-        lua_pop(_state, 1);
-        return nRet;
-    }
-    return 0;
-#endif
+	CCAssert(filename, "CCLuaStack::executeScriptFile() - invalid filename");
+
+	std::string buf(filename);
+	//
+	// remove .lua or .luac
+	//
+	size_t pos = buf.rfind(BYTECODE_FILE_EXT);
+	if (pos != std::string::npos)
+	{
+		buf = buf.substr(0, pos);
+	}
+	else
+	{
+		pos = buf.rfind(NOT_BYTECODE_FILE_EXT);
+		if (pos == buf.length() - NOT_BYTECODE_FILE_EXT.length())
+		{
+			buf = buf.substr(0, pos);
+		}
+	}
+
+	FileUtils *utils = FileUtils::getInstance();
+	//
+	// 1. check .lua suffix
+	// 2. check .luac suffix
+	//
+	std::string tmpfilename = buf + NOT_BYTECODE_FILE_EXT;
+	if (utils->isFileExist(tmpfilename))
+	{
+		buf = tmpfilename;
+	}
+	else
+	{
+		tmpfilename = buf + BYTECODE_FILE_EXT;
+		if (utils->isFileExist(tmpfilename))
+		{
+			buf = tmpfilename;
+		}
+	}
+
+	std::string fullPath = utils->fullPathForFilename(buf);
+	Data data = utils->getDataFromFile(fullPath);
+	int rn = 0;
+	if (!data.isNull())
+	{
+		if (luaL_loadbuffer(_state, (const char*)data.getBytes(), (int)data.getSize(), fullPath.c_str()) == 0)
+		{
+			rn = executeFunction(0);
+		}
+	}
+	return rn;
 }
 
 int LuaStack::executeGlobalFunction(const char* functionName)
