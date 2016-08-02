@@ -63,6 +63,16 @@ public abstract class Cocos2dxActivity extends Activity implements Cocos2dxHelpe
 		return sContext;
 	}
 	
+	public void setKeepScreenOn(boolean value) {
+        final boolean newValue = value;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mGLSurfaceView.setKeepScreenOn(newValue);
+            }
+        });
+    }
+
 	protected void onLoadNativeLibraries() {
 		try {
 			ApplicationInfo ai = getPackageManager().getApplicationInfo(getPackageName(), PackageManager.GET_META_DATA);
@@ -99,6 +109,8 @@ public abstract class Cocos2dxActivity extends Activity implements Cocos2dxHelpe
     	if (mVideoHelper == null) {
     		mVideoHelper = new Cocos2dxVideoHelper(this, mFrameLayout);
 		}
+
+		setKeepScreenOn(true);
 	}
 	
 	// ===========================================================
