@@ -138,6 +138,9 @@ public:
 
     float getZoomScale();
 
+	void setMinScale(float scale) { _minScale = scale; }
+	void setMaxScale(float scale) { _maxScale = scale; }
+
     /**
      * Sets a new scale for container in a given duration.
      *
