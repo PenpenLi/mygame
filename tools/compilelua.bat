@@ -1,0 +1,1 @@
+cocos luacompile -s G:\git\mygame\res\script -d F:\slg\svn\slg\trunk\client\res\script
