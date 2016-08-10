@@ -93,8 +93,8 @@ function worldMap:init()
 	self.mapScrollView:setContentSize(cc.size(self.mapSize.width, self.mapSize.height))
 	self.mapScrollView:setBounceable(false)
 	local minScale = hp.uiHelper.RA_scale * 0.5
-	--self.mapScrollView:setMinScale(minScale)
-	--self.mapScrollView:setMaxScale(2*hp.uiHelper.RA_scale)
+	self.mapScrollView:setMinScale(minScale)
+	self.mapScrollView:setMaxScale(2*hp.uiHelper.RA_scale)
 	self.mapScrollView:setZoomScale(1.2*hp.uiHelper.RA_scale)
 	self.mapScrollView:setDelegate()
 

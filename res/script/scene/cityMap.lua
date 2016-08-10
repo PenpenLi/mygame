@@ -74,11 +74,12 @@ function cityMap:init(loginFlag_)
 		minScale = minScaleY
 	end
 	minScale = minScale*1.1
-	--self.mapScrollView:setMinScale(minScale)
-	--self.mapScrollView:setMaxScale(minScale*3)
+	self.mapScrollView:setMinScale(minScale)
+	self.mapScrollView:setMaxScale(minScale*3)
 	self.mapScrollView:setBounceable(false)
 	self.mapScrollView:setZoomScale(minScale*1.2)
 	self.mapScrollView:setContentOffset(cc.p(0, 0))
+
 
 	---- mapBg
 	for i=1, mapBNumH do
@@ -94,6 +95,10 @@ function cityMap:init(loginFlag_)
 	local tileMap = cc.TMXTiledMap:create(config.dirUI.map .. "cell.tmx")
 	self.bgLayer:addChild(tileMap)
 	tileMap:setAnchorPoint(0, 0)
+	local x = -(tileMapW-mapWidth)/2;
+	local y = -(tileMapH-mapHeight)/2;
+	printInfo("set title map x:" ..  x);
+	printInfo("set title map y:" ..  y);
 	tileMap:setPosition(-(tileMapW-mapWidth)/2, -(tileMapH-mapHeight)/2)
 	-- 对Map需要的变量赋值
 	self.tileMap = tileMap

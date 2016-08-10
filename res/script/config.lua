@@ -7,6 +7,7 @@ config = config or {}
 
 
 config.debug = 2 --0, 1, 2
+DEBUG = config.debug;
 
 config.versionCode = 3
 config.baseVersion = "1.2"
