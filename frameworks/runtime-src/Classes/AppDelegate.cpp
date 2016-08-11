@@ -39,6 +39,9 @@ bool AppDelegate::applicationDidFinishLaunching()
     // set FPS. the default value is 1.0/60 if you don't call this
     director->setAnimationInterval(1.0 / 60);
 
+	//set private key
+	//ZipUtils::setPvrEncryptionKey(0xc780c7ba, 0x0fbd34e9, 0xb7109ec9, 0x7955e48d);
+
 
     auto engine = LuaEngine::getInstance();
     ScriptEngineManager::getInstance()->setScriptEngine(engine);
